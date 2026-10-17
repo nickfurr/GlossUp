@@ -21,6 +21,8 @@ tags:
     description: Inicio de sesión y emisión de tokens JWT
   - name: Catálogo
     description: Consulta y registro de productos cosméticos
+  - name: Perfil Dermatológico
+    description: Consulta y gestión dinámica de alergias y afecciones del cliente (HU2)
 
 paths:
   /ping:
@@ -46,10 +48,10 @@ paths:
     post:
       tags:
         - Autenticación
-      summary: Iniciar sesión como vendedor
+      summary: Iniciar sesión (Cliente, Vendedor o Admin)
       description: |
-        Valida el correo y la contraseña de un usuario activo con rol VENDEDOR
-        y devuelve un JWT para consumir los endpoints protegidos del catálogo.
+        Valida el correo y la contraseña de un usuario activo y devuelve un JWT
+        con sus roles para consumir los endpoints protegidos de la plataforma.
       operationId: login
       security: []
       requestBody:
@@ -77,7 +79,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          description: Credenciales inválidas, usuario inactivo o sin rol VENDEDOR
+          description: Credenciales inválidas o usuario inactivo
           content:
             application/json:
               schema:
@@ -148,6 +150,62 @@ paths:
                 $ref: '#/components/schemas/ProductoResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Catálogo
+      summary: Modificar un producto existente (HU4)
+      description: |
+        Actualiza los datos generales, stock, hipervínculos de imágenes y ficha INCI
+        de un producto perteneciente al vendedor autenticado.
+      operationId: actualizarProducto
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarProductoRequest'
+      responses:
+        '200':
+          description: Producto modificado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/BusinessRuleError'
+    delete:
+      tags:
+        - Catálogo
+      summary: Eliminar lógicamente un producto (HU4)
+      description: |
+        Despublica (activo = false) un producto perteneciente al vendedor autenticado,
+        protegiendo el historial de pedidos.
+      operationId: eliminarProducto
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204':
+          description: Producto eliminado lógicamente (despublicado)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/catalogo/productos/mis-productos:
     get:
@@ -182,6 +240,36 @@ paths:
         Usa Gemini Vision para detectar y extraer la lista de nombres INCI normalizados.
         Requiere rol VENDEDOR.
       operationId: extraerIngredientes
+  /api/perfil/me:
+    get:
+      tags:
+        - Perfil Dermatológico
+      summary: Obtener mi perfil dermatológico
+      description: |
+        Retorna el perfil dermatológico del cliente autenticado. Si aún no existe,
+        crea y persiste automáticamente un perfil inicial vacío.
+      operationId: obtenerMiPerfil
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil dermatológico del cliente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/perfil/me/alergias:
+    post:
+      tags:
+        - Perfil Dermatológico
+      summary: Agregar una alergia (INCI) al perfil (HU2)
+      description: Agrega dinámicamente un ingrediente cosmético (INCI) a la lista de alergias del cliente sin duplicados.
+      operationId: agregarAlergia
       security:
         - bearerAuth: []
       requestBody:
@@ -210,6 +298,16 @@ paths:
                   - glycerin
                   - niacinamide
                   - sodium hyaluronate
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlergiaRequest'
+      responses:
+        '200':
+          description: Alergia agregada y perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -218,6 +316,146 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/BusinessRuleError'
+    delete:
+      tags:
+        - Perfil Dermatológico
+      summary: Quitar una alergia (INCI) del perfil mediante body (HU2)
+      description: Elimina dinámicamente un ingrediente (INCI) de la lista de alergias del cliente.
+      operationId: quitarAlergiaPorBody
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlergiaRequest'
+      responses:
+        '200':
+          description: Alergia eliminada y perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/perfil/me/alergias/{alergia}:
+    delete:
+      tags:
+        - Perfil Dermatológico
+      summary: Quitar una alergia (INCI) del perfil por ruta (HU2)
+      operationId: quitarAlergiaPorRuta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: alergia
+          in: path
+          required: true
+          description: Nombre INCI del ingrediente a eliminar de las alergias
+          schema:
+            type: string
+          example: parfum
+      responses:
+        '200':
+          description: Alergia eliminada y perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/perfil/me/afecciones:
+    post:
+      tags:
+        - Perfil Dermatológico
+      summary: Agregar una afección o condición dermatológica al perfil (HU2)
+      description: Agrega dinámicamente una condición dermatológica (ej. acné, rosácea, dermatitis) al perfil del cliente.
+      operationId: agregarAfeccion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AfeccionRequest'
+      responses:
+        '200':
+          description: Afección agregada y perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/BusinessRuleError'
+    delete:
+      tags:
+        - Perfil Dermatológico
+      summary: Quitar una afección o condición del perfil mediante body (HU2)
+      operationId: quitarAfeccionPorBody
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AfeccionRequest'
+      responses:
+        '200':
+          description: Afección eliminada y perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/perfil/me/afecciones/{afeccion}:
+    delete:
+      tags:
+        - Perfil Dermatológico
+      summary: Quitar una afección o condición del perfil por ruta (HU2)
+      operationId: quitarAfeccionPorRuta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: afeccion
+          in: path
+          required: true
+          description: Nombre de la afección o condición a eliminar
+          schema:
+            type: string
+          example: rosacea
+      responses:
+        '200':
+          description: Afección eliminada y perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
 components:
 
@@ -481,6 +719,84 @@ components:
             - aqua
             - glycerin
             - niacinamide
+
+    AlergiaRequest:
+      type: object
+      required:
+        - alergia
+      properties:
+        alergia:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Nombre INCI del ingrediente al que el cliente es alérgico
+          example: Parfum
+
+    AfeccionRequest:
+      type: object
+      required:
+        - afeccion
+      properties:
+        afeccion:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Nombre de la afección o condición dermatológica
+          example: Rosácea
+
+    PerfilResponse:
+      type: object
+      required:
+        - usuarioId
+        - afecciones
+        - alergias
+        - actualizadoEn
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+          example: 10
+        usuarioId:
+          type: integer
+          format: int64
+          example: 7
+        ph:
+          type: number
+          format: double
+          nullable: true
+          example: 5.2
+        tipoPiel:
+          type: string
+          nullable: true
+          enum:
+            - NORMAL
+            - SECA
+            - GRASA
+            - MIXTA
+            - SENSIBLE
+          example: MIXTA
+        tipoCabello:
+          type: string
+          nullable: true
+          example: ondulado
+        afecciones:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+          example:
+            - rosácea
+        alergias:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+          example:
+            - parfum
+        actualizadoEn:
+          type: string
+          format: date-time
 
     ApiError:
 

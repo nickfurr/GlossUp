@@ -6,15 +6,19 @@ import com.glossup.catalogo.domain.model.ImagenProducto;
 import com.glossup.catalogo.domain.model.Inci;
 import com.glossup.catalogo.domain.model.Ingrediente;
 import com.glossup.catalogo.domain.model.Producto;
+import com.glossup.catalogo.domain.port.in.ActualizarProductoCommand;
+import com.glossup.catalogo.domain.port.in.GestionarProductoUseCase;
 import com.glossup.catalogo.domain.port.in.RegistrarProductoCommand;
 import com.glossup.catalogo.domain.port.in.RegistrarProductoUseCase;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
+import com.glossup.catalogo.infrastructure.in.rest.dto.ActualizarProductoRequest;
 import com.glossup.catalogo.infrastructure.in.rest.dto.IngredienteRequest;
 import com.glossup.catalogo.infrastructure.in.rest.dto.RegistrarProductoRequest;
 import com.glossup.shared.config.SecurityConfig;
 import com.glossup.shared.domain.Dinero;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.GlobalExceptionHandler;
+import com.glossup.shared.exception.NotFoundException;
 import com.glossup.shared.security.JwtAuthenticationFilter;
 import com.glossup.shared.security.JwtService;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,8 +35,12 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,6 +66,9 @@ class ProductoControllerTest {
     private RegistrarProductoUseCase registrarProductoUseCase;
 
     @MockBean
+    private GestionarProductoUseCase gestionarProductoUseCase;
+
+    @MockBean
     private ProductoRepositoryPort productoRepository;
 
     @MockBean
@@ -76,6 +88,20 @@ class ProductoControllerTest {
                         new IngredienteRequest("Ascorbic Acid", "Vitamina C", 15.0),
                         new IngredienteRequest("Aqua", null, null)
                 )
+        );
+    }
+
+    private ActualizarProductoRequest crearActualizarRequestValido() {
+        return new ActualizarProductoRequest(
+                "Serum Vitamina C Renovado",
+                "GlossLab",
+                "Serum Facial",
+                BigDecimal.valueOf(90000.0),
+                40,
+                3.6,
+                "INVIMA-2024",
+                List.of("https://cdn.glossup.co/img-new.webp"),
+                List.of(new IngredienteRequest("Ascorbic Acid", "Vitamina C", 15.0))
         );
     }
 
@@ -245,6 +271,63 @@ class ProductoControllerTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/catalogo/productos/extraer-ingredientes")
                         .file(file))
                 .andExpect(status().isUnauthorized());
+    void actualizarProducto_conRolVendedorPropietario_retorna200Ok() throws Exception {
+        ActualizarProductoRequest request = crearActualizarRequestValido();
+
+        Producto actualizado = new Producto(
+                100L, 5L, "Serum Vitamina C Renovado", "GlossLab", "Serum Facial",
+                Dinero.de(90000.0), 40, 3.6, "INVIMA-2024", true,
+                List.of(new ImagenProducto("https://cdn.glossup.co/img-new.webp")),
+                List.of(new ComposicionProducto(new Ingrediente(1L, new Inci("Ascorbic Acid"), "Vitamina C"), 15.0)),
+                null
+        );
+
+        when(gestionarProductoUseCase.actualizar(any(ActualizarProductoCommand.class)))
+                .thenReturn(actualizado);
+
+        mockMvc.perform(put("/api/catalogo/productos/100")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100))
+                .andExpect(jsonPath("$.nombre").value("Serum Vitamina C Renovado"))
+                .andExpect(jsonPath("$.precio").value(90000.0))
+                .andExpect(jsonPath("$.stock").value(40));
+    }
+
+    @Test
+    @WithMockUser(username = "99", roles = "VENDEDOR")
+    void actualizarProducto_deOtroVendedor_retorna403Forbidden() throws Exception {
+        ActualizarProductoRequest request = crearActualizarRequestValido();
+
+        when(gestionarProductoUseCase.actualizar(any(ActualizarProductoCommand.class)))
+                .thenThrow(new AccessDeniedException("Acceso denegado: no puedes modificar un producto de otro vendedor"));
+
+        mockMvc.perform(put("/api/catalogo/productos/100")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    @WithMockUser(username = "5", roles = "VENDEDOR")
+    void eliminarProducto_conRolVendedorPropietario_retorna204NoContent() throws Exception {
+        doNothing().when(gestionarProductoUseCase).eliminar(100L, 5L);
+
+        mockMvc.perform(delete("/api/catalogo/productos/100"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "5", roles = "VENDEDOR")
+    void eliminarProducto_inexistente_retorna404NotFound() throws Exception {
+        doThrow(new NotFoundException("Producto no encontrado con ID: 999"))
+                .when(gestionarProductoUseCase).eliminar(999L, 5L);
+
+        mockMvc.perform(delete("/api/catalogo/productos/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
     }
 }
 

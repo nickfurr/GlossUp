@@ -153,7 +153,7 @@ public class Producto {
         return stock >= cantidad;
     }
 
-    // ---- Edición (HU4) ----
+    // ---- Edición y Eliminación (HU4) ----
 
     public void actualizarDatos(String nombre, String marca, String categoria,
                                 Dinero precio, Double ph, String registroInvima) {
@@ -163,6 +163,43 @@ public class Producto {
         this.precio = Objects.requireNonNull(precio, "precio requerido");
         this.ph = ph;
         this.registroInvima = normalizarOpcional(registroInvima);
+    }
+
+    /**
+     * Actualiza de forma integral el producto (HU4): datos generales, stock,
+     * lista de imágenes y ficha técnica INCI (cumpliendo RNF-04: >= 1 ingrediente).
+     */
+    public void actualizar(String nombre, String marca, String categoria,
+                           Dinero precio, int stock, Double ph, String registroInvima,
+                           List<ImagenProducto> nuevasImagenes,
+                           List<ComposicionProducto> nuevaComposicion) {
+        if (nuevaComposicion == null || nuevaComposicion.isEmpty()) {
+            throw new ReglaNegocioException("La ficha técnica debe contener al menos un ingrediente (INCI)");
+        }
+        this.nombre = validarNombre(nombre);
+        this.marca = normalizarOpcional(marca);
+        this.categoria = normalizarOpcional(categoria);
+        this.precio = Objects.requireNonNull(precio, "precio requerido");
+        this.stock = validarStock(stock);
+        this.ph = ph;
+        this.registroInvima = normalizarOpcional(registroInvima);
+
+        this.imagenes.clear();
+        if (nuevasImagenes != null) {
+            for (ImagenProducto imagen : nuevasImagenes) {
+                agregarImagen(imagen);
+            }
+        }
+
+        this.composicion.clear();
+        for (ComposicionProducto item : nuevaComposicion) {
+            agregarIngrediente(item);
+        }
+    }
+
+    /** Verifica si el producto pertenece al vendedor indicado (RNF-14). */
+    public boolean perteneceAVendedor(Long idVendedor) {
+        return this.vendedorId != null && this.vendedorId.equals(idVendedor);
     }
 
     // ---- Validaciones ----

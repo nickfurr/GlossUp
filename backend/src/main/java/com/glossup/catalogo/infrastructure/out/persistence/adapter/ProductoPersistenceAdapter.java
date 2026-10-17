@@ -51,7 +51,10 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     }
 
     private ProductoEntity aEntity(Producto dominio) {
-        ProductoEntity entity = new ProductoEntity();
+        ProductoEntity entity = (dominio.getId() != null)
+                ? productoJpaRepository.findById(dominio.getId()).orElseGet(ProductoEntity::new)
+                : new ProductoEntity();
+
         entity.setId(dominio.getId());
         entity.setVendedorId(dominio.getVendedorId());
         entity.setNombre(dominio.getNombre());
@@ -64,13 +67,15 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
         entity.setActivo(dominio.isActivo());
         entity.setCreadoEn(dominio.getCreadoEn());
 
-        // Mapear lista de imágenes
+        // Sincronizar lista de imágenes
+        entity.getImagenes().clear();
         int orden = 0;
         for (ImagenProducto img : dominio.getImagenes()) {
             entity.agregarImagen(new ImagenProductoEntity(entity, img.url(), orden++));
         }
 
-        // Mapear lista de composición INCI
+        // Sincronizar lista de composición INCI
+        entity.getComposicion().clear();
         for (ComposicionProducto comp : dominio.getComposicion()) {
             Ingrediente ing = comp.ingrediente();
             IngredienteEntity ingEntity = null;

@@ -32,7 +32,7 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
                 .orElseThrow(CredencialesInvalidasException::new);
 
         if (!usuario.isActivo()
-                || !usuario.tieneRol(Rol.VENDEDOR)
+                || usuario.getRoles().isEmpty()
                 || !passwordEncoder.matches(command.password(), usuario.getPasswordHash())) {
             throw new CredencialesInvalidasException();
         }
