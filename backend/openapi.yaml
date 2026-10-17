@@ -230,6 +230,16 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/catalogo/productos/extraer-ingredientes:
+    post:
+      tags:
+        - Catálogo
+      summary: Extraer ingredientes INCI desde foto de etiqueta (HU5)
+      description: |
+        Recibe una imagen (JPG o PNG) de la etiqueta de un producto cosmético.
+        Usa Gemini Vision para detectar y extraer la lista de nombres INCI normalizados.
+        Requiere rol VENDEDOR.
+      operationId: extraerIngredientes
   /api/perfil/me:
     get:
       tags:
@@ -265,6 +275,29 @@ paths:
       requestBody:
         required: true
         content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - imagen
+              properties:
+                imagen:
+                  type: string
+                  format: binary
+                  description: Archivo de imagen de la etiqueta del producto (JPG/PNG)
+      responses:
+        '200':
+          description: Lista de ingredientes INCI detectados exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngredientesImagenResponse'
+              example:
+                ingredientes:
+                  - aqua
+                  - glycerin
+                  - niacinamide
+                  - sodium hyaluronate
           application/json:
             schema:
               $ref: '#/components/schemas/AlergiaRequest'
@@ -425,6 +458,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
 
 components:
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -671,6 +705,20 @@ components:
           format: double
           nullable: true
           example: 2.0
+    IngredientesImagenResponse:
+      type: object
+      required:
+        - ingredientes
+      properties:
+        ingredientes:
+          type: array
+          description: Lista de nombres de ingredientes INCI detectados en minúsculas
+          items:
+            type: string
+          example:
+            - aqua
+            - glycerin
+            - niacinamide
 
     AlergiaRequest:
       type: object
@@ -751,6 +799,7 @@ components:
           format: date-time
 
     ApiError:
+
       type: object
       required:
         - timestamp
