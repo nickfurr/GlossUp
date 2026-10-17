@@ -47,3 +47,8 @@ glossup:
       expiration-ms: 3600000
   cors:
     allowed-origins: http://localhost:5173,http://localhost:4200,http://localhost:3000
+  ai:
+    gemini:
+      api-key: ${GEMINI_API_KEY:REEMPLAZAR-CON-TU-KEY}
+      model: gemini-flash-latest
+      endpoint: https://generativelanguage.googleapis.com/v1beta/models
