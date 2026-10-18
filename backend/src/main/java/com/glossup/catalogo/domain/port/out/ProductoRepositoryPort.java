@@ -15,4 +15,6 @@ public interface ProductoRepositoryPort {
     Optional<Producto> buscarPorId(Long id);
 
     List<Producto> buscarPorVendedor(Long vendedorId);
+
+    List<Producto> listarTodos();
 }

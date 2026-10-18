@@ -17,8 +17,12 @@ export class App {
 
   readonly sesion = this.auth.sesion;
   readonly rutaPanel = computed(() => (this.sesion() ? rutaDePanel(this.sesion()!.panel) : '/login'));
-  readonly mostrarTopbar = computed(() => !!this.sesion() && this.sesion()!.panel !== 'VENDEDOR');
-  readonly claseMain = computed(() => (this.sesion()?.panel === 'VENDEDOR' ? 'full' : 'container'));
+  readonly mostrarTopbar = computed(
+    () => !!this.sesion() && this.sesion()!.panel !== 'VENDEDOR' && this.sesion()!.panel !== 'ADMIN',
+  );
+  readonly claseMain = computed(() =>
+    this.sesion()?.panel === 'VENDEDOR' || this.sesion()?.panel === 'ADMIN' ? 'full' : 'container',
+  );
 
   salir(): void {
     this.auth.salir();

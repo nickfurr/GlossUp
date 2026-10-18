@@ -50,6 +50,13 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
                 .toList();
     }
 
+    @Override
+    public List<Producto> listarTodos() {
+        return productoJpaRepository.findAll().stream()
+                .map(this::aDominio)
+                .toList();
+    }
+
     private ProductoEntity aEntity(Producto dominio) {
         ProductoEntity entity = (dominio.getId() != null)
                 ? productoJpaRepository.findById(dominio.getId()).orElseGet(ProductoEntity::new)
