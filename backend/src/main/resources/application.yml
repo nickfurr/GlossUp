@@ -24,7 +24,8 @@ spring:
     baseline-on-migrate: true
 
 server:
-  port: 8080
+  # Azure Container Apps (y Cloud Run) inyectan el puerto por la variable PORT.
+  port: ${PORT:8080}
 
 management:
   endpoints:
