@@ -3,9 +3,10 @@ spring:
     name: glossup-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/glossup
-    username: glossup
-    password: glossup
+    # Lee la BD de variables de entorno (Neon en Azure); default localhost para desarrollo local.
+    url: ${GLOSSUP_DB_URL:jdbc:postgresql://localhost:5432/glossup}
+    username: ${GLOSSUP_DB_USER:glossup}
+    password: ${GLOSSUP_DB_PASSWORD:glossup}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -44,7 +45,7 @@ springdoc:
 glossup:
   security:
     jwt:
-      secret: cambia-este-secreto-de-desarrollo-min-32-bytes!!
+      secret: ${GLOSSUP_JWT_SECRET:cambia-este-secreto-de-desarrollo-min-32-bytes!!}
       expiration-ms: 3600000
   cors:
     allowed-origins: http://localhost:5173,http://localhost:4200,http://localhost:3000
