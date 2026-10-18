@@ -1,0 +1,93 @@
+<section class="auth-split">
+  <!-- Panel de marca (izquierda) -->
+  <aside class="auth-marca">
+    <div class="auth-marca-logo">GlossUP</div>
+    <p class="auth-marca-tag">Tu piel, en buenas manos</p>
+    @if (esRegistro()) {
+      <p class="auth-marca-sub">Únete a GlossUP y compra con seguridad dermatológica.</p>
+    } @else {
+      <ul class="auth-ventajas">
+        <li><span class="tick">✓</span> Compatibilidad por ingredientes</li>
+        <li><span class="tick">✓</span> Recomendaciones con IA</li>
+        <li><span class="tick">✓</span> Perfil dermatológico</li>
+      </ul>
+    }
+  </aside>
+
+  <!-- Formulario (derecha) -->
+  <div class="auth-form-col">
+    <h2>{{ esRegistro() ? 'Crea tu cuenta' : 'Iniciar sesión' }}</h2>
+
+    <form class="auth-form" (ngSubmit)="enviar()">
+      @if (esRegistro()) {
+        <div class="campo-full">
+          <span class="etiqueta">Tipo de cuenta</span>
+          <div class="toggle-rol">
+            <button type="button" [class.activo]="rol === 'CLIENTE'" (click)="rol = 'CLIENTE'">Cliente</button>
+            <button type="button" [class.activo]="rol === 'VENDEDOR'" (click)="rol = 'VENDEDOR'">Vendedor</button>
+          </div>
+        </div>
+
+        <label>
+          Nombre completo
+          <input name="nombre" [(ngModel)]="nombre" placeholder="Nombre y apellidos" required />
+        </label>
+      }
+
+      <label>
+        Correo electrónico
+        <input type="email" name="email" [(ngModel)]="email" placeholder="correo@ejemplo.com" required />
+      </label>
+
+      <div [class]="esRegistro() ? 'campos-2' : 'campo-full'">
+        <label>
+          Contraseña
+          <input
+            type="password"
+            name="password"
+            [(ngModel)]="password"
+            [placeholder]="esRegistro() ? 'Mínimo 8 caracteres' : '••••••••'"
+            [minlength]="esRegistro() ? 8 : null"
+            required
+          />
+        </label>
+        @if (esRegistro()) {
+          <label>
+            Confirmar
+            <input type="password" name="password2" [(ngModel)]="password2" placeholder="Repite la contraseña" required />
+          </label>
+        }
+      </div>
+
+      @if (!esRegistro()) {
+        <button type="button" class="link olvido" (click)="avisoOlvido()">¿Olvidaste tu contraseña?</button>
+      }
+
+      @if (esRegistro()) {
+        <label class="terminos">
+          <input type="checkbox" name="acepta" [(ngModel)]="acepta" required />
+          Acepto los Términos y la Política de datos (Ley 1581/2012).
+        </label>
+      }
+
+      @if (error()) { <p class="error">{{ error() }}</p> }
+      @if (info()) { <p class="nota">{{ info() }}</p> }
+
+      <button type="submit" class="btn-primario ancho" [disabled]="cargando()">
+        {{ cargando() ? 'Procesando…' : esRegistro() ? 'Crear cuenta' : 'Ingresar' }}
+      </button>
+
+      @if (!esRegistro()) {
+        <div class="separador">o continúa con</div>
+        <button type="button" class="btn-sec ancho" (click)="avisoGoogle()">Google</button>
+      }
+    </form>
+
+    <p class="auth-switch">
+      {{ esRegistro() ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?' }}
+      <button type="button" class="link" (click)="cambiarModo()">
+        {{ esRegistro() ? 'Inicia sesión' : 'Regístrate' }}
+      </button>
+    </p>
+  </div>
+</section>

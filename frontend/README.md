@@ -1,61 +1,59 @@
-# GlossUP · Frontend (PWA)
+# Frontend
 
-Cliente web de **GlossUP** implementado como **Progressive Web App** (ADR-03), que consume la
-API REST del backend.
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.3.
 
-## Stack
-- **React 19 + TypeScript** sobre **Vite**
-- **PWA** con `vite-plugin-pwa` (service worker + manifest, instalable en móvil)
-- **React Router** para el enrutado
-- **Axios** como cliente HTTP (con inyección automática del token JWT)
+## Development server
 
-## Estructura (por features, espejo de los módulos del backend)
-```
-frontend/
-├── index.html
-├── vite.config.ts            # PWA + proxy /api -> localhost:8080
-└── src/
-    ├── main.tsx
-    ├── app/                  # shell: App.tsx (router + navbar), HomePage
-    ├── shared/
-    │   ├── api/              # apiClient (axios + JWT), health
-    │   ├── components/       # componentes reutilizables
-    │   ├── hooks/
-    │   └── types/            # tipos de dominio (espejo de las entidades del back)
-    ├── styles/
-    └── features/
-        ├── usuarios/         # login / registro
-        ├── perfil/           # perfil dermatológico (HU1, HU2)
-        ├── catalogo/         # productos e INCI (HU3, HU4, HU12, HU13, HU5)
-        ├── compatibilidad/   # motor de alertas (HU6, HU7, HU8)
-        └── recomendacion/    # carrito, checkout, IA (HU9, HU10, HU11, HU14)
-```
-Cada feature tiene `pages/`, `components/` y `api/`.
+To start a local development server, run:
 
-## Requisitos
-- Node 20+ (tienes Node 26)
-- El backend corriendo en `http://localhost:8080` (para que funcione el proxy `/api`)
-
-## Puesta en marcha
 ```bash
-cd frontend
-npm install          # instala dependencias
-npm run dev          # servidor de desarrollo en http://localhost:5173
+ng serve
 ```
 
-## Comandos
+Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+
+## Code scaffolding
+
+Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+
 ```bash
-npm run dev        # desarrollo (HMR)
-npm run build      # compila a dist/ (TypeScript + Vite)
-npm run preview    # sirve la build de producción localmente
-npm run lint       # oxlint
+ng generate component component-name
 ```
 
-## Variables de entorno
-Copia `.env.example` a `.env` y ajusta:
-| Variable | Por defecto | Descripción |
-|----------|-------------|-------------|
-| `VITE_API_URL` | `/api` | Base del backend. En dev usa el proxy de Vite; en prod, la URL pública de la API. |
+For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
 
-## Despliegue
-`Dockerfile` incluido: construye la app y la sirve como estáticos con **nginx** (SPA fallback).
+```bash
+ng generate --help
+```
+
+## Building
+
+To build the project run:
+
+```bash
+ng build
+```
+
+This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+
+## Running unit tests
+
+To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+
+```bash
+ng test
+```
+
+## Running end-to-end tests
+
+For end-to-end (e2e) testing, run:
+
+```bash
+ng e2e
+```
+
+Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+
+## Additional Resources
+
+For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
