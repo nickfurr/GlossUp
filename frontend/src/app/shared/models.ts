@@ -48,3 +48,21 @@ export interface DatosProducto {
   imagenes: string[];
   ingredientes: { inci: string; descripcion?: string | null; concentracion?: number | null }[];
 }
+
+export type TipoPiel = 'NORMAL' | 'SECA' | 'GRASA' | 'MIXTA' | 'SENSIBLE';
+export type TipoCabello =
+  | 'LISO_1A' | 'LISO_1B' | 'LISO_1C'
+  | 'ONDULADO_2A' | 'ONDULADO_2B' | 'ONDULADO_2C'
+  | 'RIZADO_3A' | 'RIZADO_3B' | 'RIZADO_3C'
+  | 'MUY_RIZADO_4A' | 'MUY_RIZADO_4B' | 'MUY_RIZADO_4C';
+
+export interface PerfilDermatologico {
+  id?: number | null;
+  usuarioId: number;
+  ph: number | null;
+  tipoPiel: TipoPiel | null;
+  tipoCabello: TipoCabello | null;
+  afecciones: string[];
+  alergias: string[];
+  actualizadoEn: string;
+}

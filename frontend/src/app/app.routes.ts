@@ -6,6 +6,7 @@ import { Cliente } from './pages/cliente/cliente';
 import { Admin } from './pages/admin/admin';
 import { Inicio } from './pages/inicio/inicio';
 import { Simple } from './pages/simple/simple';
+import { Perfil } from './pages/perfil/perfil';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -19,7 +20,7 @@ export const routes: Routes = [
   // Zona del cliente (placeholders, igual que en la versión anterior).
   { path: 'catalogo', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Catálogo' } },
   { path: 'compatibilidad', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Compatibilidad' } },
-  { path: 'perfil', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Mi perfil dermatológico' } },
+  { path: 'perfil', component: Perfil, canActivate: [roleGuard('CLIENTE')] },
   { path: 'carrito', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Carrito' } },
 
   { path: '**', redirectTo: '' },

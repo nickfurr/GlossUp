@@ -8,6 +8,7 @@ interface LoginResponse {
   token: string;
   usuarioId: number;
   email: string;
+  nombre: string;
   roles: RolUsuario[];
 }
 
@@ -48,7 +49,7 @@ export class AuthService {
         const roles = data.roles ?? [];
         const sesion: SesionUsuario = {
           usuarioId: data.usuarioId,
-          nombre: (data.email.split('@')[0] || data.email),
+          nombre: data.nombre,
           email: data.email,
           roles,
           panel: panelDeRoles(roles),

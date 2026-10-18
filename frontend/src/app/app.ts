@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService, rutaDePanel } from './shared/auth';
 
@@ -19,9 +19,14 @@ export class App {
   readonly rutaPanel = computed(() => (this.sesion() ? rutaDePanel(this.sesion()!.panel) : '/login'));
   readonly mostrarTopbar = computed(() => !!this.sesion() && this.sesion()!.panel !== 'VENDEDOR');
   readonly claseMain = computed(() => (this.sesion()?.panel === 'VENDEDOR' ? 'full' : 'container'));
+  readonly menuCuentaAbierto = signal(false);
 
   salir(): void {
     this.auth.salir();
     this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  alternarCuenta(): void {
+    this.menuCuentaAbierto.update((abierto) => !abierto);
   }
 }
