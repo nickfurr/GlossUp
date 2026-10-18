@@ -12,6 +12,7 @@ import java.util.Set;
 public class UsuarioEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String email;
 
@@ -29,7 +30,23 @@ public class UsuarioEntity {
             inverseJoinColumns = @JoinColumn(name = "rol_id"))
     private Set<RolEntity> roles = new HashSet<>();
 
+    public UsuarioEntity() {}
+
+    public UsuarioEntity(Long id, String email, String passwordHash, String nombre,
+                         boolean activo, OffsetDateTime creadoEn, Set<RolEntity> roles) {
+        this.id = id;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.nombre = nombre;
+        this.activo = activo;
+        this.creadoEn = creadoEn;
+        if (roles != null) {
+            this.roles = new HashSet<>(roles);
+        }
+    }
+
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
     public String getNombre() { return nombre; }

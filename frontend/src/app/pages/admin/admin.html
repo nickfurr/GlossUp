@@ -1,0 +1,338 @@
+<div class="vend-layout">
+  <aside class="vend-side">
+    <div class="vend-brand">GlossUP</div>
+    <div class="vend-sub">Panel Administrador</div>
+    <nav class="vend-nav">
+      @for (n of nav; track n.id) {
+        <button type="button" [class.activo]="vista() === n.id" (click)="irA(n.id)">
+          <span class="dot"></span>{{ n.label }}
+        </button>
+      }
+    </nav>
+    <div class="vend-side-pie">
+      <span>{{ sesion()?.nombre }}</span>
+      <button type="button" (click)="cerrarSesion()">Salir</button>
+    </div>
+  </aside>
+
+  <main class="vend-main">
+    @if (aviso()) {
+      <p class="nota" style="background: #dcfce7; color: #166534; padding: 0.75rem 1rem; border-radius: 10px; font-weight: 600">
+        {{ aviso() }}
+      </p>
+    }
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <!-- ===================================================== DASHBOARD -->
+    @if (vista() === 'dashboard') {
+      <div class="vend-topline">
+        <h2>{{ saludo }}, {{ sesion()?.nombre }}</h2>
+        <button type="button" class="btn-primario" (click)="irA('nuevo-vendedor')">
+          ＋ Nuevo vendedor
+        </button>
+      </div>
+
+      <div class="tiles">
+        <div class="tile-stat">
+          <span class="label">Usuarios registrados</span>
+          <span class="val val-vino">{{ usuarios().length }}</span>
+        </div>
+        <div class="tile-stat">
+          <span class="label">Vendedores activos</span>
+          <span class="val val-rosa">{{ totalVendedores() }}</span>
+        </div>
+        <div class="tile-stat">
+          <span class="label">Clientes registrados</span>
+          <span class="val val-ok">{{ totalClientes() }}</span>
+        </div>
+        <div class="tile-stat">
+          <span class="label">Productos en catálogo</span>
+          <span class="val val-amber">{{ productos().length }}</span>
+        </div>
+      </div>
+
+      <div class="dash-row">
+        <section class="panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem">
+            <h3 style="margin: 0">Usuarios registrados</h3>
+            <button type="button" class="link" (click)="irA('usuarios')">Ver todos →</button>
+          </div>
+          @if (usuarios().length === 0) {
+            <p class="nota">No hay usuarios registrados.</p>
+          } @else {
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>USUARIO</th>
+                  <th>CORREO</th>
+                  <th>ROL</th>
+                  <th>ESTADO</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of usuarios(); track u.id) {
+                  <tr>
+                    <td><strong>#{{ u.id }}</strong> · {{ u.nombre }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                      @for (r of u.roles; track r) {
+                        <span class="pill">{{ r }}</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="badge-estado" [class.activo]="u.activo" [class.agotado]="!u.activo">
+                        ● {{ u.activo ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </section>
+
+        <section class="panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem">
+            <h3 style="margin: 0">Productos recientes</h3>
+            <button type="button" class="link" (click)="irA('productos')">Ver catálogo →</button>
+          </div>
+          @if (productos().length === 0) {
+            <p class="nota">No hay productos registrados en el catálogo aún.</p>
+          } @else {
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>PRODUCTO</th>
+                  <th>PRECIO</th>
+                  <th>ESTADO</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of productos(); track p.id) {
+                  <tr>
+                    <td><strong>{{ p.nombre }}</strong></td>
+                    <td class="precio">${{ p.precio | number: '1.0-0' }}</td>
+                    <td>
+                      <span class="badge-estado" [class.activo]="p.activo" [class.agotado]="!p.activo">
+                        ● {{ p.activo ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </section>
+      </div>
+    }
+
+    <!-- ===================================================== USUARIOS -->
+    @if (vista() === 'usuarios') {
+      <div class="vend-topline">
+        <h2>Usuarios registrados</h2>
+        <button type="button" class="btn-primario" (click)="irA('nuevo-vendedor')">
+          ＋ Nuevo vendedor
+        </button>
+      </div>
+
+      <div class="filtros-fila">
+        <input
+          class="buscador"
+          placeholder="Buscar por nombre o correo electrónico"
+          [ngModel]="qUsuario()"
+          (ngModelChange)="qUsuario.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        <div class="filtros">
+          <button
+            type="button"
+            class="filtro"
+            [class.activo]="filtroRol() === 'todos'"
+            (click)="filtroRol.set('todos')"
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            class="filtro"
+            [class.activo]="filtroRol() === 'VENDEDOR'"
+            (click)="filtroRol.set('VENDEDOR')"
+          >
+            Vendedores
+          </button>
+          <button
+            type="button"
+            class="filtro"
+            [class.activo]="filtroRol() === 'CLIENTE'"
+            (click)="filtroRol.set('CLIENTE')"
+          >
+            Clientes
+          </button>
+          <button
+            type="button"
+            class="filtro"
+            [class.activo]="filtroRol() === 'ADMIN'"
+            (click)="filtroRol.set('ADMIN')"
+          >
+            Admins
+          </button>
+        </div>
+      </div>
+
+      <div class="panel">
+        @if (usuariosFiltrados().length === 0) {
+          <p class="nota">No hay usuarios que coincidan con el filtro.</p>
+        } @else {
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>NOMBRE</th>
+                <th>CORREO</th>
+                <th>ROL</th>
+                <th>ESTADO</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of usuariosFiltrados(); track u.id) {
+                <tr>
+                  <td><strong>#{{ u.id }}</strong></td>
+                  <td>{{ u.nombre }}</td>
+                  <td>{{ u.email }}</td>
+                  <td>
+                    @for (r of u.roles; track r) {
+                      <span class="pill">{{ r }}</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="badge-estado" [class.activo]="u.activo" [class.agotado]="!u.activo">
+                      ● {{ u.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+
+    <!-- ===================================================== NUEVO VENDEDOR -->
+    @if (vista() === 'nuevo-vendedor') {
+      <div class="vend-topline">
+        <h2>Nuevo vendedor</h2>
+        <button type="button" class="btn-sec" (click)="irA('usuarios')">← Volver</button>
+      </div>
+
+      <section class="panel" style="max-width: 680px">
+        <h3>Datos de la cuenta de vendedor</h3>
+        <form (ngSubmit)="crearVendedor()">
+          <label class="campo">
+            Nombre de la marca o vendedor
+            <input
+              name="nombreVendedor"
+              [(ngModel)]="nombreVendedor"
+              placeholder="Ej: Aurora Cosmetics / Laboratorio Dermaskin"
+              maxlength="150"
+              required
+            />
+          </label>
+
+          <div class="campos-2">
+            <label class="campo">
+              Correo electrónico
+              <input
+                type="email"
+                name="emailVendedor"
+                [(ngModel)]="emailVendedor"
+                placeholder="vendedor@marca.com"
+                maxlength="180"
+                required
+              />
+            </label>
+            <label class="campo">
+              Contraseña inicial (mín. 8 caracteres)
+              <input
+                type="password"
+                name="passwordVendedor"
+                [(ngModel)]="passwordVendedor"
+                placeholder="••••••••"
+                required
+              />
+            </label>
+          </div>
+
+          <div class="editor-acciones">
+            <button type="button" class="btn-sec" (click)="irA('dashboard')">Cancelar</button>
+            <button type="submit" class="btn-primario" [disabled]="guardando()">
+              {{ guardando() ? 'Guardando…' : 'Crear vendedor' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    <!-- ===================================================== PRODUCTOS -->
+    @if (vista() === 'productos') {
+      <div class="vend-topline">
+        <h2>Productos en el catálogo</h2>
+      </div>
+
+      <div class="filtros-fila">
+        <input
+          class="buscador"
+          placeholder="Buscar por nombre, marca o ingrediente (INCI)"
+          [ngModel]="qProducto()"
+          (ngModelChange)="qProducto.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+        />
+      </div>
+
+      <div class="panel">
+        @if (productosFiltrados().length === 0) {
+          <p class="nota">No hay productos registrados en el catálogo.</p>
+        } @else {
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>PRODUCTO</th>
+                <th>MARCA / CATEGORÍA</th>
+                <th>FICHA INCI</th>
+                <th>PRECIO</th>
+                <th>STOCK</th>
+                <th>INVIMA</th>
+                <th>ESTADO</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of productosFiltrados(); track p.id) {
+                <tr>
+                  <td class="celda-prod">
+                    <span class="thumb">
+                      @if (p.imagenes && p.imagenes[0]) {
+                        <img [src]="p.imagenes[0]" [alt]="p.nombre" />
+                      }
+                    </span>
+                    {{ p.nombre }}
+                  </td>
+                  <td>{{ p.marca || '—' }} · {{ p.categoria || 'General' }}</td>
+                  <td>{{ p.ingredientes.length }} ingredientes</td>
+                  <td class="precio">${{ p.precio | number: '1.0-0' }}</td>
+                  <td [class.rojo-txt]="p.stock === 0">{{ p.stock }}</td>
+                  <td>{{ p.registroInvima || '—' }}</td>
+                  <td>
+                    <span class="badge-estado" [class.activo]="p.activo" [class.agotado]="!p.activo">
+                      ● {{ p.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </main>
+</div>
