@@ -1,0 +1,7 @@
+**/target
+**/node_modules
+**/dist
+backend/.env
+**/.git
+docs
+.azure-sp.json
