@@ -1,0 +1,19 @@
+@if (mostrarTopbar()) {
+  <header class="topbar">
+    <a [routerLink]="rutaPanel()" class="brand">GlossUP</a>
+    <nav>
+      @if (sesion()?.panel === 'CLIENTE') {
+        <a routerLink="/catalogo">Catálogo</a>
+        <a routerLink="/compatibilidad">Compatibilidad</a>
+        <a routerLink="/perfil">Mi perfil</a>
+        <a routerLink="/carrito">Carrito</a>
+      }
+      <a [routerLink]="rutaPanel()" class="user">👤 {{ sesion()!.nombre }} ({{ sesion()!.panel }})</a>
+      <button type="button" class="link" (click)="salir()">Salir</button>
+    </nav>
+  </header>
+}
+
+<main [class]="claseMain()">
+  <router-outlet />
+</main>

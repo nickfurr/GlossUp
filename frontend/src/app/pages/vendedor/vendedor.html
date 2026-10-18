@@ -1,0 +1,188 @@
+<div class="vend-layout">
+  <aside class="vend-side">
+    <div class="vend-brand">GlossUP</div>
+    <div class="vend-sub">Panel Vendedor</div>
+    <nav class="vend-nav">
+      @for (n of nav; track n.id) {
+        <button type="button" [class.activo]="vista() === n.id" (click)="irA(n.id)">
+          <span class="dot"></span>{{ n.label }}
+        </button>
+      }
+    </nav>
+    <div class="vend-side-pie">
+      <span>{{ sesion()?.nombre }}</span>
+      <button type="button" (click)="cerrarSesion()">Salir</button>
+    </div>
+  </aside>
+
+  <main class="vend-main">
+    @if (error()) { <p class="error">{{ error() }}</p> }
+
+    <!-- Dashboard -->
+    @if (vista() === 'dashboard') {
+      <div class="vend-topline">
+        <h2>Buenos días, {{ sesion()?.nombre }}</h2>
+        <button type="button" class="btn-primario" (click)="abrirNuevo()">＋ Nuevo producto</button>
+      </div>
+      <div class="tiles">
+        <div class="tile-stat"><span class="label">Ventas del mes</span><span class="val val-vino">{{ formatearCop(0) }}</span></div>
+        <div class="tile-stat"><span class="label">Pedidos</span><span class="val val-rosa">0</span></div>
+        <div class="tile-stat"><span class="label">Productos activos</span><span class="val val-ok">{{ activos() }}</span></div>
+        <div class="tile-stat"><span class="label">Alertas de INCI</span><span class="val val-amber">{{ alertas() }}</span></div>
+      </div>
+      <div class="dash-row">
+        <section class="panel"><h3>Ventas por semana</h3><p class="nota">Aún no hay ventas registradas.</p></section>
+        <section class="panel"><h3>Pedidos recientes</h3><p class="nota">No hay pedidos aún.</p></section>
+      </div>
+    }
+
+    <!-- Mis productos -->
+    @if (vista() === 'productos') {
+      <div class="vend-topline">
+        <h2>Mis productos</h2>
+        <button type="button" class="btn-primario" (click)="abrirNuevo()">＋ Nuevo producto</button>
+      </div>
+      <div class="filtros-fila">
+        <input
+          class="buscador"
+          placeholder="Buscar por nombre o ingrediente (INCI)"
+          [ngModel]="q()"
+          (ngModelChange)="q.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        <div class="filtros">
+          <button type="button" class="filtro" [class.activo]="filtro() === 'todos'" (click)="filtro.set('todos')">Todos</button>
+          <button type="button" class="filtro" [class.activo]="filtro() === 'activos'" (click)="filtro.set('activos')">Activos</button>
+          <button type="button" class="filtro" [class.activo]="filtro() === 'sinstock'" (click)="filtro.set('sinstock')">Sin stock</button>
+        </div>
+      </div>
+      <div class="panel">
+        @if (cargando()) {
+          <p class="nota">Cargando…</p>
+        } @else if (lista().length === 0) {
+          <p class="nota">No hay productos que coincidan.</p>
+        } @else {
+          <table class="tabla">
+            <thead>
+              <tr><th>PRODUCTO</th><th>FICHA INCI</th><th>PRECIO</th><th>STOCK</th><th>ESTADO</th></tr>
+            </thead>
+            <tbody>
+              @for (p of lista(); track p.id) {
+                <tr class="fila-click" (click)="abrirEditor(p)">
+                  <td class="celda-prod">
+                    <span class="thumb">
+                      @if (p.imagenes && p.imagenes[0]) { <img [src]="p.imagenes[0]" [alt]="p.nombre" /> }
+                    </span>
+                    {{ p.nombre }}
+                  </td>
+                  <td>{{ p.ingredientes.length }} ingredientes</td>
+                  <td class="precio">{{ formatearCop(p.precio) }}</td>
+                  <td [class.rojo-txt]="p.stock === 0">{{ p.stock }}</td>
+                  <td><span [class]="'badge-estado ' + estadoDe(p).cls">{{ estadoDe(p).txt }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+      <p class="nota">Haz clic en un producto para editarlo, gestionar su ficha INCI o darlo de baja.</p>
+    }
+
+    <!-- Editor -->
+    @if (vista() === 'editor') {
+      <div class="vend-topline">
+        <h2>{{ edEsNuevo() ? 'Nuevo producto' : 'Editar: ' + edNombre }}</h2>
+        <button type="button" class="btn-sec" (click)="vista.set('productos')">← Volver</button>
+      </div>
+
+      <div class="editor">
+        <section class="panel">
+          <h3>Datos comerciales</h3>
+          <label class="campo">
+            Nombre del producto
+            <input [(ngModel)]="edNombre" [ngModelOptions]="{ standalone: true }" placeholder="Ej: Serum Vitamina C 10%" maxlength="200" />
+          </label>
+          <div class="campos-2">
+            <label class="campo">Categoría<input [(ngModel)]="edCategoria" [ngModelOptions]="{ standalone: true }" maxlength="120" /></label>
+            <label class="campo">Precio (COP)<input type="number" min="0" [(ngModel)]="edPrecio" [ngModelOptions]="{ standalone: true }" /></label>
+          </div>
+          <div class="campos-2">
+            <label class="campo">Stock<input type="number" min="0" [(ngModel)]="edStock" [ngModelOptions]="{ standalone: true }" /></label>
+            <label class="campo">Registro INVIMA<input [(ngModel)]="edInvima" [ngModelOptions]="{ standalone: true }" maxlength="100" placeholder="NSOC01234-56CO" /></label>
+          </div>
+
+          <span class="etiqueta">Imágenes (URL)</span>
+          @for (u of edImagenes(); track $index) {
+            <div class="img-fila">
+              <input
+                type="url"
+                [ngModel]="u"
+                (ngModelChange)="cambiarImagen($index, $event)"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="https://…"
+                maxlength="500"
+              />
+              @if (edImagenes().length > 1) {
+                <button type="button" class="quitar" aria-label="Quitar imagen" (click)="quitarImagen($index)">×</button>
+              }
+            </div>
+          }
+          <button type="button" class="btn-mini" (click)="agregarImagen()">＋ Agregar imagen</button>
+          <div class="dropzone">
+            @if (primeraImagen) { <img [src]="primeraImagen" alt="Vista previa" /> }
+            @else { <span>Pega el enlace de una imagen arriba</span> }
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>Ficha de ingredientes (INCI)</h3>
+          <table class="inci-tabla">
+            <thead>
+              <tr><th>INGREDIENTE (INCI)</th><th>FUNCIÓN</th><th>CONC.</th><th></th></tr>
+            </thead>
+            <tbody>
+              @if (edFicha().length === 0) {
+                <tr><td colspan="4" class="nota">Sin ingredientes. Añade al menos uno (obligatorio para guardar).</td></tr>
+              } @else {
+                @for (i of edFicha(); track i.inci) {
+                  <tr>
+                    <td>{{ i.inci }}</td>
+                    <td class="suave">{{ i.descripcion || '—' }}</td>
+                    <td>{{ i.concentracion ? i.concentracion + '%' : '—' }}</td>
+                    <td><button type="button" class="quitar" [attr.aria-label]="'Quitar ' + i.inci" (click)="quitarInci(i.inci)">×</button></td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+
+          <form class="inci-form" (ngSubmit)="agregarInci()">
+            <input placeholder="Ingrediente (INCI)" name="edInci" [(ngModel)]="edInci" />
+            <input placeholder="Función" name="edFuncion" [(ngModel)]="edFuncion" />
+            <input type="number" min="0" max="100" step="0.1" placeholder="%" name="edConc" [(ngModel)]="edConc" />
+            <button type="submit" class="btn-mini">＋ Agregar activo</button>
+          </form>
+
+          <p class="nota-amber">⚠️ El sistema mapeará cada ingrediente contra la ontología médica al guardar.</p>
+        </section>
+      </div>
+
+      @if (edError()) { <p class="error">{{ edError() }}</p> }
+
+      <div class="editor-acciones">
+        @if (!edEsNuevo()) {
+          <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="eliminar()">Dar de baja</button>
+        }
+        <button type="button" class="btn-primario" [disabled]="edOcupado()" (click)="guardar()">
+          {{ edOcupado() ? 'Guardando…' : edEsNuevo() ? 'Crear producto' : 'Guardar cambios' }}
+        </button>
+      </div>
+    }
+
+    <!-- Pedidos / Ventas / Ajustes -->
+    @if (vista() === 'pedidos' || vista() === 'ventas' || vista() === 'ajustes') {
+      <div class="vend-topline"><h2>{{ tituloVista() }}</h2></div>
+      <div class="panel"><p class="nota">Esta sección estará disponible al implementar su módulo (pedidos/ventas).</p></div>
+    }
+  </main>
+</div>

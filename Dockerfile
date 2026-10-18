@@ -2,7 +2,7 @@
 # Pensada para Cloud Run: expone el puerto $PORT y se conecta a la BD por variables de entorno.
 
 # ---------- 1) Build del frontend ----------
-FROM node:22-alpine AS frontend
+FROM node:24-alpine AS frontend
 WORKDIR /front
 COPY frontend/package*.json ./
 RUN npm ci
