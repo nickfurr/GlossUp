@@ -13,6 +13,8 @@ public interface GestionarPerfilUseCase {
      */
     PerfilDermatologico obtenerPerfil(Long usuarioId);
 
+    PerfilDermatologico actualizarBiotipo(Long usuarioId, Double ph, String tipoPiel, String tipoCabello);
+
     /**
      * Agrega dinámicamente un ingrediente (INCI) a la lista de alergias del usuario (HU2).
      */

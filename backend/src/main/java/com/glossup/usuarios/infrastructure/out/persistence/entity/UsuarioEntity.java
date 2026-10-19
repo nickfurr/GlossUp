@@ -12,6 +12,7 @@ import java.util.Set;
 public class UsuarioEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String email;
 
@@ -36,4 +37,11 @@ public class UsuarioEntity {
     public boolean isActivo() { return activo; }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
     public Set<RolEntity> getRoles() { return roles; }
+
+    public void setEmail(String email) { this.email = email; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public void setActivo(boolean activo) { this.activo = activo; }
+    public void setCreadoEn(OffsetDateTime creadoEn) { this.creadoEn = creadoEn; }
+    public void setRoles(Set<RolEntity> roles) { this.roles = roles; }
 }

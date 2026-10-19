@@ -5,23 +5,43 @@ import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.out.UsuarioRepositoryPort;
 import com.glossup.usuarios.infrastructure.out.persistence.entity.UsuarioEntity;
 import com.glossup.usuarios.infrastructure.out.persistence.repository.UsuarioJpaRepository;
+import com.glossup.usuarios.infrastructure.out.persistence.repository.RolJpaRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumSet;
+import java.util.stream.Collectors;
 import java.util.Optional;
 
 @Component
 public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
 
     private final UsuarioJpaRepository repository;
+    private final RolJpaRepository rolRepository;
 
-    public UsuarioPersistenceAdapter(UsuarioJpaRepository repository) {
+    public UsuarioPersistenceAdapter(UsuarioJpaRepository repository, RolJpaRepository rolRepository) {
         this.repository = repository;
+        this.rolRepository = rolRepository;
     }
 
     @Override
     public Optional<Usuario> buscarPorEmail(String email) {
         return repository.findByEmailIgnoreCase(email).map(this::aDominio);
+    }
+
+    @Override
+    public Usuario guardar(Usuario usuario) {
+        UsuarioEntity entity = new UsuarioEntity();
+        entity.setEmail(usuario.getEmail());
+        entity.setPasswordHash(usuario.getPasswordHash());
+        entity.setNombre(usuario.getNombre());
+        entity.setActivo(usuario.isActivo());
+        entity.setCreadoEn(usuario.getCreadoEn());
+        entity.setRoles(usuario.getRoles().stream()
+                .map(rol -> rol.name())
+                .map(nombre -> rolRepository.findByNombre(nombre)
+                        .orElseThrow(() -> new IllegalStateException("Rol no configurado: " + nombre)))
+                .collect(Collectors.toSet()));
+        return aDominio(repository.save(entity));
     }
 
     private Usuario aDominio(UsuarioEntity entity) {
