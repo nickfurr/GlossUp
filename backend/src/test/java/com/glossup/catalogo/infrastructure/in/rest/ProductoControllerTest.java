@@ -71,6 +71,9 @@ class ProductoControllerTest {
     @MockBean
     private ProductoRepositoryPort productoRepository;
 
+    @MockBean
+    private com.glossup.catalogo.domain.port.in.ExtraerIngredientesImagenUseCase extraerIngredientesImagenUseCase;
+
     private RegistrarProductoRequest crearRequestValido() {
         return new RegistrarProductoRequest(
                 "Serum Vitamina C",
@@ -243,6 +246,31 @@ class ProductoControllerTest {
 
     @Test
     @WithMockUser(username = "5", roles = "VENDEDOR")
+    void extraerIngredientes_conRolVendedor_retornaIngredientes() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                "imagen", "etiqueta.jpg", "image/jpeg", "dummy-content".getBytes()
+        );
+
+        when(extraerIngredientesImagenUseCase.extraer(any(), any()))
+                .thenReturn(List.of("aqua", "glycerin", "niacinamide"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/catalogo/productos/extraer-ingredientes")
+                        .file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ingredientes[0]").value("aqua"))
+                .andExpect(jsonPath("$.ingredientes[1]").value("glycerin"))
+                .andExpect(jsonPath("$.ingredientes[2]").value("niacinamide"));
+    }
+
+    @Test
+    void extraerIngredientes_sinAutenticacion_retorna401() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                "imagen", "etiqueta.jpg", "image/jpeg", "dummy-content".getBytes()
+        );
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/catalogo/productos/extraer-ingredientes")
+                        .file(file))
+                .andExpect(status().isUnauthorized());
     void actualizarProducto_conRolVendedorPropietario_retorna200Ok() throws Exception {
         ActualizarProductoRequest request = crearActualizarRequestValido();
 
@@ -302,3 +330,4 @@ class ProductoControllerTest {
                 .andExpect(jsonPath("$.status").value(404));
     }
 }
+
