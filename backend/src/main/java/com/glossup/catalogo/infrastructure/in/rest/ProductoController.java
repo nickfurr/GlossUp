@@ -41,10 +41,9 @@ public class ProductoController {
     private final ExtraerIngredientesImagenUseCase extraerIngredientesImagenUseCase;
 
     public ProductoController(RegistrarProductoUseCase registrarProductoUseCase,
+                              GestionarProductoUseCase gestionarProductoUseCase,
                               ProductoRepositoryPort productoRepository,
                               ExtraerIngredientesImagenUseCase extraerIngredientesImagenUseCase) {
-                              GestionarProductoUseCase gestionarProductoUseCase,
-                              ProductoRepositoryPort productoRepository) {
         this.registrarProductoUseCase = registrarProductoUseCase;
         this.gestionarProductoUseCase = gestionarProductoUseCase;
         this.productoRepository = productoRepository;
@@ -98,6 +97,8 @@ public class ProductoController {
         String mimeType = imagen.getContentType() != null ? imagen.getContentType() : "image/jpeg";
         List<String> ingredientes = extraerIngredientesImagenUseCase.extraer(imagen.getBytes(), mimeType);
         return ResponseEntity.ok(new IngredientesImagenResponse(ingredientes));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('VENDEDOR')")
     @Operation(summary = "Modificar un producto existente del catálogo (HU4)",
