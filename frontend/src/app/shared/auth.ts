@@ -8,6 +8,7 @@ interface LoginResponse {
   token: string;
   usuarioId: number;
   email: string;
+  nombre: string;
   roles: RolUsuario[];
 }
 
@@ -35,7 +36,8 @@ export function rutaDePanel(panel: Panel): string {
 
 /**
  * Sesión de usuario: login contra /api/auth/login (el panel se deriva de los roles), persistencia
- * en localStorage y token para el interceptor. No hay /register ni /me en el backend.
+ * en localStorage y token para el interceptor. El registro crea la cuenta y luego el componente
+ * inicia sesión automáticamente con las mismas credenciales.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {

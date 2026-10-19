@@ -3,12 +3,27 @@
     <a [routerLink]="rutaPanel()" class="brand">GlossUP</a>
     <nav>
       @if (sesion()?.panel === 'CLIENTE') {
-        <a routerLink="/catalogo">Catálogo</a>
-        <a routerLink="/compatibilidad">Compatibilidad</a>
-        <a routerLink="/perfil">Mi perfil</a>
-        <a routerLink="/carrito">Carrito</a>
+        <a routerLink="/catalogo"><span aria-hidden="true">🛍️</span> Catálogo</a>
+        <a routerLink="/compatibilidad"><span aria-hidden="true">🧪</span> Compatibilidad</a>
+        <a routerLink="/perfil"><span aria-hidden="true">🧴</span> Mi perfil</a>
+        <a routerLink="/carrito"><span aria-hidden="true">🛒</span> Carrito</a>
       }
-      <a [routerLink]="rutaPanel()" class="user">👤 {{ sesion()!.nombre }} ({{ sesion()!.panel }})</a>
+      @if (sesion()?.panel === 'CLIENTE') {
+        <div class="cuenta-menu">
+          <button type="button" class="user cuenta-trigger" (click)="alternarCuenta()">
+            <span class="avatar">👤</span> {{ sesion()!.nombre }} <span aria-hidden="true">⌄</span>
+          </button>
+          @if (menuCuentaAbierto()) {
+            <div class="cuenta-dropdown">
+              <strong>{{ sesion()!.nombre }}</strong>
+              <a routerLink="/perfil" (click)="menuCuentaAbierto.set(false)">Actualizar perfil dermatológico</a>
+              <a routerLink="/compatibilidad" (click)="menuCuentaAbierto.set(false)">Ver compatibilidad</a>
+            </div>
+          }
+        </div>
+      } @else {
+        <a [routerLink]="rutaPanel()" class="user">👤 {{ sesion()!.nombre }} ({{ sesion()!.panel }})</a>
+      }
       <button type="button" class="link" (click)="salir()">Salir</button>
     </nav>
   </header>

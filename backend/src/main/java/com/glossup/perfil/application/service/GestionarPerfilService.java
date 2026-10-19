@@ -1,6 +1,8 @@
 package com.glossup.perfil.application.service;
 
 import com.glossup.perfil.domain.model.PerfilDermatologico;
+import com.glossup.perfil.domain.model.Ph;
+import com.glossup.perfil.domain.model.TipoPiel;
 import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.domain.port.out.PerfilRepositoryPort;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,14 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
                 .orElseGet(() -> perfilRepository.guardar(
                         PerfilDermatologico.crear(usuarioId, null, null, null)
                 ));
+    }
+
+    @Override
+    public PerfilDermatologico actualizarBiotipo(Long usuarioId, Double ph, String tipoPiel, String tipoCabello) {
+        PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
+        TipoPiel piel = tipoPiel == null || tipoPiel.isBlank() ? null : parseTipoPiel(tipoPiel);
+        perfil.actualizarBiotipo(ph == null ? null : new Ph(ph), piel, tipoCabello);
+        return perfilRepository.guardar(perfil);
     }
 
     @Override
@@ -61,4 +71,14 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
         return perfilRepository.buscarPorUsuarioId(usuarioId)
                 .orElseGet(() -> PerfilDermatologico.crear(usuarioId, null, null, null));
     }
+
+    private TipoPiel parseTipoPiel(String tipoPiel) {
+        try {
+            return TipoPiel.valueOf(tipoPiel.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new com.glossup.shared.domain.ReglaNegocioException(
+                    "El tipo de piel no es válido: " + tipoPiel);
+        }
+    }
+
 }

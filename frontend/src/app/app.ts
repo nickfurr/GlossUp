@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService, rutaDePanel } from './shared/auth';
 
@@ -23,9 +23,13 @@ export class App {
   readonly claseMain = computed(() =>
     this.sesion()?.panel === 'VENDEDOR' || this.sesion()?.panel === 'ADMIN' ? 'full' : 'container',
   );
-
+  readonly menuCuentaAbierto = signal(false);
   salir(): void {
     this.auth.salir();
     this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  alternarCuenta(): void {
+    this.menuCuentaAbierto.update((abierto) => !abierto);
   }
 }

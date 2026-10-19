@@ -1,7 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 
-/** Adjunta el token Bearer (RNF-11) y limpia la sesión si el backend responde 401. */
+/** Adjunta el token ****** y limpia la sesión si el backend responde 401. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   let token: string | null = null;
   try {

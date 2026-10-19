@@ -4,6 +4,7 @@ import com.glossup.perfil.domain.model.PerfilDermatologico;
 import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.infrastructure.in.rest.dto.AfeccionRequest;
 import com.glossup.perfil.infrastructure.in.rest.dto.AlergiaRequest;
+import com.glossup.perfil.infrastructure.in.rest.dto.ActualizarPerfilRequest;
 import com.glossup.perfil.infrastructure.in.rest.dto.PerfilResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -33,6 +34,17 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> obtenerMiPerfil(Authentication authentication) {
         Long usuarioId = extraerUsuarioId(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.obtenerPerfil(usuarioId);
+        return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
+    }
+
+    @PutMapping
+    @Operation(summary = "Actualizar mi perfil dermatológico")
+    public ResponseEntity<PerfilResponse> actualizarPerfil(
+            @Valid @RequestBody ActualizarPerfilRequest request,
+            Authentication authentication) {
+        Long usuarioId = extraerUsuarioId(authentication);
+        PerfilDermatologico perfil = gestionarPerfilUseCase.actualizarBiotipo(
+                usuarioId, request.ph(), request.tipoPiel(), request.tipoCabello());
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
 

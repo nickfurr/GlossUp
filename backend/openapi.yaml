@@ -85,6 +85,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /api/auth/register:
+    post:
+      tags:
+        - Autenticación
+      summary: Registrar un usuario
+      description: Crea una cuenta activa de cliente o vendedor. El rol ADMIN no puede asignarse mediante este endpoint público.
+      operationId: registrarUsuario
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarUsuarioRequest'
+            example:
+              email: cliente@glossup.com
+              nombre: Cliente GlossUP
+              password: mi-password-seguro
+              rol: CLIENTE
+      responses:
+        '201':
+          description: Usuario creado correctamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/BusinessRuleError'
+
   /api/catalogo/productos:
     post:
       tags:
@@ -252,6 +279,35 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+    put:
+      tags:
+        - Perfil Dermatológico
+      summary: Actualizar mi biotipo dermatológico
+      description: Actualiza pH, tipo de piel y tipo de cabello del cliente autenticado.
+      operationId: actualizarMiPerfil
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizarPerfilRequest'
+      responses:
+        '200':
+          description: Perfil actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/BusinessRuleError'
 
   /api/perfil/me/alergias:
     post:
@@ -486,6 +542,7 @@ components:
         - token
         - usuarioId
         - email
+        - nombre
         - roles
       properties:
         token:
@@ -499,6 +556,9 @@ components:
           type: string
           format: email
           example: vendedor@glossup.com
+        nombre:
+          type: string
+          example: Vendedor GlossUP
         roles:
           type: array
           uniqueItems: true
@@ -509,6 +569,31 @@ components:
               - VENDEDOR
               - ADMIN
           example:
+            - VENDEDOR
+
+    RegistrarUsuarioRequest:
+      type: object
+      required:
+        - email
+        - nombre
+        - password
+        - rol
+      properties:
+        email:
+          type: string
+          format: email
+        nombre:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 120
+        rol:
+          type: string
+          enum:
+            - CLIENTE
             - VENDEDOR
 
     RegistrarProductoRequest:
@@ -731,7 +816,8 @@ components:
         tipoCabello:
           type: string
           nullable: true
-          example: ondulado
+          maxLength: 120
+          example: greñudo
         afecciones:
           type: array
           uniqueItems: true
@@ -749,6 +835,29 @@ components:
         actualizadoEn:
           type: string
           format: date-time
+
+    ActualizarPerfilRequest:
+      type: object
+      properties:
+        ph:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 14
+          nullable: true
+        tipoPiel:
+          type: string
+          nullable: true
+          enum:
+            - NORMAL
+            - SECA
+            - GRASA
+            - MIXTA
+            - SENSIBLE
+        tipoCabello:
+          type: string
+          maxLength: 120
+          nullable: true
 
     ApiError:
       type: object
