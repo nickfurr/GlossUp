@@ -271,6 +271,10 @@ class ProductoControllerTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/catalogo/productos/extraer-ingredientes")
                         .file(file))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "5", roles = "VENDEDOR")
     void actualizarProducto_conRolVendedorPropietario_retorna200Ok() throws Exception {
         ActualizarProductoRequest request = crearActualizarRequestValido();
 
