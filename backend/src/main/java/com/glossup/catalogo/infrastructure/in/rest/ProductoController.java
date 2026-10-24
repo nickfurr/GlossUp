@@ -147,6 +147,20 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/buscar")
+    @Operation(summary = "Buscar productos por palabra clave (HU12)",
+               description = "Busqueda basica de productos publicados cuyo nombre, marca o categoria contengan la palabra clave.",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<List<ProductoResponse>> buscar(@RequestParam("q") String q) {
+        if (q == null || q.isBlank()) {
+            return ResponseEntity.ok(List.of());
+        }
+        List<ProductoResponse> resultados = productoRepository.buscarPorPalabraClave(q.trim()).stream()
+                .map(ProductoResponse::fromDomain)
+                .toList();
+        return ResponseEntity.ok(resultados);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Consultar producto por ID")
     public ResponseEntity<ProductoResponse> buscarPorId(@PathVariable Long id) {

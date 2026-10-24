@@ -39,6 +39,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -312,6 +313,38 @@ class ProductoControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void buscar_sinToken_retorna401Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/catalogo/productos/buscar").param("q", "serum"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void buscar_conToken_retornaCoincidencias() throws Exception {
+        Producto encontrado = new Producto(
+                100L, 5L, "Serum Vitamina C", "GlossLab", "Serum Facial",
+                Dinero.de(85000.0), 50, 3.5, "INVIMA-2024", true,
+                List.of(new ImagenProducto("https://cdn.glossup.co/img1.webp")),
+                List.of(new ComposicionProducto(new Ingrediente(1L, new Inci("Aqua"), null), null)),
+                null
+        );
+        when(productoRepository.buscarPorPalabraClave("serum")).thenReturn(List.of(encontrado));
+
+        mockMvc.perform(get("/api/catalogo/productos/buscar").param("q", "serum"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nombre").value("Serum Vitamina C"));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void buscar_palabraClaveEnBlanco_retornaListaVacia() throws Exception {
+        mockMvc.perform(get("/api/catalogo/productos/buscar").param("q", "   "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

@@ -8,7 +8,7 @@ indexa la información química que consume el motor de compatibilidad dermatol�
 ## Historias de usuario (Jira)
 - **SCRUM-30 · HU3** — Registro Manual de Producto, Ficha INCI e Imágenes (5 pts) · Sprint 2 · **Completada**
 - **SCRUM-31 · HU4** — Modificación y Eliminación de Productos (3 pts) · Sprint 2 · **Completada**
-- **SCRUM-40 · HU12** — Búsqueda Básica de Productos por Palabra Clave (3 pts) · Sprint 2
+- **SCRUM-40 · HU12** — Búsqueda Básica de Productos por Palabra Clave (3 pts) · Sprint 2 · **Completada**
 - **SCRUM-32 · HU5** — Lectura OCR Asistida de Ingredientes desde Imagen (8 pts) · Sprint 3
 - **SCRUM-41 · HU13** — Filtrado Avanzado por Atributos Dermatológicos (5 pts) · Sprint 3
 

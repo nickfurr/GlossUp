@@ -16,5 +16,8 @@ public interface ProductoRepositoryPort {
 
     List<Producto> buscarPorVendedor(Long vendedorId);
 
+    /** Busca productos activos cuyo nombre, marca o categoria contengan la palabra clave (HU12). */
+    List<Producto> buscarPorPalabraClave(String palabraClave);
+
     List<Producto> listarTodos();
 }
