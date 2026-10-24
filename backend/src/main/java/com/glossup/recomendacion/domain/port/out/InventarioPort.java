@@ -1,0 +1,21 @@
+package com.glossup.recomendacion.domain.port.out;
+
+import com.glossup.shared.domain.Dinero;
+
+/**
+ * Puerto de salida: reserva de inventario contra el catálogo (HU9).
+ *
+ * <p>Permite al módulo de recomendación/ventas descontar stock sin conocer los detalles del
+ * agregado {@code Producto}, que viven en el módulo de catálogo.</p>
+ */
+public interface InventarioPort {
+
+    /**
+     * Reserva (descuenta) {@code cantidad} unidades del producto y devuelve su precio unitario
+     * actual, para fijarlo en la línea del pedido.
+     *
+     * @throws com.glossup.shared.exception.NotFoundException si el producto no existe
+     * @throws com.glossup.shared.domain.ReglaNegocioException si no está disponible o sin stock suficiente
+     */
+    Dinero reservar(Long productoId, int cantidad);
+}
