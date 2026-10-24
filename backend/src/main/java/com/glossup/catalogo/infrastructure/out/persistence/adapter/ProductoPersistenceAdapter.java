@@ -51,6 +51,13 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     }
 
     @Override
+    public List<Producto> buscarPorPalabraClave(String palabraClave) {
+        return productoJpaRepository.buscarPorPalabraClave(palabraClave).stream()
+                .map(this::aDominio)
+                .toList();
+    }
+
+    @Override
     public List<Producto> listarTodos() {
         return productoJpaRepository.findAll().stream()
                 .map(this::aDominio)
