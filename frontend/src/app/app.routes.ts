@@ -7,6 +7,8 @@ import { Admin } from './pages/admin/admin';
 import { Inicio } from './pages/inicio/inicio';
 import { Simple } from './pages/simple/simple';
 import { Perfil } from './pages/perfil/perfil';
+import { Catalogo } from './pages/catalogo/catalogo';
+import { Carrito } from './pages/carrito/carrito';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -18,10 +20,10 @@ export const routes: Routes = [
   { path: 'admin', component: Admin, canActivate: [roleGuard('ADMIN')] },
 
   // Zona del cliente (placeholders, igual que en la versión anterior).
-  { path: 'catalogo', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Catálogo' } },
+  { path: 'catalogo', component: Catalogo, canActivate: [roleGuard('CLIENTE')] },
   { path: 'compatibilidad', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Compatibilidad' } },
   { path: 'perfil', component: Perfil, canActivate: [roleGuard('CLIENTE')] },
-  { path: 'carrito', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Carrito' } },
+  { path: 'carrito', component: Carrito, canActivate: [roleGuard('CLIENTE')] },
 
   { path: '**', redirectTo: '' },
 ];

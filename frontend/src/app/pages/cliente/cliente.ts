@@ -1,11 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 
 /** Panel del CLIENTE: compra, perfil dermatológico y compatibilidad. */
 @Component({
   selector: 'app-cliente',
-  imports: [RouterLink],
+  imports: [FormsModule],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
@@ -15,11 +16,11 @@ import { AuthService } from '../../shared/auth';
           <p>Productos cosméticos seleccionados para acompañar tu bienestar.</p>
         </div>
       </div>
-      <div class="home-search">
+      <form class="home-search" (ngSubmit)="buscar()">
         <span aria-hidden="true">⌕</span>
-        <input type="search" placeholder="Busca productos, marcas o ingredientes" aria-label="Buscar productos">
-        <button type="button">Buscar</button>
-      </div>
+        <input type="search" name="q" [(ngModel)]="q" placeholder="Busca productos, marcas o ingredientes" aria-label="Buscar productos">
+        <button type="submit">Buscar</button>
+      </form>
       <div class="section-heading">
         <div><span class="eyebrow">Para ti</span><h2>Descubre productos</h2></div>
         <span class="catalog-note">Catálogo en actualización</span>
@@ -38,6 +39,12 @@ import { AuthService } from '../../shared/auth';
   `,
 })
 export class Cliente {
+  private router = inject(Router);
   readonly sesion = inject(AuthService).sesion;
   readonly productos = [1, 2, 3, 4, 5, 6];
+  q = '';
+
+  buscar(): void {
+    this.router.navigate(['/catalogo'], { queryParams: this.q.trim() ? { q: this.q.trim() } : {} });
+  }
 }

@@ -49,6 +49,31 @@ export interface DatosProducto {
   ingredientes: { inci: string; descripcion?: string | null; concentracion?: number | null }[];
 }
 
+/** Línea del carrito/pedido tal como la expone el backend (HU9). Sin nombre: solo id y montos. */
+export interface LineaCompra {
+  productoId: number;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+/** Carrito del cliente (GET /api/carrito). */
+export interface Carrito {
+  usuarioId: number;
+  items: LineaCompra[];
+  total: number;
+}
+
+/** Pedido consolidado con inventario reservado (POST /api/pedidos). */
+export interface Pedido {
+  id: number;
+  usuarioId: number;
+  estado: string;
+  items: LineaCompra[];
+  total: number;
+  creadoEn?: string;
+}
+
 export type TipoPiel = 'NORMAL' | 'SECA' | 'GRASA' | 'MIXTA' | 'SENSIBLE';
 export type TipoCabello =
   | 'LISO_1A' | 'LISO_1B' | 'LISO_1C'
