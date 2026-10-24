@@ -27,15 +27,23 @@ public class InventarioCatalogoAdapter implements InventarioPort {
         // shortcut: sin bloqueo pesimista ni columna de versión, dos checkouts concurrentes del
         // mismo producto podrían sobre-vender; subir a @Lock(PESSIMISTIC_WRITE) o versión optimista
         // cuando haya concurrencia real. @Transactional ya garantiza la atomicidad del pedido.
-        Producto producto = productoRepository.buscarPorId(productoId)
-                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
-
-        if (!producto.isActivo()) {
-            throw new ReglaNegocioException("El producto '" + producto.getNombre() + "' no está disponible");
-        }
-
+        Producto producto = cargarDisponible(productoId);
         producto.reducirStock(cantidad); // lanza ReglaNegocioException si el stock es insuficiente
         productoRepository.guardar(producto);
         return producto.getPrecio();
+    }
+
+    @Override
+    public Dinero consultarPrecio(Long productoId) {
+        return cargarDisponible(productoId).getPrecio();
+    }
+
+    private Producto cargarDisponible(Long productoId) {
+        Producto producto = productoRepository.buscarPorId(productoId)
+                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
+        if (!producto.isActivo()) {
+            throw new ReglaNegocioException("El producto '" + producto.getNombre() + "' no está disponible");
+        }
+        return producto;
     }
 }

@@ -18,4 +18,13 @@ public interface InventarioPort {
      * @throws com.glossup.shared.domain.ReglaNegocioException si no está disponible o sin stock suficiente
      */
     Dinero reservar(Long productoId, int cantidad);
+
+    /**
+     * Devuelve el precio unitario actual de un producto disponible, sin tocar el stock (para
+     * armar el carrito). La reserva de inventario solo ocurre en el checkout (HU9).
+     *
+     * @throws com.glossup.shared.exception.NotFoundException si el producto no existe
+     * @throws com.glossup.shared.domain.ReglaNegocioException si no está disponible
+     */
+    Dinero consultarPrecio(Long productoId);
 }
