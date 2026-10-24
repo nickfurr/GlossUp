@@ -162,6 +162,14 @@ button.link:hover { text-decoration: underline; }
 .skeleton-price { width: 35%; height: 17px; margin-top: 1rem; border-radius: 8px; background: #ead1db; }
 .placeholder-label { position: absolute; top: 1.2rem; left: 1.2rem; padding: .25rem .55rem; border-radius: 999px; background: #fff; color: var(--vino); font-size: .7rem; font-weight: 800; }
 
+/* Tarjeta de producto real del catálogo (HU12) */
+.cat-card { display: flex; flex-direction: column; padding: .8rem; background: #fff; border: 1px solid var(--borde); border-radius: 16px; }
+.cat-card .product-image { overflow: hidden; }
+.cat-card .product-image img { width: 100%; height: 100%; object-fit: cover; }
+.cat-nombre { margin: .8rem 0 .2rem; font-size: 1rem; color: var(--vino-osc); }
+.cat-marca { margin: 0; color: #8a7681; font-size: .82rem; }
+.cat-pie { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: .9rem; }
+
 .profile-page { max-width: 1050px; margin: auto; padding-bottom: 3rem; }
 .back-link { color: var(--vino); text-decoration: none; font-weight: 700; font-size: .88rem; }
 .profile-status { display: inline-flex; align-items: center; gap: .4rem; padding: .6rem .9rem; border-radius: 999px; background: #fdf4e1; color: #9a6c12; font-size: .8rem; font-weight: 800; white-space: nowrap; }

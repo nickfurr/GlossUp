@@ -18,6 +18,11 @@ export class ProductosService {
     return this.http.get<ProductoVendedor>(`${BASE}/${id}`);
   }
 
+  /** Búsqueda básica por palabra clave en nombre/marca/categoría (HU12). */
+  buscar(q: string): Observable<ProductoVendedor[]> {
+    return this.http.get<ProductoVendedor[]>(`${BASE}/buscar`, { params: { q } });
+  }
+
   crear(d: DatosProducto): Observable<ProductoVendedor> {
     return this.http.post<ProductoVendedor>(BASE, d);
   }
