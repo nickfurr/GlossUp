@@ -8,8 +8,6 @@ public record IngredienteRequest(
         @NotBlank(message = "El nombre INCI del ingrediente es obligatorio")
         String inci,
 
-        String descripcion,
-
         @DecimalMin(value = "0.0", message = "La concentración no puede ser negativa")
         @DecimalMax(value = "100.0", message = "La concentración no puede superar el 100%")
         Double concentracion

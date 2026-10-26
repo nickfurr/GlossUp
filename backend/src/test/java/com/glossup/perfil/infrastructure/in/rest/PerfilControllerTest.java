@@ -1,8 +1,11 @@
 package com.glossup.perfil.infrastructure.in.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.glossup.perfil.domain.model.Afeccion;
+import com.glossup.perfil.domain.model.Alergeno;
 import com.glossup.perfil.domain.model.PerfilDermatologico;
 import com.glossup.perfil.domain.model.Ph;
+import com.glossup.perfil.domain.model.TipoCabello;
 import com.glossup.perfil.domain.model.TipoPiel;
 import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.infrastructure.in.rest.dto.AfeccionRequest;
@@ -50,9 +53,9 @@ class PerfilControllerTest {
     @MockBean
     private GestionarPerfilUseCase gestionarPerfilUseCase;
 
-    private PerfilDermatologico crearPerfilEjemplo(Set<String> afecciones, Set<String> alergias) {
+    private PerfilDermatologico crearPerfilEjemplo(Set<Afeccion> afecciones, Set<Alergeno> alergias) {
         return new PerfilDermatologico(
-                10L, 7L, new Ph(5.2), TipoPiel.MIXTA, "ondulado",
+                10L, 7L, new Ph(5.2), TipoPiel.MIXTA, TipoCabello.ONDULADO_2A,
                 afecciones, alergias, OffsetDateTime.parse("2026-10-16T17:00:00Z")
         );
     }
@@ -73,7 +76,7 @@ class PerfilControllerTest {
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void obtenerMiPerfil_conRolCliente_retorna200Ok() throws Exception {
-        PerfilDermatologico perfil = crearPerfilEjemplo(Set.of("acne"), Set.of("parfum"));
+        PerfilDermatologico perfil = crearPerfilEjemplo(Set.of(Afeccion.ACNE), Set.of(Alergeno.FRAGANCIA));
         when(gestionarPerfilUseCase.obtenerPerfil(7L)).thenReturn(perfil);
 
         mockMvc.perform(get("/api/perfil/me"))
@@ -82,32 +85,33 @@ class PerfilControllerTest {
                 .andExpect(jsonPath("$.usuarioId").value(7))
                 .andExpect(jsonPath("$.ph").value(5.2))
                 .andExpect(jsonPath("$.tipoPiel").value("MIXTA"))
-                .andExpect(jsonPath("$.afecciones[0]").value("acne"))
-                .andExpect(jsonPath("$.alergias[0]").value("parfum"));
+                .andExpect(jsonPath("$.tipoCabello").value("ONDULADO_2A"))
+                .andExpect(jsonPath("$.afecciones[0]").value("ACNE"))
+                .andExpect(jsonPath("$.alergias[0]").value("FRAGANCIA"));
     }
 
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void agregarAlergia_conRequestValido_retorna200OkConListaActualizada() throws Exception {
-        AlergiaRequest request = new AlergiaRequest("Parfum");
-        PerfilDermatologico perfilActualizado = crearPerfilEjemplo(Set.of(), Set.of("parfum"));
+        AlergiaRequest request = new AlergiaRequest("FRAGANCIA");
+        PerfilDermatologico perfilActualizado = crearPerfilEjemplo(Set.of(), Set.of(Alergeno.FRAGANCIA));
 
-        when(gestionarPerfilUseCase.agregarAlergia(7L, "Parfum")).thenReturn(perfilActualizado);
+        when(gestionarPerfilUseCase.agregarAlergia(7L, "FRAGANCIA")).thenReturn(perfilActualizado);
 
         mockMvc.perform(post("/api/perfil/me/alergias")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.alergias[0]").value("parfum"));
+                .andExpect(jsonPath("$.alergias[0]").value("FRAGANCIA"));
     }
 
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void quitarAlergiaPorRuta_conRolCliente_retorna200Ok() throws Exception {
         PerfilDermatologico perfilActualizado = crearPerfilEjemplo(Set.of(), Set.of());
-        when(gestionarPerfilUseCase.quitarAlergia(7L, "parfum")).thenReturn(perfilActualizado);
+        when(gestionarPerfilUseCase.quitarAlergia(7L, "FRAGANCIA")).thenReturn(perfilActualizado);
 
-        mockMvc.perform(delete("/api/perfil/me/alergias/parfum"))
+        mockMvc.perform(delete("/api/perfil/me/alergias/FRAGANCIA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alergias.length()").value(0));
     }
@@ -115,9 +119,9 @@ class PerfilControllerTest {
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void quitarAlergiaPorBody_conRolCliente_retorna200Ok() throws Exception {
-        AlergiaRequest request = new AlergiaRequest("parfum");
+        AlergiaRequest request = new AlergiaRequest("FRAGANCIA");
         PerfilDermatologico perfilActualizado = crearPerfilEjemplo(Set.of(), Set.of());
-        when(gestionarPerfilUseCase.quitarAlergia(7L, "parfum")).thenReturn(perfilActualizado);
+        when(gestionarPerfilUseCase.quitarAlergia(7L, "FRAGANCIA")).thenReturn(perfilActualizado);
 
         mockMvc.perform(delete("/api/perfil/me/alergias")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,20 +133,20 @@ class PerfilControllerTest {
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void agregarYQuitarAfeccion_conRequestValido_retorna200Ok() throws Exception {
-        AfeccionRequest request = new AfeccionRequest("Rosácea");
-        PerfilDermatologico conAfeccion = crearPerfilEjemplo(Set.of("rosácea"), Set.of());
+        AfeccionRequest request = new AfeccionRequest("ROSACEA");
+        PerfilDermatologico conAfeccion = crearPerfilEjemplo(Set.of(Afeccion.ROSACEA), Set.of());
         PerfilDermatologico sinAfeccion = crearPerfilEjemplo(Set.of(), Set.of());
 
-        when(gestionarPerfilUseCase.agregarAfeccion(7L, "Rosácea")).thenReturn(conAfeccion);
-        when(gestionarPerfilUseCase.quitarAfeccion(7L, "rosácea")).thenReturn(sinAfeccion);
+        when(gestionarPerfilUseCase.agregarAfeccion(7L, "ROSACEA")).thenReturn(conAfeccion);
+        when(gestionarPerfilUseCase.quitarAfeccion(7L, "ROSACEA")).thenReturn(sinAfeccion);
 
         mockMvc.perform(post("/api/perfil/me/afecciones")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.afecciones[0]").value("rosácea"));
+                .andExpect(jsonPath("$.afecciones[0]").value("ROSACEA"));
 
-        mockMvc.perform(delete("/api/perfil/me/afecciones/rosácea"))
+        mockMvc.perform(delete("/api/perfil/me/afecciones/ROSACEA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.afecciones.length()").value(0));
     }
@@ -163,15 +167,28 @@ class PerfilControllerTest {
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void cuandoCasoDeUsoLanzaReglaNegocio_retorna422UnprocessableEntity() throws Exception {
-        AfeccionRequest request = new AfeccionRequest("Rosácea");
-        when(gestionarPerfilUseCase.agregarAfeccion(7L, "Rosácea"))
-                .thenThrow(new ReglaNegocioException("La afección no puede estar vacía"));
+        AfeccionRequest request = new AfeccionRequest("me pica");
+        when(gestionarPerfilUseCase.agregarAfeccion(7L, "me pica"))
+                .thenThrow(new ReglaNegocioException("Valor no válido para afección: me pica"));
 
         mockMvc.perform(post("/api/perfil/me/afecciones")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.status").value(422))
-                .andExpect(jsonPath("$.message").value("La afección no puede estar vacía"));
+                .andExpect(jsonPath("$.message").value("Valor no válido para afección: me pica"));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void opciones_devuelveCatalogosCerradosConEtiquetas() throws Exception {
+        mockMvc.perform(get("/api/perfil/me/opciones"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tiposPiel.length()").value(TipoPiel.values().length))
+                .andExpect(jsonPath("$.tiposCabello.length()").value(TipoCabello.values().length))
+                .andExpect(jsonPath("$.alergias.length()").value(Alergeno.values().length))
+                .andExpect(jsonPath("$.afecciones.length()").value(Afeccion.values().length))
+                .andExpect(jsonPath("$.alergias[0].codigo").value("FRAGANCIA"))
+                .andExpect(jsonPath("$.alergias[0].etiqueta").value("Fragancia / perfume"));
     }
 }

@@ -62,7 +62,7 @@ public class ProductoController {
         Long vendedorId = extraerVendedorId(authentication);
 
         List<RegistrarProductoCommand.IngredienteComando> ingredientesCmd = request.ingredientes().stream()
-                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.descripcion(), i.concentracion()))
+                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.concentracion()))
                 .toList();
 
         RegistrarProductoCommand command = new RegistrarProductoCommand(
@@ -112,7 +112,7 @@ public class ProductoController {
         Long vendedorId = extraerVendedorId(authentication);
 
         List<RegistrarProductoCommand.IngredienteComando> ingredientesCmd = request.ingredientes().stream()
-                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.descripcion(), i.concentracion()))
+                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.concentracion()))
                 .toList();
 
         ActualizarProductoCommand command = new ActualizarProductoCommand(

@@ -157,13 +157,28 @@
           </table>
 
           <form class="inci-form" (ngSubmit)="agregarInci()">
-            <input placeholder="Ingrediente (INCI)" name="edInci" [(ngModel)]="edInci" />
-            <input placeholder="Función" name="edFuncion" [(ngModel)]="edFuncion" />
-            <input type="number" min="0" max="100" step="0.1" placeholder="%" name="edConc" [(ngModel)]="edConc" />
-            <button type="submit" class="btn-mini">＋ Agregar activo</button>
+            <div class="inci-buscar">
+              <label class="sr-only" for="ed-inci">Buscar ingrediente</label>
+              <input id="ed-inci" placeholder="Busca el ingrediente (INCI o nombre en español)" name="edInci"
+                     [(ngModel)]="edInci" (ngModelChange)="buscarInci($event)" autocomplete="off"
+                     role="combobox" aria-autocomplete="list" aria-controls="inci-sugerencias"
+                     [attr.aria-expanded]="sugerencias().length > 0" />
+              @if (sugerencias().length) {
+                <ul id="inci-sugerencias" class="inci-sugerencias" role="listbox">
+                  @for (s of sugerencias(); track s.id) {
+                    <li role="option" [attr.aria-selected]="false">
+                      <button type="button" (click)="elegirInci(s)"><strong>{{ s.inci }}</strong><span>{{ s.descripcion }}</span></button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            <label class="sr-only" for="ed-conc">Concentración (%)</label>
+            <input id="ed-conc" type="number" min="0" max="100" step="0.1" placeholder="%" name="edConc" [(ngModel)]="edConc" />
+            <button type="submit" class="btn-mini" [disabled]="!edElegido">＋ Agregar</button>
           </form>
 
-          <p class="nota-amber">⚠️ El sistema mapeará cada ingrediente contra la ontología médica al guardar.</p>
+          <p class="nota-amber">⚠️ Solo se aceptan ingredientes del catálogo INCI, para que el motor de compatibilidad pueda evaluarlos. Si uno no aparece, repórtalo para agregarlo.</p>
         </section>
       </div>
 

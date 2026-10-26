@@ -1,10 +1,14 @@
 package com.glossup.perfil.application.service;
 
+import com.glossup.perfil.domain.model.Afeccion;
+import com.glossup.perfil.domain.model.Alergeno;
 import com.glossup.perfil.domain.model.PerfilDermatologico;
 import com.glossup.perfil.domain.model.Ph;
+import com.glossup.perfil.domain.model.TipoCabello;
 import com.glossup.perfil.domain.model.TipoPiel;
 import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.domain.port.out.PerfilRepositoryPort;
+import com.glossup.shared.domain.ReglaNegocioException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,36 +38,37 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
     @Override
     public PerfilDermatologico actualizarBiotipo(Long usuarioId, Double ph, String tipoPiel, String tipoCabello) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
-        TipoPiel piel = tipoPiel == null || tipoPiel.isBlank() ? null : parseTipoPiel(tipoPiel);
-        perfil.actualizarBiotipo(ph == null ? null : new Ph(ph), piel, tipoCabello);
+        perfil.actualizarBiotipo(ph == null ? null : new Ph(ph),
+                opcional(TipoPiel.class, tipoPiel, "tipo de piel"),
+                opcional(TipoCabello.class, tipoCabello, "tipo de cabello"));
         return perfilRepository.guardar(perfil);
     }
 
     @Override
     public PerfilDermatologico agregarAlergia(Long usuarioId, String alergia) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
-        perfil.agregarAlergia(alergia);
+        perfil.agregarAlergia(codigo(Alergeno.class, alergia, "alergia"));
         return perfilRepository.guardar(perfil);
     }
 
     @Override
     public PerfilDermatologico quitarAlergia(Long usuarioId, String alergia) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
-        perfil.quitarAlergia(alergia);
+        perfil.quitarAlergia(codigo(Alergeno.class, alergia, "alergia"));
         return perfilRepository.guardar(perfil);
     }
 
     @Override
     public PerfilDermatologico agregarAfeccion(Long usuarioId, String afeccion) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
-        perfil.agregarAfeccion(afeccion);
+        perfil.agregarAfeccion(codigo(Afeccion.class, afeccion, "afección"));
         return perfilRepository.guardar(perfil);
     }
 
     @Override
     public PerfilDermatologico quitarAfeccion(Long usuarioId, String afeccion) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
-        perfil.quitarAfeccion(afeccion);
+        perfil.quitarAfeccion(codigo(Afeccion.class, afeccion, "afección"));
         return perfilRepository.guardar(perfil);
     }
 
@@ -72,13 +77,19 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
                 .orElseGet(() -> PerfilDermatologico.crear(usuarioId, null, null, null));
     }
 
-    private TipoPiel parseTipoPiel(String tipoPiel) {
-        try {
-            return TipoPiel.valueOf(tipoPiel.trim().toUpperCase());
-        } catch (IllegalArgumentException exception) {
-            throw new com.glossup.shared.domain.ReglaNegocioException(
-                    "El tipo de piel no es válido: " + tipoPiel);
-        }
+    private static <E extends Enum<E>> E opcional(Class<E> tipo, String valor, String campo) {
+        return valor == null || valor.isBlank() ? null : codigo(tipo, valor, campo);
     }
 
+    /** Convierte el código recibido en el valor del catálogo cerrado; rechaza texto libre. */
+    private static <E extends Enum<E>> E codigo(Class<E> tipo, String valor, String campo) {
+        if (valor == null || valor.isBlank()) {
+            throw new ReglaNegocioException("El campo " + campo + " es obligatorio");
+        }
+        try {
+            return Enum.valueOf(tipo, valor.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ReglaNegocioException("Valor no válido para " + campo + ": " + valor);
+        }
+    }
 }

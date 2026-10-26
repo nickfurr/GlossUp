@@ -11,6 +11,7 @@ import com.glossup.compatibilidad.domain.port.out.ReglaRepositoryPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -43,12 +44,17 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
 
         ResultadoCompatibilidad resultado = ResultadoCompatibilidad.vacio();
 
-        // 1) Alergias declaradas → siempre crítico (RNF-01: ningún falso negativo aquí).
-        for (String inci : ingredientes) {
-            if (datos.alergias().contains(inci)) {
-                resultado.agregar(new Alerta(Severidad.ALTA,
-                        "«" + producto.nombre() + "» contiene " + inci + ", al que eres alérgico/a.",
-                        "Alergia declarada en tu perfil: " + inci));
+        // 1) Alergias declaradas → siempre crítico (RNF-01: ningún falso negativo aquí). Cada
+        //    alérgeno es un grupo (ej. parabenos) que se expande a todos sus nombres INCI.
+        Map<String, Set<String>> porAlergeno = reglas.ingredientesPorAlergeno();
+        for (String alergeno : datos.alergias()) {
+            for (String inci : porAlergeno.getOrDefault(alergeno, Set.of())) {
+                if (ingredientes.contains(inci)) {
+                    String grupo = datos.etiqueta(alergeno);
+                    resultado.agregar(new Alerta(Severidad.ALTA,
+                            "«" + producto.nombre() + "» contiene " + inci + " (" + grupo + "), al que registraste alergia.",
+                            "Alergia declarada en tu perfil: " + grupo + ". " + inci + " pertenece a ese grupo."));
+                }
             }
         }
 
@@ -57,7 +63,7 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
             if (ingredientes.contains(regla.getIngrediente()) && datos.condiciones().contains(regla.getCondicion())) {
                 resultado.agregar(new Alerta(regla.getSeveridad(),
                         "«" + producto.nombre() + "» contiene " + regla.getIngrediente()
-                                + ", no recomendado para " + regla.getCondicion() + ".",
+                                + ", no recomendado para tu condición: " + datos.etiqueta(regla.getCondicion()) + ".",
                         regla.getMotivo()));
             }
         }

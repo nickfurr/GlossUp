@@ -7,6 +7,7 @@ import com.glossup.catalogo.infrastructure.out.persistence.entity.IngredienteEnt
 import com.glossup.catalogo.infrastructure.out.persistence.repository.IngredienteJpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -25,18 +26,11 @@ public class IngredientePersistenceAdapter implements IngredienteRepositoryPort 
     }
 
     @Override
-    public Ingrediente guardarOBuscar(Ingrediente ingrediente) {
-        return repository.findByNombreInciIgnoreCase(ingrediente.getInci().nombre())
-                .map(this::aDominio)
-                .orElseGet(() -> {
-                    IngredienteEntity entity = new IngredienteEntity(
-                            null,
-                            ingrediente.getInci().nombre(),
-                            ingrediente.getDescripcion()
-                    );
-                    IngredienteEntity guardado = repository.save(entity);
-                    return aDominio(guardado);
-                });
+    public List<Ingrediente> buscar(String texto) {
+        String t = texto.trim();
+        return repository
+                .findTop20ByNombreInciContainingIgnoreCaseOrDescripcionContainingIgnoreCaseOrderByNombreInciAsc(t, t)
+                .stream().map(this::aDominio).toList();
     }
 
     public Ingrediente aDominio(IngredienteEntity entity) {

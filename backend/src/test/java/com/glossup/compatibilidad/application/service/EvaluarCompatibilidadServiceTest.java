@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,6 +36,9 @@ class EvaluarCompatibilidadServiceTest {
         service = new EvaluarCompatibilidadService(perfil, catalogo, reglas);
         lenient().when(reglas.reglasPerfil()).thenReturn(List.of(
                 new ReglaPerfil(1L, "retinol", "sensible", Severidad.ALTA, "Irrita piel sensible")));
+        lenient().when(reglas.ingredientesPorAlergeno()).thenReturn(Map.of(
+                "parabenos", Set.of("methylparaben", "propylparaben"),
+                "fragancia", Set.of("parfum", "linalool")));
     }
 
     private void producto(String... inci) {
@@ -46,16 +50,16 @@ class EvaluarCompatibilidadServiceTest {
     }
 
     @Test
-    void alergeno_emiteAlertaAltaYNoCompatible() {
-        producto("niacinamide", "parfum");
-        perfilCon(Set.of("parfum"), Set.of());
+    void alergeno_grupoDetectaCualquieraDeSusIngredientes() {
+        producto("niacinamide", "propylparaben");
+        perfilCon(Set.of("parabenos"), Set.of());
 
         ResultadoCompatibilidad r = service.evaluarProductoPerfil(1L, 10L);
 
         assertFalse(r.esCompatible(), "un alérgeno presente nunca debe considerarse compatible (RNF-01)");
         assertEquals(1, r.getAlertas().size());
         assertEquals(Severidad.ALTA, r.getAlertas().get(0).severidad());
-        assertTrue(r.getAlertas().get(0).causa().contains("parfum"));
+        assertTrue(r.getAlertas().get(0).causa().contains("propylparaben"));
     }
 
     @Test
@@ -73,7 +77,7 @@ class EvaluarCompatibilidadServiceTest {
     @Test
     void sinCoincidencias_esCompatibleSinAlertas() {
         producto("retinol");
-        perfilCon(Set.of("parfum"), Set.of("grasa")); // la regla de retinol es para 'sensible'
+        perfilCon(Set.of("fragancia"), Set.of("grasa")); // retinol no es fragancia y su regla es para 'sensible'
 
         ResultadoCompatibilidad r = service.evaluarProductoPerfil(1L, 10L);
 

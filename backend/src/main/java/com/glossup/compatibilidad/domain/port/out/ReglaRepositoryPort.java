@@ -3,12 +3,18 @@ package com.glossup.compatibilidad.domain.port.out;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Puerto de salida: catálogo de reglas de incompatibilidad producto–perfil (irritantes).
+ * Puerto de salida: base de conocimiento del motor (reglas de irritantes y alérgenos).
+ * Las tablas son pequeñas y se cruzan en memoria.
  */
 public interface ReglaRepositoryPort {
 
-    /** Todas las reglas ingrediente↔condición. La tabla es pequeña y se cruza en memoria. */
+    /** Todas las reglas ingrediente↔condición. */
     List<ReglaPerfil> reglasPerfil();
+
+    /** Código de alérgeno (minúsculas) → nombres INCI que lo contienen (minúsculas). */
+    Map<String, Set<String>> ingredientesPorAlergeno();
 }

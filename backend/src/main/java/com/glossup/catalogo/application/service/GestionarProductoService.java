@@ -7,11 +7,9 @@ import com.glossup.catalogo.domain.model.Ingrediente;
 import com.glossup.catalogo.domain.model.Producto;
 import com.glossup.catalogo.domain.port.in.ActualizarProductoCommand;
 import com.glossup.catalogo.domain.port.in.GestionarProductoUseCase;
-import com.glossup.catalogo.domain.port.in.RegistrarProductoCommand;
 import com.glossup.catalogo.domain.port.out.IngredienteRepositoryPort;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.shared.domain.Dinero;
-import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -47,17 +45,7 @@ public class GestionarProductoService implements GestionarProductoUseCase {
             throw new AccessDeniedException("Acceso denegado: no puedes modificar un producto de otro vendedor");
         }
 
-        if (command.ingredientes() == null || command.ingredientes().isEmpty()) {
-            throw new ReglaNegocioException("La ficha técnica debe contener al menos un ingrediente (INCI)");
-        }
-
-        List<ComposicionProducto> nuevaComposicion = new ArrayList<>();
-        for (RegistrarProductoCommand.IngredienteComando ic : command.ingredientes()) {
-            Inci inci = new Inci(ic.inci());
-            Ingrediente ingrediente = ingredienteRepository.guardarOBuscar(
-                    Ingrediente.nuevo(inci, ic.descripcion()));
-            nuevaComposicion.add(new ComposicionProducto(ingrediente, ic.concentracion()));
-        }
+        List<ComposicionProducto> nuevaComposicion = FichaInci.resolver(command.ingredientes(), ingredienteRepository);
 
         List<ImagenProducto> nuevasImagenes = new ArrayList<>();
         if (command.urlsImagenes() != null) {
@@ -92,5 +80,11 @@ public class GestionarProductoService implements GestionarProductoUseCase {
 
         producto.despublicar();
         productoRepository.guardar(producto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Ingrediente> buscarIngredientes(String texto) {
+        return texto == null || texto.isBlank() ? List.of() : ingredienteRepository.buscar(texto);
     }
 }

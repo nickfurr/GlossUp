@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import type { PerfilDermatologico, TipoCabello, TipoPiel } from './models';
+import type { OpcionesPerfil, PerfilDermatologico, TipoPiel } from './models';
 
 const BASE = '/api/perfil/me';
 
@@ -13,7 +13,11 @@ export class PerfilService {
     return this.http.get<PerfilDermatologico>(BASE);
   }
 
-  actualizar(datos: { ph: number | null; tipoPiel: TipoPiel | null; tipoCabello: TipoCabello | null }): Observable<PerfilDermatologico> {
+  opciones(): Observable<OpcionesPerfil> {
+    return this.http.get<OpcionesPerfil>(`${BASE}/opciones`);
+  }
+
+  actualizar(datos: { ph: number | null; tipoPiel: TipoPiel | null; tipoCabello: string | null }): Observable<PerfilDermatologico> {
     return this.http.put<PerfilDermatologico>(BASE, datos);
   }
 

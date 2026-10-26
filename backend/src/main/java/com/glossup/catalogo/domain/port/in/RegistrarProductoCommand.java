@@ -18,9 +18,9 @@ public record RegistrarProductoCommand(
         List<String> urlsImagenes,
         List<IngredienteComando> ingredientes
 ) {
+    /** {@code inci} debe existir en el catálogo; su función/descripción viene del catálogo. */
     public record IngredienteComando(
             String inci,
-            String descripcion,
             Double concentracion
     ) {}
 }

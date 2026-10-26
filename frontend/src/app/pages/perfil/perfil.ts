@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PerfilService } from '../../shared/perfil';
-import type { PerfilDermatologico, TipoCabello, TipoPiel } from '../../shared/models';
+import type { OpcionPerfil, OpcionesPerfil, PerfilDermatologico, TipoPiel } from '../../shared/models';
 import { mensajeDeError } from '../../shared/productos';
 
 @Component({
@@ -38,12 +38,12 @@ import { mensajeDeError } from '../../shared/productos';
             <label for="tipo-piel">Tipo de piel</label>
             <select id="tipo-piel" class="profile-input" [(ngModel)]="tipoPiel">
               <option [ngValue]="null">Selecciona una opción</option>
-              @for (tipo of tiposPiel; track tipo) { <option [ngValue]="tipo">{{ etiqueta(tipo) }}</option> }
+              @for (tipo of opciones()?.tiposPiel ?? []; track tipo.codigo) { <option [ngValue]="tipo.codigo">{{ tipo.etiqueta }}</option> }
             </select>
             <label for="tipo-cabello">Tipo de cabello</label>
             <select id="tipo-cabello" class="profile-input" [(ngModel)]="tipoCabello">
               <option [ngValue]="null">Selecciona una opción</option>
-              @for (tipo of tiposCabello; track tipo.codigo) {
+              @for (tipo of opciones()?.tiposCabello ?? []; track tipo.codigo) {
                 <option [ngValue]="tipo.codigo">{{ tipo.etiqueta }}</option>
               }
             </select>
@@ -56,8 +56,8 @@ import { mensajeDeError } from '../../shared/productos';
             <span class="section-kicker">Tu resumen</span>
             <h2>Lo que sabemos de ti</h2>
             <div class="summary-stat"><span>pH</span><strong>{{ p.ph ?? 'Sin registrar' }}</strong></div>
-            <div class="summary-stat"><span>Piel</span><strong>{{ p.tipoPiel ? etiqueta(p.tipoPiel) : 'Sin registrar' }}</strong></div>
-            <div class="summary-stat"><span>Cabello</span><strong>{{ p.tipoCabello ? etiquetaCabello(p.tipoCabello) : 'Sin registrar' }}</strong></div>
+            <div class="summary-stat"><span>Piel</span><strong>{{ p.tipoPiel ? etiquetaDe('tiposPiel', p.tipoPiel) : 'Sin registrar' }}</strong></div>
+            <div class="summary-stat"><span>Cabello</span><strong>{{ p.tipoCabello ? etiquetaDe('tiposCabello', p.tipoCabello) : 'Sin registrar' }}</strong></div>
             <div class="summary-stat"><span>Alergias</span><strong>{{ p.alergias.length }}</strong></div>
             <div class="summary-stat"><span>Afecciones</span><strong>{{ p.afecciones.length }}</strong></div>
             <p class="updated-at">{{ p.actualizadoEn ? 'Actualizado ' + fecha(p.actualizadoEn) : 'Aún no has guardado cambios' }}</p>
@@ -65,16 +65,33 @@ import { mensajeDeError } from '../../shared/productos';
         </div>
         <div class="profile-lists">
           <div class="card tag-section">
-            <div class="list-heading"><div><span class="section-kicker">02 · Ingredientes</span><h2>Alergias</h2><p class="nota">Añade ingredientes INCI que quieras evitar.</p></div><span class="count">{{ p.alergias.length }}</span></div>
-            <div class="tag-list">@for (item of p.alergias; track item) { <span class="tag tag-danger">{{ item }} <button type="button" (click)="quitarAlergia(item)" aria-label="Quitar alergia {{ item }}">×</button></span> } @empty { <span class="empty">Todavía no registras alergias.</span> }</div>
-            <div class="add-row"><label class="sr-only" for="nueva-alergia">Nueva alergia</label><input id="nueva-alergia" [(ngModel)]="nuevaAlergia" maxlength="120" placeholder="Ej. Parfum" (keyup.enter)="agregarAlergia()"><button class="btn-sec" type="button" [disabled]="cargando()" (click)="agregarAlergia()">Añadir</button></div>
-            @if (errorAlergia()) { <p class="field-error" role="alert">{{ errorAlergia() }}</p> }
+            <div class="list-heading"><div><span class="section-kicker">02 · Ingredientes</span><h2>Alergias</h2><p class="nota">Elige los alérgenos a los que reaccionas; detectamos todos sus nombres INCI.</p></div><span class="count">{{ p.alergias.length }}</span></div>
+            <div class="tag-list">@for (item of p.alergias; track item) { <span class="tag tag-danger">{{ etiquetaDe('alergias', item) }} <button type="button" (click)="quitarAlergia(item)" [attr.aria-label]="'Quitar alergia ' + etiquetaDe('alergias', item)">×</button></span> } @empty { <span class="empty">Todavía no registras alergias.</span> }</div>
+            <div class="add-row">
+              <label class="sr-only" for="nueva-alergia">Nueva alergia</label>
+              <select id="nueva-alergia" [(ngModel)]="nuevaAlergia" aria-describedby="detalle-alergia">
+                <option [ngValue]="null">Elige un alérgeno</option>
+                @for (o of disponibles('alergias'); track o.codigo) { <option [ngValue]="o.codigo">{{ o.etiqueta }}</option> }
+              </select>
+              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAlergia" (click)="agregarAlergia()">Añadir</button>
+            </div>
+            <p id="detalle-alergia" class="field-hint">{{ detalleAlergia() }}</p>
           </div>
           <div class="card tag-section">
-            <div class="list-heading"><div><span class="section-kicker">03 · Condiciones</span><h2>Afecciones</h2><p class="nota">Registra condiciones para recomendaciones más precisas.</p></div><span class="count">{{ p.afecciones.length }}</span></div>
-            <div class="tag-list">@for (item of p.afecciones; track item) { <span class="tag">{{ item }} <button type="button" (click)="quitarAfeccion(item)" aria-label="Quitar afección {{ item }}">×</button></span> } @empty { <span class="empty">Todavía no registras afecciones.</span> }</div>
-            <div class="add-row"><label class="sr-only" for="nueva-afeccion">Nueva afección</label><input id="nueva-afeccion" [(ngModel)]="nuevaAfeccion" maxlength="120" placeholder="Ej. Rosácea" (keyup.enter)="agregarAfeccion()"><button class="btn-sec" type="button" [disabled]="cargando()" (click)="agregarAfeccion()">Añadir</button></div>
-            @if (errorAfeccion()) { <p class="field-error" role="alert">{{ errorAfeccion() }}</p> }
+            <div class="list-heading"><div><span class="section-kicker">03 · Condiciones</span><h2>Afecciones</h2><p class="nota">Registra condiciones de tu piel o cabello para avisarte de ingredientes que no te convienen.</p></div><span class="count">{{ p.afecciones.length }}</span></div>
+            <div class="tag-list">@for (item of p.afecciones; track item) { <span class="tag">{{ etiquetaDe('afecciones', item) }} <button type="button" (click)="quitarAfeccion(item)" [attr.aria-label]="'Quitar afección ' + etiquetaDe('afecciones', item)">×</button></span> } @empty { <span class="empty">Todavía no registras afecciones.</span> }</div>
+            <div class="add-row">
+              <label class="sr-only" for="nueva-afeccion">Nueva afección</label>
+              <select id="nueva-afeccion" [(ngModel)]="nuevaAfeccion">
+                <option [ngValue]="null">Elige una condición</option>
+                @for (z of zonas; track z.codigo) {
+                  <optgroup [label]="z.etiqueta">
+                    @for (o of disponibles('afecciones'); track o.codigo) { @if (o.detalle === z.codigo) { <option [ngValue]="o.codigo">{{ o.etiqueta }}</option> } }
+                  </optgroup>
+                }
+              </select>
+              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAfeccion" (click)="agregarAfeccion()">Añadir</button>
+            </div>
           </div>
         </div>
       }
@@ -84,34 +101,27 @@ import { mensajeDeError } from '../../shared/productos';
 export class Perfil {
   private service = inject(PerfilService);
   perfil = signal<PerfilDermatologico | null>(null);
+  opciones = signal<OpcionesPerfil | null>(null);
   cargando = signal(false);
   error = signal<string | null>(null);
   mensaje = signal<string | null>(null);
   errorBiotipo = signal<string | null>(null);
-  errorAlergia = signal<string | null>(null);
-  errorAfeccion = signal<string | null>(null);
   ph: number | null = null;
   tipoPiel: TipoPiel | null = null;
-  tipoCabello: TipoCabello | null = null;
-  nuevaAlergia = '';
-  nuevaAfeccion = '';
-  readonly tiposPiel: TipoPiel[] = ['NORMAL', 'SECA', 'GRASA', 'MIXTA', 'SENSIBLE'];
-  readonly tiposCabello: { codigo: TipoCabello; etiqueta: string }[] = [
-    { codigo: 'LISO_1A', etiqueta: 'Liso 1A · fino y completamente liso' },
-    { codigo: 'LISO_1B', etiqueta: 'Liso 1B · liso con más cuerpo' },
-    { codigo: 'LISO_1C', etiqueta: 'Liso 1C · liso, grueso o resistente' },
-    { codigo: 'ONDULADO_2A', etiqueta: 'Ondulado 2A · ondas suaves' },
-    { codigo: 'ONDULADO_2B', etiqueta: 'Ondulado 2B · ondas marcadas' },
-    { codigo: 'ONDULADO_2C', etiqueta: 'Ondulado 2C · ondas fuertes' },
-    { codigo: 'RIZADO_3A', etiqueta: 'Rizado 3A · rizos amplios' },
-    { codigo: 'RIZADO_3B', etiqueta: 'Rizado 3B · rizos definidos' },
-    { codigo: 'RIZADO_3C', etiqueta: 'Rizado 3C · rizos cerrados' },
-    { codigo: 'MUY_RIZADO_4A', etiqueta: 'Muy rizado 4A · espirales pequeñas' },
-    { codigo: 'MUY_RIZADO_4B', etiqueta: 'Muy rizado 4B · patrón angular' },
-    { codigo: 'MUY_RIZADO_4C', etiqueta: 'Muy rizado 4C · patrón muy cerrado' },
+  tipoCabello: string | null = null;
+  nuevaAlergia: string | null = null;
+  nuevaAfeccion: string | null = null;
+  readonly zonas = [
+    { codigo: 'PIEL', etiqueta: 'Piel' },
+    { codigo: 'CABELLO', etiqueta: 'Cabello y cuero cabelludo' },
+    { codigo: 'GENERAL', etiqueta: 'General' },
   ];
 
-  constructor() { this.cargar(); }
+  constructor() {
+    this.service.opciones().subscribe({ next: (o) => this.opciones.set(o), error: (e) => this.error.set(mensajeDeError(e)) });
+    this.cargar();
+  }
+
 
   completitud(): number {
     const p = this.perfil();
@@ -137,31 +147,31 @@ export class Perfil {
     this.ejecutar(this.service.actualizar({ ph: this.ph, tipoPiel: this.tipoPiel, tipoCabello: this.tipoCabello }), 'Perfil actualizado correctamente.');
   }
   agregarAlergia(): void {
-    this.errorAlergia.set(null);
-    const value = this.nuevaAlergia.trim();
-    if (!this.validarLista(value, 'alergia', this.perfil()?.alergias ?? [])) return;
-    this.ejecutar(this.service.agregarAlergia(value), 'Alergia agregada.'); this.nuevaAlergia = '';
+    if (!this.nuevaAlergia) return;
+    this.ejecutar(this.service.agregarAlergia(this.nuevaAlergia), 'Alergia agregada.'); this.nuevaAlergia = null;
   }
-  quitarAlergia(value: string): void { this.errorAlergia.set(null); this.ejecutar(this.service.quitarAlergia(value), 'Alergia eliminada.'); }
+  quitarAlergia(codigo: string): void { this.ejecutar(this.service.quitarAlergia(codigo), 'Alergia eliminada.'); }
   agregarAfeccion(): void {
-    this.errorAfeccion.set(null);
-    const value = this.nuevaAfeccion.trim();
-    if (!this.validarLista(value, 'afección', this.perfil()?.afecciones ?? [])) return;
-    this.ejecutar(this.service.agregarAfeccion(value), 'Afección agregada.'); this.nuevaAfeccion = '';
+    if (!this.nuevaAfeccion) return;
+    this.ejecutar(this.service.agregarAfeccion(this.nuevaAfeccion), 'Afección agregada.'); this.nuevaAfeccion = null;
   }
-  quitarAfeccion(value: string): void { this.errorAfeccion.set(null); this.ejecutar(this.service.quitarAfeccion(value), 'Afección eliminada.'); }
-  etiqueta(value: string): string { return value.charAt(0) + value.slice(1).toLowerCase(); }
-  etiquetaCabello(value: TipoCabello): string { return this.tiposCabello.find((tipo) => tipo.codigo === value)?.etiqueta ?? value; }
+  quitarAfeccion(codigo: string): void { this.ejecutar(this.service.quitarAfeccion(codigo), 'Afección eliminada.'); }
+  /** Opciones del catálogo que el perfil aún no tiene. */
+  disponibles(lista: 'alergias' | 'afecciones'): OpcionPerfil[] {
+    const usados = new Set(this.perfil()?.[lista] ?? []);
+    return (this.opciones()?.[lista] ?? []).filter((o) => !usados.has(o.codigo));
+  }
+  etiquetaDe(lista: keyof OpcionesPerfil, codigo: string): string {
+    return this.opciones()?.[lista].find((o) => o.codigo === codigo)?.etiqueta ?? codigo;
+  }
+  detalleAlergia(): string {
+    return this.opciones()?.alergias.find((o) => o.codigo === this.nuevaAlergia)?.detalle ?? '';
+  }
   fecha(value: string): string { return new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(value)); }
   private validarPh(): string | null {
     if (this.ph === null || this.ph === undefined) return null;
     if (!Number.isFinite(this.ph) || this.ph < 0 || this.ph > 14) return 'El pH debe estar entre 0 y 14.';
     return null;
-  }
-  private validarLista(value: string, nombre: string, existentes: string[]): boolean {
-    const error = value.length === 0 ? `Escribe una ${nombre}.` : value.length > 120 ? `La ${nombre} no puede superar 120 caracteres.` : existentes.some((item) => item.toLowerCase() === value.toLowerCase()) ? `Esa ${nombre} ya está registrada.` : null;
-    if (nombre === 'alergia') this.errorAlergia.set(error); else this.errorAfeccion.set(error);
-    return !error;
   }
   private ejecutar(request: ReturnType<PerfilService['obtener']>, success: string): void {
     this.error.set(null); this.mensaje.set(null); this.cargando.set(true);

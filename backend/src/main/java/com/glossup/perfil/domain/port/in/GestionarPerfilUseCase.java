@@ -16,22 +16,22 @@ public interface GestionarPerfilUseCase {
     PerfilDermatologico actualizarBiotipo(Long usuarioId, Double ph, String tipoPiel, String tipoCabello);
 
     /**
-     * Agrega dinámicamente un ingrediente (INCI) a la lista de alergias del usuario (HU2).
+     * Agrega un alérgeno del catálogo cerrado (código de {@code Alergeno}) al perfil (HU2).
      */
     PerfilDermatologico agregarAlergia(Long usuarioId, String alergia);
 
     /**
-     * Elimina dinámicamente un ingrediente (INCI) de la lista de alergias del usuario (HU2).
+     * Quita un alérgeno (código de {@code Alergeno}) del perfil (HU2).
      */
     PerfilDermatologico quitarAlergia(Long usuarioId, String alergia);
 
     /**
-     * Agrega dinámicamente una condición o afección dermatológica al perfil del usuario (HU2).
+     * Agrega una afección del catálogo cerrado (código de {@code Afeccion}) al perfil (HU2).
      */
     PerfilDermatologico agregarAfeccion(Long usuarioId, String afeccion);
 
     /**
-     * Elimina dinámicamente una condición o afección dermatológica del perfil del usuario (HU2).
+     * Quita una afección (código de {@code Afeccion}) del perfil (HU2).
      */
     PerfilDermatologico quitarAfeccion(Long usuarioId, String afeccion);
 }
