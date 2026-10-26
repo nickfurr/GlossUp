@@ -1,7 +1,10 @@
 package com.glossup.perfil.infrastructure.out.persistence.adapter;
 
+import com.glossup.perfil.domain.model.Afeccion;
+import com.glossup.perfil.domain.model.Alergeno;
 import com.glossup.perfil.domain.model.PerfilDermatologico;
 import com.glossup.perfil.domain.model.Ph;
+import com.glossup.perfil.domain.model.TipoCabello;
 import com.glossup.perfil.domain.model.TipoPiel;
 import com.glossup.perfil.domain.port.out.PerfilRepositoryPort;
 import com.glossup.perfil.infrastructure.out.persistence.entity.PerfilAfeccionEntity;
@@ -44,19 +47,19 @@ public class PerfilPersistenceAdapter implements PerfilRepositoryPort {
                 ? BigDecimal.valueOf(dominio.getPh().valor()).setScale(1, RoundingMode.HALF_UP)
                 : null);
         entity.setTipoPiel(dominio.getTipoPiel() != null ? dominio.getTipoPiel().name() : null);
-        entity.setTipoCabello(dominio.getTipoCabello());
+        entity.setTipoCabello(dominio.getTipoCabello() != null ? dominio.getTipoCabello().name() : null);
         entity.setActualizadoEn(dominio.getActualizadoEn());
 
         // Sincronizar afecciones
         entity.getAfecciones().clear();
-        for (String afeccion : dominio.getAfecciones()) {
-            entity.agregarAfeccion(new PerfilAfeccionEntity(entity, afeccion));
+        for (Afeccion afeccion : dominio.getAfecciones()) {
+            entity.agregarAfeccion(new PerfilAfeccionEntity(entity, afeccion.name()));
         }
 
         // Sincronizar alergias
         entity.getAlergias().clear();
-        for (String alergia : dominio.getAlergias()) {
-            entity.agregarAlergia(new PerfilAlergiaEntity(entity, alergia));
+        for (Alergeno alergia : dominio.getAlergias()) {
+            entity.agregarAlergia(new PerfilAlergiaEntity(entity, alergia.name()));
         }
 
         PerfilDermatologicoEntity guardado = perfilJpaRepository.save(entity);
@@ -67,12 +70,14 @@ public class PerfilPersistenceAdapter implements PerfilRepositoryPort {
         Ph ph = entity.getPh() != null ? new Ph(entity.getPh().doubleValue()) : null;
         TipoPiel tipoPiel = entity.getTipoPiel() != null ? TipoPiel.valueOf(entity.getTipoPiel()) : null;
 
-        Set<String> afecciones = entity.getAfecciones().stream()
-                .map(PerfilAfeccionEntity::getNombre)
+        TipoCabello tipoCabello = entity.getTipoCabello() != null ? TipoCabello.valueOf(entity.getTipoCabello()) : null;
+
+        Set<Afeccion> afecciones = entity.getAfecciones().stream()
+                .map(a -> Afeccion.valueOf(a.getNombre()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        Set<String> alergias = entity.getAlergias().stream()
-                .map(PerfilAlergiaEntity::getNombre)
+        Set<Alergeno> alergias = entity.getAlergias().stream()
+                .map(a -> Alergeno.valueOf(a.getNombre()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         return new PerfilDermatologico(
@@ -80,7 +85,7 @@ public class PerfilPersistenceAdapter implements PerfilRepositoryPort {
                 entity.getUsuarioId(),
                 ph,
                 tipoPiel,
-                entity.getTipoCabello(),
+                tipoCabello,
                 afecciones,
                 alergias,
                 entity.getActualizadoEn()

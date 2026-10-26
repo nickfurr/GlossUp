@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { Subject, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
-import type { DatosProducto, ProductoVendedor } from '../../shared/models';
+import type { DatosProducto, IngredienteCatalogo, ProductoVendedor } from '../../shared/models';
 
 type Vista = 'dashboard' | 'productos' | 'editor' | 'pedidos' | 'ventas' | 'ajustes';
 interface InciLocal {
@@ -77,12 +78,22 @@ export class Vendedor {
   readonly edImagenes = signal<string[]>(['']);
   readonly edFicha = signal<InciLocal[]>([]);
   edInci = '';
-  edFuncion = '';
   edConc = '';
+  /** Ingrediente elegido de la lista: solo se puede agregar a la ficha lo que viene del catálogo. */
+  edElegido: IngredienteCatalogo | null = null;
+  readonly sugerencias = signal<IngredienteCatalogo[]>([]);
+  private busquedaInci = new Subject<string>();
   readonly edError = signal<string | null>(null);
   readonly edOcupado = signal(false);
 
   constructor() {
+    this.busquedaInci
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((q) => (q.trim().length < 2 ? of([]) : this.api.buscarIngredientes(q.trim()))),
+      )
+      .subscribe({ next: (r) => this.sugerencias.set(r), error: () => this.sugerencias.set([]) });
     this.api.listarMisProductos().subscribe({
       next: (ps) => {
         this.productos.set(ps);
@@ -164,8 +175,9 @@ export class Vendedor {
 
   private limpiarAddInci(): void {
     this.edInci = '';
-    this.edFuncion = '';
     this.edConc = '';
+    this.edElegido = null;
+    this.sugerencias.set([]);
   }
 
   // ---- Imágenes ----
@@ -183,11 +195,20 @@ export class Vendedor {
   }
 
   // ---- Ficha INCI ----
+  buscarInci(texto: string): void {
+    this.edElegido = null; // si vuelve a escribir, debe volver a elegir de la lista
+    this.busquedaInci.next(texto);
+  }
+  elegirInci(i: IngredienteCatalogo): void {
+    this.edElegido = i;
+    this.edInci = i.inci;
+    this.sugerencias.set([]);
+  }
   agregarInci(): void {
-    const nombreInci = this.edInci.trim();
-    if (!nombreInci) return;
-    if (this.edFicha().some((x) => x.inci.toLowerCase() === nombreInci.toLowerCase())) return;
-    this.edFicha.update((f) => [...f, { inci: nombreInci, descripcion: this.edFuncion.trim(), concentracion: this.edConc }]);
+    const elegido = this.edElegido;
+    if (!elegido) return;
+    if (this.edFicha().some((x) => x.inci === elegido.inci)) return;
+    this.edFicha.update((f) => [...f, { inci: elegido.inci, descripcion: elegido.descripcion ?? '', concentracion: this.edConc }]);
     this.limpiarAddInci();
   }
   quitarInci(nombreInci: string): void {
@@ -205,7 +226,6 @@ export class Vendedor {
       imagenes: this.edImagenes().map((u) => u.trim()).filter(Boolean),
       ingredientes: this.edFicha().map((f) => ({
         inci: f.inci,
-        descripcion: f.descripcion.trim() || null,
         concentracion: f.concentracion ? Number(f.concentracion) : null,
       })),
     };

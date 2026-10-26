@@ -1,12 +1,10 @@
 package com.glossup.compatibilidad.infrastructure.out.catalogo;
 
-import com.glossup.catalogo.domain.model.Producto;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.compatibilidad.domain.port.out.CatalogoConsultaPort;
-import com.glossup.shared.exception.NotFoundException;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.util.Optional;
 
 /**
  * Único punto de acoplamiento compatibilidad → catálogo. Expone la ficha INCI del producto como
@@ -22,12 +20,9 @@ public class CatalogoConsultaAdapter implements CatalogoConsultaPort {
     }
 
     @Override
-    public ProductoConsulta obtener(Long productoId) {
-        Producto producto = productoRepository.buscarPorId(productoId)
-                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
-        List<String> ingredientes = producto.getComposicion().stream()
-                .map(c -> c.ingrediente().getInci().nombre())
-                .toList();
-        return new ProductoConsulta(producto.getNombre(), ingredientes);
+    public Optional<ProductoConsulta> buscar(Long productoId) {
+        return productoRepository.buscarPorId(productoId).map(producto -> new ProductoConsulta(
+                producto.getNombre(),
+                producto.getComposicion().stream().map(c -> c.ingrediente().getInci().nombre()).toList()));
     }
 }

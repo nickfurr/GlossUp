@@ -86,8 +86,8 @@ class ProductoControllerTest {
                 "INVIMA-2024",
                 List.of("https://cdn.glossup.co/img1.webp", "https://cdn.glossup.co/img2.webp"),
                 List.of(
-                        new IngredienteRequest("Ascorbic Acid", "Vitamina C", 15.0),
-                        new IngredienteRequest("Aqua", null, null)
+                        new IngredienteRequest("Ascorbic Acid", 15.0),
+                        new IngredienteRequest("Aqua", null)
                 )
         );
     }
@@ -102,7 +102,7 @@ class ProductoControllerTest {
                 3.6,
                 "INVIMA-2024",
                 List.of("https://cdn.glossup.co/img-new.webp"),
-                List.of(new IngredienteRequest("Ascorbic Acid", "Vitamina C", 15.0))
+                List.of(new IngredienteRequest("Ascorbic Acid", 15.0))
         );
     }
 
@@ -197,7 +197,7 @@ class ProductoControllerTest {
                 3.5,
                 "INVIMA-2024",
                 List.of("https://cdn.glossup.co/img1.webp"),
-                List.of(new IngredienteRequest("Aqua", null, null))
+                List.of(new IngredienteRequest("Aqua", null))
         );
 
         mockMvc.perform(post("/api/catalogo/productos")
@@ -219,7 +219,7 @@ class ProductoControllerTest {
                 3.5,
                 "INVIMA-2024",
                 List.of("https://cdn.glossup.co/img1.webp"),
-                List.of(new IngredienteRequest("Aqua", null, null))
+                List.of(new IngredienteRequest("Aqua", null))
         );
 
         mockMvc.perform(post("/api/catalogo/productos")

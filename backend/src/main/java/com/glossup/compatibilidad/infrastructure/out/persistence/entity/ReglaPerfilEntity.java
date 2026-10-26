@@ -23,7 +23,8 @@ public class ReglaPerfilEntity {
     @Column(name = "severidad", nullable = false, length = 20)
     private String severidad;
 
-    @Column(name = "motivo")
+    // TEXT como en la migración; sin esto ddl-auto=update lo reduce a varchar(255).
+    @Column(name = "motivo", columnDefinition = "TEXT")
     private String motivo;
 
     public ReglaPerfilEntity() {}

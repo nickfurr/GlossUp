@@ -3,6 +3,7 @@ package com.glossup.compatibilidad.infrastructure.in.rest;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.port.in.EvaluarCompatibilidadUseCase;
 import com.glossup.compatibilidad.infrastructure.in.rest.dto.ResultadoCompatibilidadResponse;
+import com.glossup.shared.domain.ReglaNegocioException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +13,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/compatibilidad")
@@ -20,6 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Compatibilidad", description = "Motor de compatibilidad producto–perfil: alergias e irritantes (HU6)")
 @SecurityRequirement(name = "bearerAuth")
 public class CompatibilidadController {
+
+    private static final int MAX_LOTE = 200;
 
     private final EvaluarCompatibilidadUseCase evaluarCompatibilidad;
 
@@ -35,7 +41,22 @@ public class CompatibilidadController {
             @PathVariable Long productoId, Authentication authentication) {
         Long usuarioId = extraerUsuarioId(authentication);
         ResultadoCompatibilidad resultado = evaluarCompatibilidad.evaluarProductoPerfil(usuarioId, productoId);
-        return ResponseEntity.ok(ResultadoCompatibilidadResponse.fromDomain(resultado));
+        return ResponseEntity.ok(ResultadoCompatibilidadResponse.fromDomain(productoId, resultado));
+    }
+
+    @GetMapping("/productos")
+    @Operation(summary = "Evaluar varios productos contra mi perfil (HU6)",
+               description = "Evaluación por lote para el catálogo y el carrito: carga el perfil y las reglas una sola vez. "
+                       + "Los ids inexistentes se omiten. Máximo " + MAX_LOTE + " productos por petición.")
+    public ResponseEntity<List<ResultadoCompatibilidadResponse>> evaluarLote(
+            @RequestParam("ids") List<Long> ids, Authentication authentication) {
+        if (ids.size() > MAX_LOTE) {
+            throw new ReglaNegocioException("Máximo " + MAX_LOTE + " productos por evaluación");
+        }
+        return ResponseEntity.ok(evaluarCompatibilidad.evaluarProductosPerfil(extraerUsuarioId(authentication), ids)
+                .entrySet().stream()
+                .map(e -> ResultadoCompatibilidadResponse.fromDomain(e.getKey(), e.getValue()))
+                .toList());
     }
 
     private Long extraerUsuarioId(Authentication authentication) {

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import type { DatosProducto, ProductoVendedor } from './models';
+import type { DatosProducto, IngredienteCatalogo, ProductoVendedor } from './models';
 
 const BASE = '/api/catalogo/productos';
 
@@ -14,6 +14,11 @@ export class ProductosService {
     return this.http.get<ProductoVendedor[]>(`${BASE}/mis-productos`);
   }
 
+  /** Catálogo publicado completo (productos activos). */
+  listarCatalogo(): Observable<ProductoVendedor[]> {
+    return this.http.get<ProductoVendedor[]>(BASE);
+  }
+
   obtener(id: number): Observable<ProductoVendedor> {
     return this.http.get<ProductoVendedor>(`${BASE}/${id}`);
   }
@@ -21,6 +26,11 @@ export class ProductosService {
   /** Búsqueda básica por palabra clave en nombre/marca/categoría (HU12). */
   buscar(q: string): Observable<ProductoVendedor[]> {
     return this.http.get<ProductoVendedor[]>(`${BASE}/buscar`, { params: { q } });
+  }
+
+  /** Busca en el catálogo cerrado de ingredientes por INCI o nombre en español. */
+  buscarIngredientes(q: string): Observable<IngredienteCatalogo[]> {
+    return this.http.get<IngredienteCatalogo[]>('/api/catalogo/ingredientes', { params: { q } });
   }
 
   crear(d: DatosProducto): Observable<ProductoVendedor> {

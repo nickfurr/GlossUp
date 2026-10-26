@@ -62,7 +62,7 @@ public class ProductoController {
         Long vendedorId = extraerVendedorId(authentication);
 
         List<RegistrarProductoCommand.IngredienteComando> ingredientesCmd = request.ingredientes().stream()
-                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.descripcion(), i.concentracion()))
+                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.concentracion()))
                 .toList();
 
         RegistrarProductoCommand command = new RegistrarProductoCommand(
@@ -112,7 +112,7 @@ public class ProductoController {
         Long vendedorId = extraerVendedorId(authentication);
 
         List<RegistrarProductoCommand.IngredienteComando> ingredientesCmd = request.ingredientes().stream()
-                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.descripcion(), i.concentracion()))
+                .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.concentracion()))
                 .toList();
 
         ActualizarProductoCommand command = new ActualizarProductoCommand(
@@ -145,6 +145,17 @@ public class ProductoController {
         Long vendedorId = extraerVendedorId(authentication);
         gestionarProductoUseCase.eliminar(id, vendedorId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar el catálogo publicado",
+               description = "Todos los productos activos, para evaluarlos contra el perfil del cliente (HU6).",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<List<ProductoResponse>> listarCatalogo() {
+        return ResponseEntity.ok(productoRepository.listarTodos().stream()
+                .filter(Producto::isActivo)
+                .map(ProductoResponse::fromDomain)
+                .toList());
     }
 
     @GetMapping("/buscar")

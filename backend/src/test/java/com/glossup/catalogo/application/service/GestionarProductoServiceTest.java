@@ -58,11 +58,8 @@ class GestionarProductoServiceTest {
     void actualizar_cuandoVendedorEsPropietarioYDatosValidos_actualizaYPersiste() {
         Producto existente = crearProductoExistente(100L, 5L);
         when(productoRepository.buscarPorId(100L)).thenReturn(Optional.of(existente));
-        when(ingredienteRepository.guardarOBuscar(any(Ingrediente.class)))
-                .thenAnswer(inv -> {
-                    Ingrediente ing = inv.getArgument(0);
-                    return new Ingrediente(2L, ing.getInci(), ing.getDescripcion());
-                });
+        when(ingredienteRepository.buscarPorInci(new Inci("niacinamide")))
+                .thenReturn(Optional.of(new Ingrediente(2L, new Inci("niacinamide"), "Niacinamida · vitamina B3")));
         when(productoRepository.guardar(any(Producto.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
@@ -70,7 +67,7 @@ class GestionarProductoServiceTest {
                 100L, 5L, "Serum Renovado", "GlossLab Pro", "Cuidado Facial",
                 BigDecimal.valueOf(75000), 30, 4.5, "INVIMA-222",
                 List.of("https://cdn.glossup.co/new.webp"),
-                List.of(new RegistrarProductoCommand.IngredienteComando("Niacinamide", "Vitamina B3", 10.0))
+                List.of(new RegistrarProductoCommand.IngredienteComando("Niacinamide", 10.0))
         );
 
         Producto resultado = service.actualizar(command);
@@ -92,7 +89,7 @@ class GestionarProductoServiceTest {
                 999L, 5L, "Serum", "GlossLab", "Serum",
                 BigDecimal.valueOf(50000), 10, 5.0, "INV",
                 List.of(),
-                List.of(new RegistrarProductoCommand.IngredienteComando("Aqua", null, null))
+                List.of(new RegistrarProductoCommand.IngredienteComando("Aqua", null))
         );
 
         assertThrows(NotFoundException.class, () -> service.actualizar(command));
@@ -108,7 +105,7 @@ class GestionarProductoServiceTest {
                 100L, 99L, "Intento Hack", "OtraMarca", "Serum",
                 BigDecimal.valueOf(1000), 1, 5.0, "INV",
                 List.of(),
-                List.of(new RegistrarProductoCommand.IngredienteComando("Aqua", null, null))
+                List.of(new RegistrarProductoCommand.IngredienteComando("Aqua", null))
         );
 
         assertThrows(AccessDeniedException.class, () -> service.actualizar(command));

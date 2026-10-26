@@ -9,46 +9,41 @@ class PerfilDermatologicoTest {
 
     @Test
     void gestiona_alergias_dinamicamente_sin_duplicados() {
-        PerfilDermatologico perfil = PerfilDermatologico.crear(1L, new Ph(5.2), TipoPiel.MIXTA, "liso");
-        perfil.agregarAlergia("Parfum");
-        perfil.agregarAlergia("  parfum  "); // mismo (normalizado) -> no duplica
+        PerfilDermatologico perfil = PerfilDermatologico.crear(1L, new Ph(5.2), TipoPiel.MIXTA, TipoCabello.LISO_1A);
+        perfil.agregarAlergia(Alergeno.FRAGANCIA);
+        perfil.agregarAlergia(Alergeno.FRAGANCIA); // mismo valor -> no duplica
         assertEquals(1, perfil.getAlergias().size());
-        assertTrue(perfil.esAlergicoA("PARFUM"));
+        assertTrue(perfil.esAlergicoA(Alergeno.FRAGANCIA));
 
-        perfil.quitarAlergia("parfum");
-        assertFalse(perfil.esAlergicoA("parfum"));
+        perfil.quitarAlergia(Alergeno.FRAGANCIA);
+        assertFalse(perfil.esAlergicoA(Alergeno.FRAGANCIA));
         assertTrue(perfil.getAlergias().isEmpty());
     }
 
     @Test
-    void gestiona_afecciones_dinamicamente_sin_duplicados() {
-        PerfilDermatologico perfil = PerfilDermatologico.crear(1L, new Ph(5.0), TipoPiel.SENSIBLE, "ondulado");
-        perfil.agregarAfeccion("Rosácea");
-        perfil.agregarAfeccion("  rosácea ");
-        perfil.agregarAfeccion("Acné");
+    void gestiona_afecciones_dinamicamente() {
+        PerfilDermatologico perfil = PerfilDermatologico.crear(1L, new Ph(5.0), TipoPiel.SENSIBLE, TipoCabello.ONDULADO_2B);
+        perfil.agregarAfeccion(Afeccion.ROSACEA);
+        perfil.agregarAfeccion(Afeccion.ROSACEA);
+        perfil.agregarAfeccion(Afeccion.ACNE);
 
         assertEquals(2, perfil.getAfecciones().size());
-        assertTrue(perfil.tieneAfeccion("ROSÁCEA"));
-        assertTrue(perfil.tieneAfeccion("acné"));
+        assertTrue(perfil.tieneAfeccion(Afeccion.ROSACEA));
 
-        perfil.quitarAfeccion("ROSÁCEA");
-        assertFalse(perfil.tieneAfeccion("rosácea"));
+        perfil.quitarAfeccion(Afeccion.ROSACEA);
+        assertFalse(perfil.tieneAfeccion(Afeccion.ROSACEA));
         assertEquals(1, perfil.getAfecciones().size());
     }
 
     @Test
-    void lanza_excepcion_al_agregar_alergia_vacia_o_nula() {
+    void alergia_nula_no_se_permite() {
         PerfilDermatologico perfil = PerfilDermatologico.crear(1L, null, null, null);
-        assertThrows(ReglaNegocioException.class, () -> perfil.agregarAlergia(""));
-        assertThrows(ReglaNegocioException.class, () -> perfil.agregarAlergia("   "));
         assertThrows(ReglaNegocioException.class, () -> perfil.agregarAlergia(null));
     }
 
     @Test
-    void lanza_excepcion_al_agregar_afeccion_vacia_o_nula() {
+    void afeccion_nula_no_se_permite() {
         PerfilDermatologico perfil = PerfilDermatologico.crear(1L, null, null, null);
-        assertThrows(ReglaNegocioException.class, () -> perfil.agregarAfeccion(""));
-        assertThrows(ReglaNegocioException.class, () -> perfil.agregarAfeccion("   "));
         assertThrows(ReglaNegocioException.class, () -> perfil.agregarAfeccion(null));
     }
 

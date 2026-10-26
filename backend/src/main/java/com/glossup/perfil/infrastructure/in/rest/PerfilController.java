@@ -5,6 +5,7 @@ import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.infrastructure.in.rest.dto.AfeccionRequest;
 import com.glossup.perfil.infrastructure.in.rest.dto.AlergiaRequest;
 import com.glossup.perfil.infrastructure.in.rest.dto.ActualizarPerfilRequest;
+import com.glossup.perfil.infrastructure.in.rest.dto.OpcionesPerfilResponse;
 import com.glossup.perfil.infrastructure.in.rest.dto.PerfilResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -35,6 +36,13 @@ public class PerfilController {
         Long usuarioId = extraerUsuarioId(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.obtenerPerfil(usuarioId);
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
+    }
+
+    @GetMapping("/opciones")
+    @Operation(summary = "Catálogos del perfil",
+               description = "Tipos de piel y cabello, alergias y afecciones válidas para las listas desplegables.")
+    public ResponseEntity<OpcionesPerfilResponse> opciones() {
+        return ResponseEntity.ok(OpcionesPerfilResponse.crear());
     }
 
     @PutMapping

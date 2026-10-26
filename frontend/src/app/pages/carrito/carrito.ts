@@ -1,10 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { CarritoService } from '../../shared/carrito';
+import { CompatibilidadService } from '../../shared/compatibilidad';
+import { CompatInfo } from '../../shared/compat-info';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
-import type { Carrito as CarritoDto, LineaCompra, Pedido } from '../../shared/models';
+import type { Carrito as CarritoDto, LineaCompra, Pedido, ResultadoCompatibilidad } from '../../shared/models';
 
 /** Línea del carrito enriquecida con nombre/imagen (el backend solo devuelve ids y montos). */
 interface ItemVista extends LineaCompra {
@@ -18,7 +20,7 @@ interface ItemVista extends LineaCompra {
  */
 @Component({
   selector: 'app-carrito',
-  imports: [RouterLink],
+  imports: [RouterLink, CompatInfo],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
@@ -55,7 +57,7 @@ interface ItemVista extends LineaCompra {
                   <td>
                     <span class="celda-prod">
                       <span class="thumb">@if (it.imagen) {<img [src]="it.imagen" [alt]="it.nombre" />}</span>
-                      {{ it.nombre }}
+                      <span>{{ it.nombre }}<app-compat-info [resultado]="compat()[it.productoId]" /></span>
                     </span>
                   </td>
                   <td class="precio">{{ formatearCop(it.precioUnitario) }}</td>
@@ -82,6 +84,14 @@ interface ItemVista extends LineaCompra {
           </div>
         </div>
 
+        @if (noCompatibles() > 0) {
+          <p class="compat-aviso" role="alert">⚠️ {{ noCompatibles() }} producto(s) de tu carrito no son compatibles con tu
+            perfil dermatológico. Revisa las alertas antes de confirmar.</p>
+        } @else if (perfilVacio()) {
+          <p class="compat-aviso">Tu perfil está vacío: no podemos revisar alergias ni irritantes.
+            <a routerLink="/perfil">Completa tu perfil →</a></p>
+        }
+
         <div class="editor-acciones">
           <button type="button" class="btn-primario" [disabled]="ocupado()" (click)="confirmar()">
             Confirmar pedido y reservar inventario
@@ -101,6 +111,7 @@ interface ItemVista extends LineaCompra {
 export class Carrito {
   private carrito = inject(CarritoService);
   private productos = inject(ProductosService);
+  private compatibilidad = inject(CompatibilidadService);
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
   readonly items = signal<ItemVista[]>([]);
@@ -109,6 +120,11 @@ export class Carrito {
   readonly ocupado = signal(false);
   readonly error = signal<string | null>(null);
   readonly pedido = signal<Pedido | null>(null);
+  readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
+  readonly perfilVacio = signal(false);
+  readonly noCompatibles = computed(
+    () => this.items().filter((i) => this.compat()[i.productoId]?.compatible === false).length,
+  );
 
   constructor() {
     this.carrito.ver().subscribe({
@@ -142,6 +158,13 @@ export class Carrito {
     ).subscribe((lineas) => {
       this.items.set(lineas);
       this.cargando.set(false);
+    });
+    this.compatibilidad.evaluar(c.items.map((it) => it.productoId)).subscribe({
+      next: (e) => {
+        this.perfilVacio.set(e.perfilVacio);
+        this.compat.set(e.resultados);
+      },
+      error: () => this.compat.set({}),
     });
   }
 

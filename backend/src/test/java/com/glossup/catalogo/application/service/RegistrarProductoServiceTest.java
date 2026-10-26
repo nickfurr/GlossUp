@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,14 +40,8 @@ class RegistrarProductoServiceTest {
         Ingrediente ingAscorbic = new Ingrediente(10L, new Inci("ascorbic acid"), "Vitamina C");
         Ingrediente ingAqua = new Ingrediente(11L, new Inci("aqua"), "Agua purificada");
 
-        when(ingredienteRepository.guardarOBuscar(any(Ingrediente.class)))
-                .thenAnswer(inv -> {
-                    Ingrediente arg = inv.getArgument(0);
-                    if (arg != null && "ascorbic acid".equalsIgnoreCase(arg.getInci().nombre())) {
-                        return ingAscorbic;
-                    }
-                    return ingAqua;
-                });
+        when(ingredienteRepository.buscarPorInci(new Inci("ascorbic acid"))).thenReturn(Optional.of(ingAscorbic));
+        when(ingredienteRepository.buscarPorInci(new Inci("aqua"))).thenReturn(Optional.of(ingAqua));
 
         when(productoRepository.guardar(any(Producto.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -62,8 +57,8 @@ class RegistrarProductoServiceTest {
                 "INVIMA-2024",
                 List.of("https://cdn.glossup.co/img1.webp", "https://cdn.glossup.co/img2.webp"),
                 List.of(
-                        new RegistrarProductoCommand.IngredienteComando("Ascorbic Acid", "Vitamina C", 15.0),
-                        new RegistrarProductoCommand.IngredienteComando("Aqua", "Agua purificada", null)
+                        new RegistrarProductoCommand.IngredienteComando("Ascorbic Acid", 15.0),
+                        new RegistrarProductoCommand.IngredienteComando("Aqua", null)
                 )
         );
 
@@ -113,13 +108,13 @@ class RegistrarProductoServiceTest {
     @Test
     void debePermitirRegistrarProductoSinImagenes() {
         Ingrediente ing = new Ingrediente(1L, new Inci("niacinamide"), "Vitamina B3");
-        when(ingredienteRepository.guardarOBuscar(any(Ingrediente.class))).thenReturn(ing);
+        when(ingredienteRepository.buscarPorInci(new Inci("niacinamide"))).thenReturn(Optional.of(ing));
         when(productoRepository.guardar(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
 
         RegistrarProductoCommand command = new RegistrarProductoCommand(
                 2L, "Serum Niacinamida", "GlossLab", "serum", BigDecimal.valueOf(45000), 10, 5.5, null,
                 null,
-                List.of(new RegistrarProductoCommand.IngredienteComando("Niacinamide", "Vitamina B3", 10.0))
+                List.of(new RegistrarProductoCommand.IngredienteComando("Niacinamide", 10.0))
         );
 
         Producto resultado = service.registrar(command);
@@ -129,5 +124,23 @@ class RegistrarProductoServiceTest {
         assertEquals(1, resultado.getComposicion().size());
         verify(productoRepository, times(1)).guardar(any(Producto.class));
     }
-}
 
+    @Test
+    void ingredientesFueraDelCatalogo_seRechazanTodosJuntosSinGuardar() {
+        when(ingredienteRepository.buscarPorInci(new Inci("aqua")))
+                .thenReturn(Optional.of(new Ingrediente(11L, new Inci("aqua"), "Agua")));
+        when(ingredienteRepository.buscarPorInci(new Inci("glicerina"))).thenReturn(Optional.empty());
+        when(ingredienteRepository.buscarPorInci(new Inci("polvo magico"))).thenReturn(Optional.empty());
+
+        RegistrarProductoCommand command = new RegistrarProductoCommand(
+                2L, "Crema", "GlossLab", "crema", BigDecimal.valueOf(30000), 5, null, null, null,
+                List.of(new RegistrarProductoCommand.IngredienteComando("Aqua", null),
+                        new RegistrarProductoCommand.IngredienteComando("Glicerina", null),
+                        new RegistrarProductoCommand.IngredienteComando("Polvo magico", null)));
+
+        ReglaNegocioException ex = assertThrows(ReglaNegocioException.class, () -> service.registrar(command));
+        assertTrue(ex.getMessage().contains("Glicerina"));
+        assertTrue(ex.getMessage().contains("Polvo magico"));
+        verifyNoInteractions(productoRepository);
+    }
+}

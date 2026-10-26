@@ -5,10 +5,10 @@ import { Vendedor } from './pages/vendedor/vendedor';
 import { Cliente } from './pages/cliente/cliente';
 import { Admin } from './pages/admin/admin';
 import { Inicio } from './pages/inicio/inicio';
-import { Simple } from './pages/simple/simple';
 import { Perfil } from './pages/perfil/perfil';
 import { Catalogo } from './pages/catalogo/catalogo';
 import { Carrito } from './pages/carrito/carrito';
+import { Compatibilidad } from './pages/compatibilidad/compatibilidad';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -19,9 +19,9 @@ export const routes: Routes = [
   { path: 'vendedor', component: Vendedor, canActivate: [roleGuard('VENDEDOR')] },
   { path: 'admin', component: Admin, canActivate: [roleGuard('ADMIN')] },
 
-  // Zona del cliente (placeholders, igual que en la versión anterior).
+  // Zona del cliente.
   { path: 'catalogo', component: Catalogo, canActivate: [roleGuard('CLIENTE')] },
-  { path: 'compatibilidad', component: Simple, canActivate: [roleGuard('CLIENTE')], data: { titulo: 'Compatibilidad' } },
+  { path: 'compatibilidad', component: Compatibilidad, canActivate: [roleGuard('CLIENTE')] },
   { path: 'perfil', component: Perfil, canActivate: [roleGuard('CLIENTE')] },
   { path: 'carrito', component: Carrito, canActivate: [roleGuard('CLIENTE')] },
 

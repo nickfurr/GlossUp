@@ -1,5 +1,6 @@
 package com.glossup.compatibilidad.domain.port.out;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -12,8 +13,17 @@ public interface PerfilConsultaPort {
     PerfilConsulta obtener(Long usuarioId);
 
     /**
-     * @param alergias   ingredientes (INCI) a los que el usuario declaró alergia, normalizados
+     * @param alergias   códigos de alérgeno declarados (ej. "parabenos"), en minúsculas
      * @param condiciones afecciones + tipo de piel del usuario, normalizados (para cruzar irritantes)
+     * @param etiquetas   código (minúsculas) → nombre legible, para los mensajes al usuario (RNF-07)
      */
-    record PerfilConsulta(Set<String> alergias, Set<String> condiciones) {}
+    record PerfilConsulta(Set<String> alergias, Set<String> condiciones, Map<String, String> etiquetas) {
+        public PerfilConsulta(Set<String> alergias, Set<String> condiciones) {
+            this(alergias, condiciones, Map.of());
+        }
+
+        public String etiqueta(String codigo) {
+            return etiquetas.getOrDefault(codigo, codigo.replace('_', ' '));
+        }
+    }
 }

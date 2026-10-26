@@ -36,7 +36,15 @@ export interface ProductoVendedor {
   creadoEn?: string;
 }
 
-/** Cuerpo para registrar/actualizar un producto. La ficha INCI es obligatoria (≥ 1). */
+/** Ingrediente del catálogo cerrado (GET /api/catalogo/ingredientes?q=). */
+export interface IngredienteCatalogo {
+  id: number;
+  inci: string;
+  /** Nombre en español y función, ej. "Glicerina · humectante". */
+  descripcion: string | null;
+}
+
+/** Cuerpo para registrar/actualizar un producto. La ficha INCI es obligatoria (≥ 1) y solo admite INCI del catálogo. */
 export interface DatosProducto {
   nombre: string;
   marca?: string;
@@ -46,7 +54,7 @@ export interface DatosProducto {
   ph?: number | null;
   registroInvima?: string;
   imagenes: string[];
-  ingredientes: { inci: string; descripcion?: string | null; concentracion?: number | null }[];
+  ingredientes: { inci: string; concentracion?: number | null }[];
 }
 
 /** Línea del carrito/pedido tal como la expone el backend (HU9). Sin nombre: solo id y montos. */
@@ -75,19 +83,46 @@ export interface Pedido {
 }
 
 export type TipoPiel = 'NORMAL' | 'SECA' | 'GRASA' | 'MIXTA' | 'SENSIBLE';
-export type TipoCabello =
-  | 'LISO_1A' | 'LISO_1B' | 'LISO_1C'
-  | 'ONDULADO_2A' | 'ONDULADO_2B' | 'ONDULADO_2C'
-  | 'RIZADO_3A' | 'RIZADO_3B' | 'RIZADO_3C'
-  | 'MUY_RIZADO_4A' | 'MUY_RIZADO_4B' | 'MUY_RIZADO_4C';
+
+/** Opción de un catálogo cerrado del perfil. Se envía siempre `codigo`; lo demás es para mostrar. */
+export interface OpcionPerfil {
+  codigo: string;
+  etiqueta: string;
+  /** Descripción del alérgeno, o zona de la afección (PIEL, CABELLO, GENERAL). */
+  detalle: string | null;
+}
+
+/** Catálogos cerrados del perfil (GET /api/perfil/me/opciones). */
+export interface OpcionesPerfil {
+  tiposPiel: OpcionPerfil[];
+  tiposCabello: OpcionPerfil[];
+  alergias: OpcionPerfil[];
+  afecciones: OpcionPerfil[];
+}
 
 export interface PerfilDermatologico {
   id?: number | null;
   usuarioId: number;
   ph: number | null;
   tipoPiel: TipoPiel | null;
-  tipoCabello: TipoCabello | null;
+  tipoCabello: string | null;
+  /** Códigos de `Afeccion` (ej. ROSACEA). */
   afecciones: string[];
+  /** Códigos de `Alergeno` (ej. PARABENOS). */
   alergias: string[];
   actualizadoEn: string;
+}
+
+/** Alerta del motor de compatibilidad (HU6): siempre trae su causa (RNF-05). */
+export interface AlertaCompatibilidad {
+  severidad: 'ALTA' | 'MEDIA' | 'BAJA';
+  mensaje: string;
+  causa: string;
+}
+
+/** Resultado de evaluar un producto contra el perfil. `compatible` es false si hay alguna alerta ALTA. */
+export interface ResultadoCompatibilidad {
+  productoId: number;
+  compatible: boolean;
+  alertas: AlertaCompatibilidad[];
 }
