@@ -1,4 +1,4 @@
-gitpackage com.glossup.perfil.domain.model;
+package com.glossup.perfil.domain.model;
 
 /** Tipo de cabello según la clasificación de Andre Walker (1A–4C). */
 public enum TipoCabello {
