@@ -3,16 +3,18 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
 import { CarritoService } from '../../shared/carrito';
-import type { ProductoVendedor } from '../../shared/models';
+import { CompatibilidadService } from '../../shared/compatibilidad';
+import { CompatInfo } from '../../shared/compat-info';
+import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 /**
  * Catálogo del cliente (HU12 - SCRUM-40): búsqueda básica de productos publicados por palabra
  * clave (nombre/marca/categoría) y alta al carrito (HU9). Acepta ?q= para llegar ya buscando
- * desde el buscador del inicio.
+ * desde el buscador del inicio. Cada resultado muestra su compatibilidad con el perfil (HU6).
  */
 @Component({
   selector: 'app-catalogo',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CompatInfo],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
@@ -43,6 +45,11 @@ import type { ProductoVendedor } from '../../shared/models';
         }
       </div>
 
+      @if (perfilVacio() && resultados().length) {
+        <p class="compat-aviso">Tu perfil dermatológico está vacío, así que no podemos avisarte de alergias ni irritantes.
+          <a routerLink="/perfil">Completa tu perfil →</a></p>
+      }
+
       @if (cargando()) {
         <p class="loading">Buscando…</p>
       } @else if (resultados().length === 0) {
@@ -60,6 +67,7 @@ import type { ProductoVendedor } from '../../shared/models';
               </div>
               <h3 class="cat-nombre">{{ p.nombre }}</h3>
               <p class="cat-marca">{{ p.marca || p.categoria || 'Cosmético' }}</p>
+              <app-compat-info [resultado]="compat()[p.id]" />
               <div class="cat-pie">
                 <span class="precio">{{ formatearCop(p.precio) }}</span>
                 <button type="button" class="btn-mini" [disabled]="p.stock === 0 || agregando() === p.id" (click)="agregar(p)">
@@ -77,6 +85,7 @@ import type { ProductoVendedor } from '../../shared/models';
 export class Catalogo {
   private api = inject(ProductosService);
   private carrito = inject(CarritoService);
+  private compatibilidad = inject(CompatibilidadService);
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
   q = '';
@@ -86,6 +95,8 @@ export class Catalogo {
   readonly aviso = signal<string | null>(null);
   readonly agregando = signal<number | null>(null);
   readonly titulo = signal('Escribe para buscar');
+  readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
+  readonly perfilVacio = signal(false);
 
   constructor() {
     const q = inject(ActivatedRoute).snapshot.queryParamMap.get('q');
@@ -114,11 +125,24 @@ export class Catalogo {
       next: (ps) => {
         this.resultados.set(ps);
         this.cargando.set(false);
+        this.evaluarCompatibilidad(ps);
       },
       error: (e) => {
         this.error.set(mensajeDeError(e));
         this.cargando.set(false);
       },
+    });
+  }
+
+  /** Una sola petición para todos los resultados; si falla, el catálogo sigue usable sin sellos. */
+  private evaluarCompatibilidad(ps: ProductoVendedor[]): void {
+    this.compat.set({});
+    this.compatibilidad.evaluar(ps.map((p) => p.id)).subscribe({
+      next: (e) => {
+        this.perfilVacio.set(e.perfilVacio);
+        this.compat.set(e.resultados);
+      },
+      error: () => this.compat.set({}),
     });
   }
 

@@ -13,11 +13,12 @@ public interface ProductoJpaRepository extends JpaRepository<ProductoEntity, Lon
 
     List<ProductoEntity> findByVendedorId(Long vendedorId);
 
+    /** {@code q} debe llegar en minúsculas y sin tildes: la comparación ignora tildes ("serum" encuentra "Sérum"). */
     @Query("""
             SELECT p FROM ProductoEntity p WHERE p.activo = true AND (
-                LOWER(p.nombre)    LIKE LOWER(CONCAT('%', :q, '%')) OR
-                LOWER(p.marca)     LIKE LOWER(CONCAT('%', :q, '%')) OR
-                LOWER(p.categoria) LIKE LOWER(CONCAT('%', :q, '%')))
+                cast(function('translate', LOWER(p.nombre),    'áéíóúüñ', 'aeiouun') as String) LIKE CONCAT('%', :q, '%') OR
+                cast(function('translate', LOWER(p.marca),     'áéíóúüñ', 'aeiouun') as String) LIKE CONCAT('%', :q, '%') OR
+                cast(function('translate', LOWER(p.categoria), 'áéíóúüñ', 'aeiouun') as String) LIKE CONCAT('%', :q, '%'))
             """)
     List<ProductoEntity> buscarPorPalabraClave(@Param("q") String q);
 }

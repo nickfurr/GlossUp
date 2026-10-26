@@ -147,6 +147,17 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping
+    @Operation(summary = "Listar el catálogo publicado",
+               description = "Todos los productos activos, para evaluarlos contra el perfil del cliente (HU6).",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<List<ProductoResponse>> listarCatalogo() {
+        return ResponseEntity.ok(productoRepository.listarTodos().stream()
+                .filter(Producto::isActivo)
+                .map(ProductoResponse::fromDomain)
+                .toList());
+    }
+
     @GetMapping("/buscar")
     @Operation(summary = "Buscar productos por palabra clave (HU12)",
                description = "Busqueda basica de productos publicados cuyo nombre, marca o categoria contengan la palabra clave.",

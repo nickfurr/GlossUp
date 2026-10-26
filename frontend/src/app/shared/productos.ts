@@ -14,6 +14,11 @@ export class ProductosService {
     return this.http.get<ProductoVendedor[]>(`${BASE}/mis-productos`);
   }
 
+  /** Catálogo publicado completo (productos activos). */
+  listarCatalogo(): Observable<ProductoVendedor[]> {
+    return this.http.get<ProductoVendedor[]>(BASE);
+  }
+
   obtener(id: number): Observable<ProductoVendedor> {
     return this.http.get<ProductoVendedor>(`${BASE}/${id}`);
   }

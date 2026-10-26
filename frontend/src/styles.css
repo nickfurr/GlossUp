@@ -447,3 +447,17 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .img-fila { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
 .img-fila input { flex: 1; padding: 0.5rem; border: 1px solid var(--borde); border-radius: 8px; font: inherit; min-width: 0; }
 .quitar { border: none; background: none; color: var(--vino); font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 0 0.2rem; }
+
+/* ---- Compatibilidad con el perfil (HU6) ---- */
+.compat { margin: .5rem 0 0; padding: .45rem .6rem; border-radius: 10px; font-size: .8rem; font-weight: 700; border: 1px solid; }
+.compat summary { cursor: pointer; list-style-position: inside; }
+.compat-n { font-weight: 500; opacity: .8; }
+.compat ul { margin: .5rem 0 .1rem; padding-left: 1rem; font-weight: 400; display: grid; gap: .45rem; }
+.compat-causa { display: block; color: #6b5a61; font-size: .75rem; margin-top: .1rem; }
+.compat-compatible { background: #eaf6ee; border-color: #b9dfc5; color: #1f6b3a; }
+.compat-precaucion { background: #fdf4e1; border-color: #f2dca6; color: #8a5d00; }
+.compat-no-compatible { background: #fdecef; border-color: #f2b8c4; color: #9b1c36; }
+.compat li.sev-ALTA strong { color: #9b1c36; }
+.compat li.sev-MEDIA strong { color: #8a5d00; }
+.compat-aviso { margin: 1rem 0; padding: .8rem 1rem; border-radius: 12px; background: #fdf4e1; border: 1px solid #f2dca6; color: #8a5d00; }
+.compat-aviso a { color: var(--vino); font-weight: 800; }

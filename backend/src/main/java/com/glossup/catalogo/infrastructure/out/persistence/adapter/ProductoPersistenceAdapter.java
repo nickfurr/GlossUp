@@ -16,6 +16,7 @@ import com.glossup.shared.domain.Dinero;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.text.Normalizer;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,7 +53,8 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
 
     @Override
     public List<Producto> buscarPorPalabraClave(String palabraClave) {
-        return productoJpaRepository.buscarPorPalabraClave(palabraClave).stream()
+        String sinTildes = Normalizer.normalize(palabraClave.toLowerCase(), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return productoJpaRepository.buscarPorPalabraClave(sinTildes).stream()
                 .map(this::aDominio)
                 .toList();
     }

@@ -112,3 +112,17 @@ export interface PerfilDermatologico {
   alergias: string[];
   actualizadoEn: string;
 }
+
+/** Alerta del motor de compatibilidad (HU6): siempre trae su causa (RNF-05). */
+export interface AlertaCompatibilidad {
+  severidad: 'ALTA' | 'MEDIA' | 'BAJA';
+  mensaje: string;
+  causa: string;
+}
+
+/** Resultado de evaluar un producto contra el perfil. `compatible` es false si hay alguna alerta ALTA. */
+export interface ResultadoCompatibilidad {
+  productoId: number;
+  compatible: boolean;
+  alertas: AlertaCompatibilidad[];
+}

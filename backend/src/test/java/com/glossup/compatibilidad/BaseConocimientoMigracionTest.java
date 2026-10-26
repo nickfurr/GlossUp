@@ -38,7 +38,8 @@ class BaseConocimientoMigracionTest {
         // Estado previo a V5: perfiles con texto libre, como los guardaba la versión anterior.
         flyway("4").migrate();
         ejecutar("""
-                INSERT INTO usuario (id, email, password_hash, nombre) VALUES (1, 'a@a.co', 'x', 'Ana');
+                INSERT INTO usuario (id, email, password_hash, nombre) VALUES (1, 'a@a.co', 'x', 'Ana'),
+                       (2, 'manuel.pinedave@uqvirtual.edu.co', 'x', 'Vendedor demo');
                 INSERT INTO perfil_dermatologico (id, usuario_id, tipo_piel, tipo_cabello) VALUES (1, 1, 'SENSIBLE', 'rizadito');
                 INSERT INTO perfil_alergia (perfil_id, nombre) VALUES (1, 'parfum'), (1, 'fragrance'),
                                                                       (1, 'methylparaben'), (1, 'polen');
@@ -104,6 +105,32 @@ class BaseConocimientoMigracionTest {
     void laEmbarazadaRecibeAlertaAltaPorRetinol() throws SQLException {
         assertEquals(Set.of("ALTA"), consulta(
                 "SELECT severidad FROM regla_perfil WHERE ingrediente_inci = 'retinol' AND condicion = 'EMBARAZO_LACTANCIA'"));
+    }
+
+    @Test
+    void losProductosDemoUsanTodoElCatalogoYTienenImagen() throws SQLException {
+        assertEquals(78, consulta("SELECT id::text FROM producto WHERE vendedor_id = 2").size());
+        Set<String> sinImagen = consulta("""
+                SELECT nombre FROM producto p WHERE vendedor_id = 2
+                  AND NOT EXISTS (SELECT 1 FROM producto_imagen i WHERE i.producto_id = p.id AND i.url LIKE 'https://%')""");
+        assertTrue(sinImagen.isEmpty(), "Productos sin imagen: " + sinImagen);
+        Set<String> sinUso = consulta("""
+                SELECT nombre_inci FROM ingrediente i
+                WHERE NOT EXISTS (SELECT 1 FROM producto_ingrediente pi WHERE pi.ingrediente_id = i.id)""");
+        assertTrue(sinUso.isEmpty(), "Ingredientes del catálogo sin ningún producto: " + sinUso);
+    }
+
+    @Test
+    void sinElVendedorDemoLaMigracionNoFallaNiSiembra() throws SQLException {
+        ejecutar("CREATE DATABASE sin_vendedor");
+        String url = PG.getJdbcUrl().replace("/" + PG.getDatabaseName(), "/sin_vendedor");
+        Flyway.configure().dataSource(url, PG.getUsername(), PG.getPassword())
+                .locations("classpath:db/migration").load().migrate();
+        try (Connection c = DriverManager.getConnection(url, PG.getUsername(), PG.getPassword());
+             Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT count(*) FROM producto")) {
+            rs.next();
+            assertEquals(0, rs.getInt(1));
+        }
     }
 
     // ---- utilidades ----

@@ -9,15 +9,16 @@ import java.util.List;
  * Respuesta de una evaluación de compatibilidad (HU6). {@code compatible} es false si hay alguna
  * alerta ALTA; las alertas BAJA/MEDIA informan sin bloquear.
  */
-public record ResultadoCompatibilidadResponse(boolean compatible, List<AlertaResponse> alertas) {
+/** @param productoId producto evaluado (sirve para cruzar la respuesta por lote con el catálogo). */
+public record ResultadoCompatibilidadResponse(Long productoId, boolean compatible, List<AlertaResponse> alertas) {
 
     public record AlertaResponse(String severidad, String mensaje, String causa) {}
 
-    public static ResultadoCompatibilidadResponse fromDomain(ResultadoCompatibilidad r) {
+    public static ResultadoCompatibilidadResponse fromDomain(Long productoId, ResultadoCompatibilidad r) {
         List<AlertaResponse> alertas = r.getAlertas().stream()
                 .map(ResultadoCompatibilidadResponse::aResponse)
                 .toList();
-        return new ResultadoCompatibilidadResponse(r.esCompatible(), alertas);
+        return new ResultadoCompatibilidadResponse(productoId, r.esCompatible(), alertas);
     }
 
     private static AlertaResponse aResponse(Alerta a) {
