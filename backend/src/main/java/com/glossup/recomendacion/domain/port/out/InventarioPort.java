@@ -27,4 +27,7 @@ public interface InventarioPort {
      * @throws com.glossup.shared.domain.ReglaNegocioException si no está disponible
      */
     Dinero consultarPrecio(Long productoId);
+
+    /** Devuelve al stock unidades que reservó un pedido que se canceló o venció sin pagar (HU10). */
+    void liberar(Long productoId, int cantidad);
 }

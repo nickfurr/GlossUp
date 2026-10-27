@@ -2,6 +2,7 @@ package com.glossup;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Punto de entrada unico de la aplicacion GlossUP.
@@ -12,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * puertos (interfaces) y adaptadores.</p>
  */
 @SpringBootApplication
+@EnableScheduling
 public class GlossupApplication {
 
     public static void main(String[] args) {

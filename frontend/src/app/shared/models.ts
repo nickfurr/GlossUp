@@ -83,6 +83,19 @@ export interface Pedido {
   items: LineaCompra[];
   total: number;
   creadoEn?: string;
+  /** Solo en pedidos CREADO: hasta cuándo se puede pagar antes de que se libere el inventario. */
+  expiraEn?: string | null;
+  transaccionId?: string | null;
+  metodoPago?: string | null;
+  pagadoEn?: string | null;
+}
+
+export type EstadoTransaccion = 'APROBADA' | 'PENDIENTE' | 'RECHAZADA' | 'ANULADA' | 'ERROR';
+
+/** Resultado de verificar un pago con Wompi (HU10). */
+export interface ResultadoPago {
+  pedido: Pedido;
+  estadoTransaccion: EstadoTransaccion;
 }
 
 export type TipoPiel = 'NORMAL' | 'SECA' | 'GRASA' | 'MIXTA' | 'SENSIBLE';

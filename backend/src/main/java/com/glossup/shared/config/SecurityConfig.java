@@ -37,6 +37,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
+                                // Webhook de Wompi: lo autentica el checksum del evento, no un JWT.
+                                "/api/pagos/wompi/eventos",
                                 "/ping",
                                 "/actuator/health/**",
                                 "/v3/api-docs/**",

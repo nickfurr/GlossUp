@@ -34,6 +34,15 @@ public class InventarioCatalogoAdapter implements InventarioPort {
     }
 
     @Override
+    public void liberar(Long productoId, int cantidad) {
+        // Sin exigir que siga activo: el stock reservado vuelve aunque el vendedor lo haya despublicado.
+        productoRepository.buscarPorId(productoId).ifPresent(producto -> {
+            producto.reponerStock(cantidad);
+            productoRepository.guardar(producto);
+        });
+    }
+
+    @Override
     public Dinero consultarPrecio(Long productoId) {
         return cargarDisponible(productoId).getPrecio();
     }

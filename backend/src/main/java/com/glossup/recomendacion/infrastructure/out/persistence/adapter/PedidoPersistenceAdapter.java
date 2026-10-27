@@ -10,6 +10,7 @@ import com.glossup.recomendacion.infrastructure.out.persistence.repository.Pedid
 import com.glossup.shared.domain.Dinero;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +35,17 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
         return pedidoJpaRepository.findById(id).map(this::aDominio);
     }
 
+    @Override
+    public List<Pedido> buscarPorUsuario(Long usuarioId) {
+        return pedidoJpaRepository.findByUsuarioIdOrderByCreadoEnDesc(usuarioId).stream().map(this::aDominio).toList();
+    }
+
+    @Override
+    public List<Pedido> buscarSinPagarCreadosAntesDe(OffsetDateTime limite) {
+        return pedidoJpaRepository.findByEstadoAndCreadoEnBefore(EstadoPedido.CREADO.name(), limite).stream()
+                .map(this::aDominio).toList();
+    }
+
     private PedidoEntity aEntity(Pedido dominio) {
         PedidoEntity entity = (dominio.getId() != null)
                 ? pedidoJpaRepository.findById(dominio.getId()).orElseGet(PedidoEntity::new)
@@ -44,6 +56,9 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
         entity.setEstado(dominio.getEstado().name());
         entity.setTotal(dominio.getTotal().monto());
         entity.setCreadoEn(dominio.getCreadoEn());
+        entity.setPagoTransaccionId(dominio.getTransaccionId());
+        entity.setPagoMetodo(dominio.getMetodoPago());
+        entity.setPagadoEn(dominio.getPagadoEn());
 
         entity.getItems().clear();
         for (PedidoItem item : dominio.getItems()) {
@@ -64,6 +79,7 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
                 entity.getUsuarioId(),
                 EstadoPedido.valueOf(entity.getEstado()),
                 items,
-                entity.getCreadoEn());
+                entity.getCreadoEn())
+                .conPago(entity.getPagoTransaccionId(), entity.getPagoMetodo(), entity.getPagadoEn());
     }
 }

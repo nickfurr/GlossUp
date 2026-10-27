@@ -55,6 +55,15 @@ glossup:
       expiration-ms: 3600000
   cors:
     allowed-origins: http://localhost:5173,http://localhost:4200,http://localhost:3000
+  # Dirección pública del front: Wompi devuelve al cliente a {url-publica}/pago/resultado/{pedido}.
+  url-publica: ${GLOSSUP_URL_PUBLICA:http://localhost:4200}
+  pagos:
+    wompi:
+      # Llaves del panel de Wompi (Desarrolladores). Sandbox: pub_test_, test_integrity_, test_events_.
+      llave-publica: ${WOMPI_LLAVE_PUBLICA:}
+      secreto-integridad: ${WOMPI_SECRETO_INTEGRIDAD:}
+      secreto-eventos: ${WOMPI_SECRETO_EVENTOS:}
+      api-url: ${WOMPI_API_URL:https://sandbox.wompi.co/v1}
   ai:
     gemini:
       api-key: ${GEMINI_API_KEY:REEMPLAZAR-CON-TU-KEY}

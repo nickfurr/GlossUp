@@ -27,6 +27,20 @@ public class PedidoEntity {
     @Column(name = "creado_en", nullable = false)
     private OffsetDateTime creadoEn;
 
+    @Column(name = "pago_transaccion_id", length = 64)
+    private String pagoTransaccionId;
+
+    @Column(name = "pago_metodo", length = 40)
+    private String pagoMetodo;
+
+    @Column(name = "pagado_en")
+    private OffsetDateTime pagadoEn;
+
+    /** Bloqueo optimista: dos escrituras simultáneas del mismo pedido no pueden ganar ambas. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<PedidoItemEntity> items = new ArrayList<>();
 
@@ -46,6 +60,15 @@ public class PedidoEntity {
 
     public OffsetDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(OffsetDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public String getPagoTransaccionId() { return pagoTransaccionId; }
+    public void setPagoTransaccionId(String pagoTransaccionId) { this.pagoTransaccionId = pagoTransaccionId; }
+
+    public String getPagoMetodo() { return pagoMetodo; }
+    public void setPagoMetodo(String pagoMetodo) { this.pagoMetodo = pagoMetodo; }
+
+    public OffsetDateTime getPagadoEn() { return pagadoEn; }
+    public void setPagadoEn(OffsetDateTime pagadoEn) { this.pagadoEn = pagadoEn; }
 
     public List<PedidoItemEntity> getItems() { return items; }
     public void setItems(List<PedidoItemEntity> items) { this.items = items; }
