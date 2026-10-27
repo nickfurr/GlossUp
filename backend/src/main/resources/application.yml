@@ -14,10 +14,13 @@ spring:
       # Cambiado a 'update' para que genere o actualice las tablas automaticamente al arrancar
       ddl-auto: update
     open-in-view: false
-    show-sql: true
+    # Imprimir cada consulta frena el contenedor de producción (0.25 vCPU); actívalo solo para depurar.
+    show-sql: ${GLOSSUP_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
+        # Carga imágenes y composición de muchos productos en pocas consultas IN (...) en vez de una por producto.
+        default_batch_fetch_size: 100
 
   flyway:
     enabled: true
@@ -27,6 +30,9 @@ spring:
 server:
   # Azure Container Apps (y Cloud Run) inyectan el puerto por la variable PORT.
   port: ${PORT:8080}
+  # El catálogo completo pesa ~130 KB en JSON; comprimido baja a una fracción.
+  compression:
+    enabled: true
 
 management:
   endpoints:

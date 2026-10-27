@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,6 +44,12 @@ class EvaluarCompatibilidadServiceTest {
     @BeforeEach
     void setUp() {
         service = new EvaluarCompatibilidadService(perfil, catalogo, reglas);
+        // El lote consulta varios productos de una vez; en las pruebas se arma a partir de los stubs de buscar(id).
+        lenient().when(catalogo.buscarVarios(any())).thenAnswer(inv -> {
+            Map<Long, ProductoConsulta> m = new java.util.HashMap<>();
+            for (Long id : inv.<java.util.Collection<Long>>getArgument(0)) catalogo.buscar(id).ifPresent(p -> m.put(id, p));
+            return m;
+        });
         lenient().when(reglas.reglasPerfil()).thenReturn(List.of(
                 new ReglaPerfil(1L, "retinol", "sensible", Severidad.ALTA, "Irrita piel sensible")));
         lenient().when(reglas.ingredientesPorAlergeno()).thenReturn(Map.of(
@@ -243,5 +250,6 @@ class EvaluarCompatibilidadServiceTest {
         assertEquals(2, r.get(2L).getAlertas().size()); // alergia a parabenos + retinol en piel sensible
         verify(reglas, times(1)).reglasPerfil();
         verify(perfil, times(1)).obtener(1L);
+        verify(catalogo, times(1)).buscarVarios(any());
     }
 }

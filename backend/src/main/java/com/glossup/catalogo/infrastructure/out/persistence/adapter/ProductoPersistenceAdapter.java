@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.text.Normalizer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,6 +56,13 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     public List<Producto> buscarPorPalabraClave(String palabraClave) {
         String sinTildes = Normalizer.normalize(palabraClave.toLowerCase(), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         return productoJpaRepository.buscarPorPalabraClave(sinTildes).stream()
+                .map(this::aDominio)
+                .toList();
+    }
+
+    @Override
+    public List<Producto> buscarPorIds(Collection<Long> ids) {
+        return productoJpaRepository.findAllById(ids).stream()
                 .map(this::aDominio)
                 .toList();
     }

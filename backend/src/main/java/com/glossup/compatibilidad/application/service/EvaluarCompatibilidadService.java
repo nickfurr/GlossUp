@@ -75,10 +75,12 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
         // Perfil y base de conocimiento se cargan una sola vez para todo el lote.
         PerfilConsultaPort.PerfilConsulta datos = perfil.obtener(usuarioId);
         Conocimiento conocimiento = cargarConocimiento();
+        Map<Long, CatalogoConsultaPort.ProductoConsulta> productos = catalogo.buscarVarios(new LinkedHashSet<>(productoIds));
         Map<Long, ResultadoCompatibilidad> resultados = new LinkedHashMap<>();
         for (Long id : new LinkedHashSet<>(productoIds)) {
             // Un id inexistente en el lote se omite: no debe tumbar la evaluación del resto.
-            catalogo.buscar(id).ifPresent(p -> resultados.put(id, evaluar(p, datos, conocimiento)));
+            CatalogoConsultaPort.ProductoConsulta p = productos.get(id);
+            if (p != null) resultados.put(id, evaluar(p, datos, conocimiento));
         }
         return resultados;
     }
@@ -87,10 +89,11 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
     @Transactional(readOnly = true)
     public List<Cruce> evaluarCruces(List<Long> productoIds) {
         List<ReglaIncompatibilidad> pares = reglas.reglasIncompatibilidad();
+        Map<Long, CatalogoConsultaPort.ProductoConsulta> encontrados = catalogo.buscarVarios(new LinkedHashSet<>(productoIds));
         List<Long> ids = new ArrayList<>();
         List<CatalogoConsultaPort.ProductoConsulta> productos = new ArrayList<>();
         for (Long id : new LinkedHashSet<>(productoIds)) {
-            catalogo.buscar(id).ifPresent(p -> { ids.add(id); productos.add(p); });
+            if (encontrados.containsKey(id)) { ids.add(id); productos.add(encontrados.get(id)); }
         }
         List<Cruce> cruces = new ArrayList<>();
         for (int i = 0; i < productos.size(); i++) {
