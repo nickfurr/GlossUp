@@ -75,7 +75,8 @@ public class ProductoController {
                 request.ph(),
                 request.registroInvima(),
                 request.imagenes(),
-                ingredientesCmd
+                ingredientesCmd,
+                request.descripcion()
         );
 
         Producto producto = registrarProductoUseCase.registrar(command);
@@ -126,7 +127,8 @@ public class ProductoController {
                 request.ph(),
                 request.registroInvima(),
                 request.imagenes(),
-                ingredientesCmd
+                ingredientesCmd,
+                request.descripcion()
         );
 
         Producto actualizado = gestionarProductoUseCase.actualizar(command);

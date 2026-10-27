@@ -17,5 +17,13 @@ public record ActualizarProductoCommand(
         Double ph,
         String registroInvima,
         List<String> urlsImagenes,
-        List<RegistrarProductoCommand.IngredienteComando> ingredientes
-) {}
+        List<RegistrarProductoCommand.IngredienteComando> ingredientes,
+        String descripcion
+) {
+    public ActualizarProductoCommand(Long productoId, Long vendedorId, String nombre, String marca, String categoria,
+                                     BigDecimal precio, int stock, Double ph, String registroInvima,
+                                     List<String> urlsImagenes, List<RegistrarProductoCommand.IngredienteComando> ingredientes) {
+        this(productoId, vendedorId, nombre, marca, categoria, precio, stock, ph, registroInvima, urlsImagenes,
+                ingredientes, null);
+    }
+}

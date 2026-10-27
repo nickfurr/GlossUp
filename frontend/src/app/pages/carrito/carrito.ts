@@ -58,7 +58,7 @@ interface ItemVista extends LineaCompra {
                   <td>
                     <span class="celda-prod">
                       <span class="thumb">@if (it.imagen) {<img [src]="it.imagen" [alt]="it.nombre" />}</span>
-                      <span>{{ it.nombre }}<app-compat-info [resultado]="compat()[it.productoId]" /></span>
+                      <span><a class="enlace-producto" [routerLink]="['/producto', it.productoId]">{{ it.nombre }}</a><app-compat-info [resultado]="compat()[it.productoId]" /></span>
                     </span>
                   </td>
                   <td class="precio">{{ formatearCop(it.precioUnitario) }}</td>

@@ -30,6 +30,8 @@ export interface ProductoVendedor {
   stock: number;
   ph?: number | null;
   registroInvima?: string | null;
+  /** Descripción comercial que redacta el vendedor. */
+  descripcion?: string | null;
   activo: boolean;
   imagenes: string[];
   ingredientes: IngredienteFicha[];
@@ -53,6 +55,7 @@ export interface DatosProducto {
   stock: number;
   ph?: number | null;
   registroInvima?: string;
+  descripcion?: string;
   imagenes: string[];
   ingredientes: { inci: string; concentracion?: number | null }[];
 }

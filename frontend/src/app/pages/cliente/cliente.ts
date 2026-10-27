@@ -3,17 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
-import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService, EstadoCompatibilidad, estadoDe } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
-import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
+import { AgregarCarrito } from '../../shared/agregar-carrito';
+import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 const MAX_RECOMENDADOS = 6;
 
 /** Panel del CLIENTE: compra, perfil dermatológico y compatibilidad. */
 @Component({
   selector: 'app-cliente',
-  imports: [FormsModule, RouterLink, CompatInfo],
+  imports: [FormsModule, RouterLink, CompatInfo, AgregarCarrito],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
@@ -58,21 +58,23 @@ const MAX_RECOMENDADOS = 6;
         } @else {
           @for (p of recomendados(); track p.id) {
             <article class="cat-card">
-              <div class="product-image">
-                @if (p.imagenes?.length) {
-                  <img [src]="p.imagenes[0]" [alt]="p.nombre" />
-                } @else {
-                  <span>✦</span>
-                }
-              </div>
-              <h3 class="cat-nombre">{{ p.nombre }}</h3>
+              <a class="cat-enlace" [routerLink]="['/producto', p.id]">
+                <div class="product-image">
+                  @if (p.imagenes?.length) {
+                    <img [src]="p.imagenes[0]" [alt]="p.nombre" />
+                  } @else {
+                    <span>✦</span>
+                  }
+                </div>
+                <h3 class="cat-nombre">{{ p.nombre }}</h3>
+              </a>
               <p class="cat-marca">{{ p.marca || p.categoria || 'Cosmético' }}</p>
               <app-compat-info [resultado]="compat()[p.id]" />
               <div class="cat-pie">
                 <span class="precio">{{ formatearCop(p.precio) }}</span>
-                <button type="button" class="btn-mini" [class.agregado]="agregado() === p.id"
-                        [disabled]="agregando() === p.id || agregado() === p.id" (click)="agregar(p)">
-                  {{ agregado() === p.id ? '✓ Agregado' : agregando() === p.id ? 'Agregando…' : 'Agregar' }}
+                <button type="button" class="btn-mini" [class.agregado]="carro.agregado() === p.id"
+                        [disabled]="carro.agregando() === p.id || carro.agregado() === p.id" (click)="carro.intentar(p, compat()[p.id])">
+                  {{ carro.agregado() === p.id ? '✓ Agregado' : carro.agregando() === p.id ? 'Agregando…' : 'Agregar' }}
                 </button>
               </div>
             </article>
@@ -88,27 +90,12 @@ const MAX_RECOMENDADOS = 6;
       }
     </section>
 
-    @if (aviso()) {
-      <div class="toast" [class.toast-alerta]="crucesNuevos().length" role="status" aria-live="polite">
-        <p>✓ {{ aviso() }}</p>
-        @if (crucesNuevos().length) {
-          <p><strong>⚠️ No conviene usarlo junto con lo que ya tienes en el carrito:</strong></p>
-          <ul>
-            @for (c of crucesNuevos(); track $index) { <li>{{ c.mensaje }} <span class="compat-causa">{{ c.causa }}</span></li> }
-          </ul>
-        }
-        <div class="toast-acciones">
-          <a routerLink="/carrito">Ver carrito →</a>
-          <button type="button" class="btn-sec" (click)="aviso.set(null)">Cerrar</button>
-        </div>
-      </div>
-    }
+    <app-agregar-carrito #carro />
   `,
 })
 export class Cliente {
   private router = inject(Router);
   private api = inject(ProductosService);
-  private carrito = inject(CarritoService);
   private compatibilidad = inject(CompatibilidadService);
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
@@ -119,12 +106,6 @@ export class Cliente {
   readonly perfilVacio = signal(false);
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
-  readonly aviso = signal<string | null>(null);
-  readonly agregando = signal<number | null>(null);
-  readonly agregado = signal<number | null>(null);
-  /** Cruces (HU8) del producto recién agregado con lo que ya había en el carrito. */
-  readonly crucesNuevos = signal<Cruce[]>([]);
-  private avisoN = 0;
   q = '';
 
   constructor() {
@@ -164,31 +145,6 @@ export class Cliente {
       error: (e) => {
         this.error.set(mensajeDeError(e));
         this.cargando.set(false);
-      },
-    });
-  }
-
-  agregar(p: ProductoVendedor): void {
-    this.agregando.set(p.id);
-    this.error.set(null);
-    this.carrito.agregar(p.id, 1).subscribe({
-      next: (carrito) => {
-        this.aviso.set(`"${p.nombre}" se agregó al carrito.`);
-        this.crucesNuevos.set([]);
-        this.agregando.set(null);
-        this.agregado.set(p.id);
-        setTimeout(() => this.agregado.update((id) => (id === p.id ? null : id)), 2000);
-        this.compatibilidad.cruces(carrito.items.map((i) => i.productoId)).subscribe({
-          next: (cs) => this.crucesNuevos.set(cs.filter((c) => c.productoA === p.id || c.productoB === p.id)),
-          error: () => {},
-        });
-        // El aviso simple se cierra solo; si hay cruces se queda hasta que el cliente lo cierre.
-        const n = ++this.avisoN;
-        setTimeout(() => { if (n === this.avisoN && !this.crucesNuevos().length) this.aviso.set(null); }, 5000);
-      },
-      error: (e) => {
-        this.error.set(mensajeDeError(e));
-        this.agregando.set(null);
       },
     });
   }

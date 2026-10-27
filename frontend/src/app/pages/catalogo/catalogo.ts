@@ -1,22 +1,22 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
-import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { Cargando } from '../../shared/cargando';
-import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
+import { AgregarCarrito } from '../../shared/agregar-carrito';
+import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 /**
  * Catálogo del cliente, estilo marketplace: carrusel "Recomendados para ti" (HU6: productos sin
  * alertas y con ingredientes buenos para su perfil), filtro por categoría, búsqueda (HU12) y alta
- * al carrito (HU9). Un producto no compatible se puede agregar, pero solo tras confirmar el riesgo.
+ * al carrito (HU9). Cada tarjeta abre la ficha del producto.
  */
 @Component({
   selector: 'app-catalogo',
-  imports: [FormsModule, RouterLink, CompatInfo, NgTemplateOutlet, Cargando],
+  imports: [FormsModule, RouterLink, CompatInfo, NgTemplateOutlet, Cargando, AgregarCarrito],
   template: `
     <section class="cliente-home">
       <form class="home-search" (ngSubmit)="buscar()">
@@ -82,55 +82,25 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
 
     <ng-template #tarjeta let-p>
       <article class="cat-card" role="listitem">
-        <div class="product-image">
-          @if (p.imagenes?.length) { <img [src]="p.imagenes[0]" [alt]="p.nombre" loading="lazy" /> } @else { <span>✦</span> }
-        </div>
-        <h3 class="cat-nombre">{{ p.nombre }}</h3>
+        <a class="cat-enlace" [routerLink]="['/producto', p.id]">
+          <div class="product-image">
+            @if (p.imagenes?.length) { <img [src]="p.imagenes[0]" [alt]="p.nombre" loading="lazy" /> } @else { <span>✦</span> }
+          </div>
+          <h3 class="cat-nombre">{{ p.nombre }}</h3>
+        </a>
         <p class="cat-marca">{{ p.marca || p.categoria || 'Cosmético' }}</p>
         <app-compat-info [resultado]="compat()[p.id]" />
         <div class="cat-pie">
           <span class="precio">{{ formatearCop(p.precio) }}</span>
-          <button type="button" class="btn-mini" [class.agregado]="agregado() === p.id"
-                  [disabled]="agregando() === p.id || agregado() === p.id" (click)="intentarAgregar(p)">
-            {{ agregado() === p.id ? '✓ Agregado' : agregando() === p.id ? 'Agregando…' : 'Agregar' }}
+          <button type="button" class="btn-mini" [class.agregado]="carro.agregado() === p.id"
+                  [disabled]="carro.agregando() === p.id || carro.agregado() === p.id" (click)="carro.intentar(p, compat()[p.id])">
+            {{ carro.agregado() === p.id ? '✓ Agregado' : carro.agregando() === p.id ? 'Agregando…' : 'Agregar' }}
           </button>
         </div>
       </article>
     </ng-template>
 
-    @if (aviso()) {
-      <div class="toast" [class.toast-alerta]="crucesNuevos().length" role="status" aria-live="polite">
-        <p>✓ {{ aviso() }}</p>
-        @if (crucesNuevos().length) {
-          <p><strong>⚠️ No conviene usarlo junto con lo que ya tienes en el carrito:</strong></p>
-          <ul>
-            @for (c of crucesNuevos(); track $index) { <li>{{ c.mensaje }} <span class="compat-causa">{{ c.causa }}</span></li> }
-          </ul>
-        }
-        <div class="toast-acciones">
-          <a routerLink="/carrito">Ver carrito →</a>
-          <button type="button" class="btn-sec" (click)="aviso.set(null)">Cerrar</button>
-        </div>
-      </div>
-    }
-
-    <dialog #confirmar class="riesgo" aria-labelledby="riesgo-titulo" (close)="pendiente.set(null)">
-      @if (pendiente(); as p) {
-        <h2 id="riesgo-titulo">⚠️ Este producto NO es compatible contigo</h2>
-        <p><strong>«{{ p.nombre }}»</strong> contiene ingredientes que chocan con tu perfil dermatológico:</p>
-        <ul>
-          @for (a of compat()[p.id]?.alertas ?? []; track $index) {
-            <li><strong>{{ a.severidad === 'ALTA' ? 'Riesgo alto' : 'Precaución' }}:</strong> {{ a.mensaje }}</li>
-          }
-        </ul>
-        <p class="riesgo-texto">No te recomendamos comprarlo: puede causarte una reacción alérgica o irritación.
-          Si decides agregarlo al carrito, lo haces <strong>bajo tu propia responsabilidad</strong>.</p>
-        <div class="riesgo-acciones">
-          <button type="button" class="btn-sec" autofocus (click)="confirmar.close()">No, mejor no</button>
-          <button type="button" class="btn-riesgo" (click)="aceptarRiesgo(p)">Agregar bajo mi responsabilidad</button>
-        </div>
-      }
-    </dialog>
+    <app-agregar-carrito #carro />
   `,
   styles: [`
     .carrusel { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 240px); gap: 1rem;
@@ -138,21 +108,12 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
     .carrusel .cat-card { scroll-snap-align: start; }
     .chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
     .chips .activo { background: var(--vino); color: #fff; border-color: var(--vino); }
-    .riesgo { max-width: 32rem; border: 2px solid #c8102e; border-radius: 16px; padding: 1.5rem; }
-    .riesgo::backdrop { background: rgb(0 0 0 / .55); }
-    .riesgo h2 { color: #9b1c36; margin-top: 0; font-size: 1.25rem; }
-    .riesgo ul { padding-left: 1.1rem; display: grid; gap: .4rem; font-size: .9rem; }
-    .riesgo-texto { background: #fdecef; border-radius: 10px; padding: .75rem; color: #9b1c36; }
-    .riesgo-acciones { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: flex-end; }
-    .btn-riesgo { background: #c8102e; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1.1rem; font-weight: 800; cursor: pointer; }
   `],
 })
 export class Catalogo {
   private api = inject(ProductosService);
-  private carrito = inject(CarritoService);
   private compatibilidad = inject(CompatibilidadService);
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
-  readonly confirmar = viewChild.required<ElementRef<HTMLDialogElement>>('confirmar');
 
   q = '';
   readonly catalogo = signal<ProductoVendedor[]>([]);
@@ -161,13 +122,6 @@ export class Catalogo {
   readonly categoria = signal('Todas');
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
-  readonly aviso = signal<string | null>(null);
-  /** Cruces (HU8) del producto recién agregado con lo que ya había en el carrito. */
-  readonly crucesNuevos = signal<Cruce[]>([]);
-  private avisoN = 0;
-  readonly agregando = signal<number | null>(null);
-  readonly agregado = signal<number | null>(null);
-  readonly pendiente = signal<ProductoVendedor | null>(null);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
   /** La primera evaluación contra el perfil, de la que salen los recomendados. */
@@ -214,7 +168,6 @@ export class Catalogo {
   buscar(): void {
     const termino = this.q.trim();
     this.error.set(null);
-    this.aviso.set(null);
     if (!termino) {
       this.limpiarBusqueda();
       return;
@@ -250,46 +203,6 @@ export class Catalogo {
         this.evaluando.set(false);
       },
       error: () => this.evaluando.set(false),
-    });
-  }
-
-  /** Un producto no compatible exige confirmar el riesgo antes de ir al carrito. */
-  intentarAgregar(p: ProductoVendedor): void {
-    if (this.compat()[p.id]?.compatible === false) {
-      this.pendiente.set(p);
-      this.confirmar().nativeElement.showModal();
-      return;
-    }
-    this.agregar(p, `"${p.nombre}" se agregó al carrito.`);
-  }
-
-  aceptarRiesgo(p: ProductoVendedor): void {
-    this.confirmar().nativeElement.close();
-    this.agregar(p, `"${p.nombre}" se agregó al carrito bajo tu responsabilidad. Revisa las alertas antes de comprar.`);
-  }
-
-  private agregar(p: ProductoVendedor, mensaje: string): void {
-    this.agregando.set(p.id);
-    this.error.set(null);
-    this.carrito.agregar(p.id, 1).subscribe({
-      next: (carrito) => {
-        this.aviso.set(mensaje);
-        this.crucesNuevos.set([]);
-        this.agregando.set(null);
-        this.agregado.set(p.id);
-        setTimeout(() => this.agregado.update((id) => (id === p.id ? null : id)), 2000);
-        this.compatibilidad.cruces(carrito.items.map((i) => i.productoId)).subscribe({
-          next: (cs) => this.crucesNuevos.set(cs.filter((c) => c.productoA === p.id || c.productoB === p.id)),
-          error: () => {},
-        });
-        // El aviso simple se cierra solo; si hay cruces se queda hasta que el cliente lo cierre.
-        const n = ++this.avisoN;
-        setTimeout(() => { if (n === this.avisoN && !this.crucesNuevos().length) this.aviso.set(null); }, 5000);
-      },
-      error: (e) => {
-        this.error.set(mensajeDeError(e));
-        this.agregando.set(null);
-      },
     });
   }
 }

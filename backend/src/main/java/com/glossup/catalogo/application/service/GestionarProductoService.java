@@ -65,6 +65,7 @@ public class GestionarProductoService implements GestionarProductoUseCase {
                 nuevasImagenes,
                 nuevaComposicion
         );
+        producto.describir(command.descripcion());
 
         return productoRepository.guardar(producto);
     }
