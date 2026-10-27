@@ -6,7 +6,7 @@ import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
-import type { Carrito as CarritoDto, LineaCompra, Pedido, ResultadoCompatibilidad } from '../../shared/models';
+import type { Carrito as CarritoDto, Cruce, LineaCompra, Pedido, ResultadoCompatibilidad } from '../../shared/models';
 
 /** Línea del carrito enriquecida con nombre/imagen (el backend solo devuelve ids y montos). */
 interface ItemVista extends LineaCompra {
@@ -93,6 +93,18 @@ interface ItemVista extends LineaCompra {
             <a routerLink="/perfil">Completa tu perfil →</a></p>
         }
 
+        @if (crucesVisibles().length) {
+          <div class="compat-aviso cruces" role="alert" aria-labelledby="cruces-titulo">
+            <h3 id="cruces-titulo">⚠️ Combinaciones a vigilar</h3>
+            <p>Estos productos están bien por separado, pero no conviene usarlos al mismo tiempo.</p>
+            <ul>
+              @for (c of crucesVisibles(); track $index) {
+                <li [class]="'sev-' + c.severidad"><strong>{{ c.mensaje }}</strong><span class="compat-causa">{{ c.causa }}</span></li>
+              }
+            </ul>
+          </div>
+        }
+
         <div class="editor-acciones">
           <button type="button" class="btn-primario" [disabled]="ocupado()" (click)="confirmar()">
             Confirmar pedido y reservar inventario
@@ -107,6 +119,9 @@ interface ItemVista extends LineaCompra {
     .cart-pie { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; gap: 1rem; flex-wrap: wrap; }
     .cart-total { display: flex; align-items: baseline; gap: .6rem; }
     .cart-total strong { font-size: 1.4rem; }
+    .cruces h3 { margin: 0 0 .25rem; font-size: 1rem; }
+    .cruces p { margin: 0 0 .5rem; }
+    .cruces ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .5rem; }
   `],
 })
 export class Carrito {
@@ -123,6 +138,12 @@ export class Carrito {
   readonly pedido = signal<Pedido | null>(null);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
+  readonly cruces = signal<Cruce[]>([]);
+  /** Al quitar un producto, sus cruces desaparecen sin volver a consultar. */
+  readonly crucesVisibles = computed(() => {
+    const ids = new Set(this.items().map((i) => i.productoId));
+    return this.cruces().filter((c) => ids.has(c.productoA) && ids.has(c.productoB));
+  });
   readonly noCompatibles = computed(
     () => this.items().filter((i) => this.compat()[i.productoId]?.compatible === false).length,
   );
@@ -166,6 +187,10 @@ export class Carrito {
         this.compat.set(e.resultados);
       },
       error: () => this.compat.set({}),
+    });
+    this.compatibilidad.cruces(c.items.map((it) => it.productoId)).subscribe({
+      next: (cs) => this.cruces.set(cs),
+      error: () => this.cruces.set([]),
     });
   }
 

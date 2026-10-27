@@ -1,5 +1,7 @@
 package com.glossup.compatibilidad.domain.port.out;
 
+import com.glossup.compatibilidad.domain.model.Zona;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -13,9 +15,13 @@ public interface CatalogoConsultaPort {
     Optional<ProductoConsulta> buscar(Long productoId);
 
     /** @param ingredientesInci nombres INCI de la ficha, normalizados (minúsculas). */
-    record ProductoConsulta(String nombre, List<String> ingredientesInci, Double ph) {
+    record ProductoConsulta(String nombre, List<String> ingredientesInci, Double ph, Zona zona) {
         public ProductoConsulta(String nombre, List<String> ingredientesInci) {
-            this(nombre, ingredientesInci, null);
+            this(nombre, ingredientesInci, null, Zona.ROSTRO);
+        }
+
+        public ProductoConsulta(String nombre, List<String> ingredientesInci, Double ph) {
+            this(nombre, ingredientesInci, ph, Zona.ROSTRO);
         }
     }
 }

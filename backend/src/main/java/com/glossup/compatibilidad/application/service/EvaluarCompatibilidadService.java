@@ -2,6 +2,8 @@ package com.glossup.compatibilidad.application.service;
 
 import com.glossup.compatibilidad.domain.model.Alerta;
 import com.glossup.compatibilidad.domain.model.Beneficio;
+import com.glossup.compatibilidad.domain.model.Cruce;
+import com.glossup.compatibilidad.domain.model.ReglaIncompatibilidad;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ReglaRango;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
@@ -14,11 +16,13 @@ import com.glossup.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Motor de reglas de compatibilidad producto–perfil (HU6 alergias e irritantes, HU7 tipo de piel,
@@ -77,6 +81,48 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
             catalogo.buscar(id).ifPresent(p -> resultados.put(id, evaluar(p, datos, conocimiento)));
         }
         return resultados;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Cruce> evaluarCruces(List<Long> productoIds) {
+        List<ReglaIncompatibilidad> pares = reglas.reglasIncompatibilidad();
+        List<Long> ids = new ArrayList<>();
+        List<CatalogoConsultaPort.ProductoConsulta> productos = new ArrayList<>();
+        for (Long id : new LinkedHashSet<>(productoIds)) {
+            catalogo.buscar(id).ifPresent(p -> { ids.add(id); productos.add(p); });
+        }
+        List<Cruce> cruces = new ArrayList<>();
+        for (int i = 0; i < productos.size(); i++) {
+            for (int j = i + 1; j < productos.size(); j++) {
+                var a = productos.get(i);
+                var b = productos.get(j);
+                if (a.zona() != b.zona()) continue;
+                Set<String> enA = Set.copyOf(a.ingredientesInci());
+                Set<String> enB = Set.copyOf(b.ingredientesInci());
+                // Una alerta por causa: retinol frente a un peeling con 4 ácidos es un solo choque, no cuatro.
+                Map<String, List<Set<String>>> porMotivo = new LinkedHashMap<>();
+                Map<String, Severidad> severidad = new LinkedHashMap<>();
+                for (ReglaIncompatibilidad par : pares) {
+                    // El par no es ordenado: el ingrediente A de la regla puede estar en cualquiera de los dos.
+                    String x = par.getIngredienteA();
+                    String y = par.getIngredienteB();
+                    String deA = enA.contains(x) && enB.contains(y) ? x : enA.contains(y) && enB.contains(x) ? y : null;
+                    if (deA == null) continue;
+                    var lados = porMotivo.computeIfAbsent(par.getMotivo(), m -> List.of(new TreeSet<>(), new TreeSet<>()));
+                    lados.get(0).add(deA);
+                    lados.get(1).add(deA.equals(x) ? y : x);
+                    severidad.merge(par.getMotivo(), par.getSeveridad(), (s1, s2) -> s1.compareTo(s2) >= 0 ? s1 : s2);
+                }
+                for (var e : porMotivo.entrySet()) {
+                    cruces.add(new Cruce(ids.get(i), ids.get(j), new Alerta(severidad.get(e.getKey()),
+                            "«" + a.nombre() + "» (" + String.join(", ", e.getValue().get(0)) + ") y «" + b.nombre()
+                                    + "» (" + String.join(", ", e.getValue().get(1)) + ") no conviene usarlos al mismo tiempo.",
+                            e.getKey())));
+                }
+            }
+        }
+        return cruces;
     }
 
     private ResultadoCompatibilidad evaluar(CatalogoConsultaPort.ProductoConsulta producto,

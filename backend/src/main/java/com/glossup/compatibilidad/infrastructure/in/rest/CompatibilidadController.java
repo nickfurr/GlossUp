@@ -2,6 +2,7 @@ package com.glossup.compatibilidad.infrastructure.in.rest;
 
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.port.in.EvaluarCompatibilidadUseCase;
+import com.glossup.compatibilidad.infrastructure.in.rest.dto.CruceResponse;
 import com.glossup.compatibilidad.infrastructure.in.rest.dto.ResultadoCompatibilidadResponse;
 import com.glossup.shared.domain.ReglaNegocioException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,7 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/compatibilidad")
 @PreAuthorize("hasRole('CLIENTE')")
-@Tag(name = "Compatibilidad", description = "Motor de compatibilidad producto–perfil: alergias e irritantes (HU6)")
+@Tag(name = "Compatibilidad", description = "Motor de compatibilidad: producto–perfil (HU6, HU7) y producto–producto (HU8)")
 @SecurityRequirement(name = "bearerAuth")
 public class CompatibilidadController {
 
@@ -57,6 +58,17 @@ public class CompatibilidadController {
                 .entrySet().stream()
                 .map(e -> ResultadoCompatibilidadResponse.fromDomain(e.getKey(), e.getValue()))
                 .toList());
+    }
+
+    @GetMapping("/cruces")
+    @Operation(summary = "Cruces entre productos del carrito (HU8)",
+               description = "Devuelve cada par de productos con ingredientes que no conviene combinar, con la causa. "
+                       + "No depende del perfil. Máximo " + MAX_LOTE + " productos por petición.")
+    public ResponseEntity<List<CruceResponse>> cruces(@RequestParam("ids") List<Long> ids) {
+        if (ids.size() > MAX_LOTE) {
+            throw new ReglaNegocioException("Máximo " + MAX_LOTE + " productos por evaluación");
+        }
+        return ResponseEntity.ok(evaluarCompatibilidad.evaluarCruces(ids).stream().map(CruceResponse::fromDomain).toList());
     }
 
     private Long extraerUsuarioId(Authentication authentication) {

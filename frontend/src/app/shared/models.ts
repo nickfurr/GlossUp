@@ -120,6 +120,15 @@ export interface AlertaCompatibilidad {
   causa: string;
 }
 
+/** Choque entre dos productos del carrito (HU8): no conviene usarlos al mismo tiempo. */
+export interface Cruce {
+  productoA: number;
+  productoB: number;
+  severidad: 'ALTA' | 'MEDIA' | 'BAJA';
+  mensaje: string;
+  causa: string;
+}
+
 /** Resultado de evaluar un producto contra el perfil. `compatible` es false si hay alguna alerta ALTA. */
 export interface ResultadoCompatibilidad {
   productoId: number;

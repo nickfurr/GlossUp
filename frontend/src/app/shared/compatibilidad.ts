@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, of, switchMap } from 'rxjs';
 import { PerfilService } from './perfil';
-import type { PerfilDermatologico, ResultadoCompatibilidad } from './models';
+import type { Cruce, PerfilDermatologico, ResultadoCompatibilidad } from './models';
 
 /** Evaluación de compatibilidad para mi perfil: si está vacío no evalúa (no hay nada contra qué cruzar). */
 export interface EvaluacionPerfil {
@@ -39,5 +39,11 @@ export class CompatibilidadService {
           .pipe(map((lista) => ({ perfilVacio: false, resultados: Object.fromEntries(lista.map((r) => [r.productoId, r])) })));
       }),
     );
+  }
+
+  /** Cruces entre productos (HU8). No depende del perfil; con menos de dos productos no hay pares. */
+  cruces(productoIds: number[]): Observable<Cruce[]> {
+    if (new Set(productoIds).size < 2) return of([]);
+    return this.http.get<Cruce[]>('/api/compatibilidad/cruces', { params: { ids: productoIds.join(',') } });
   }
 }
