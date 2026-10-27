@@ -234,6 +234,9 @@ public class Producto {
     public Double getPh() { return ph; }
     public String getRegistroInvima() { return registroInvima; }
     public boolean isActivo() { return activo; }
+
+    /** Regla de negocio: el cliente solo ve en el catálogo lo que puede comprar (activo y con stock). */
+    public boolean estaEnCatalogo() { return activo && stock > 0; }
     public List<ImagenProducto> getImagenes() { return List.copyOf(imagenes); }
     public List<ComposicionProducto> getComposicion() { return List.copyOf(composicion); }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
