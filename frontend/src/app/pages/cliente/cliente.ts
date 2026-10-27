@@ -4,7 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
 import { CarritoService } from '../../shared/carrito';
-import { CompatibilidadService, estadoDe } from '../../shared/compatibilidad';
+import { CompatibilidadService, EstadoCompatibilidad, estadoDe } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
@@ -170,11 +170,14 @@ function masNuevos(ps: ProductoVendedor[]): ProductoVendedor[] {
   return [...ps].sort((a, b) => (b.creadoEn ?? '').localeCompare(a.creadoEn ?? '')).slice(0, MAX_RECOMENDADOS);
 }
 
+/** Orden de recomendación; 3 = se excluye. El Record obliga a cubrir cada estado nuevo. */
+const PESO: Record<EstadoCompatibilidad, number> = { recomendado: 0, compatible: 1, precaucion: 2, 'no-compatible': 3 };
+
 function rankear(ps: ProductoVendedor[], resultados: Record<number, ResultadoCompatibilidad>): ProductoVendedor[] {
   const peso = (p: ProductoVendedor) => {
     const r = resultados[p.id];
     if (!r) return 2;
-    return { compatible: 0, precaucion: 1, 'no-compatible': 3 }[estadoDe(r)];
+    return PESO[estadoDe(r)];
   };
   return ps
     .filter((p) => peso(p) < 3)
