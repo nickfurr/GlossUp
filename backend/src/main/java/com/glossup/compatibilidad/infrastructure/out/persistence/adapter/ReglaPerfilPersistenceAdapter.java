@@ -2,6 +2,7 @@ package com.glossup.compatibilidad.infrastructure.out.persistence.adapter;
 
 import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
+import com.glossup.compatibilidad.domain.model.ReglaRango;
 import com.glossup.compatibilidad.domain.model.Severidad;
 import com.glossup.compatibilidad.domain.port.out.ReglaRepositoryPort;
 import com.glossup.compatibilidad.infrastructure.out.persistence.entity.ReglaPerfilEntity;
@@ -45,6 +46,21 @@ public class ReglaPerfilPersistenceAdapter implements ReglaRepositoryPort {
     public List<Beneficio> beneficios() {
         return jdbc.query("SELECT ingrediente_inci, condicion, motivo FROM beneficio",
                 (rs, i) -> new Beneficio(rs.getString(1).toLowerCase(), rs.getString(2).toLowerCase(), rs.getString(3)));
+    }
+
+    @Override
+    public List<ReglaRango> reglasRango() {
+        return jdbc.query("SELECT atributo, condicion, desde, hasta, severidad, motivo FROM regla_rango",
+                (rs, i) -> new ReglaRango(ReglaRango.Atributo.valueOf(rs.getString(1)), rs.getString(2).toLowerCase(),
+                        rs.getDouble(3), rs.getDouble(4), Severidad.valueOf(rs.getString(5)), rs.getString(6)));
+    }
+
+    @Override
+    public Map<String, Integer> comedogenicidad() {
+        Map<String, Integer> mapa = new HashMap<>();
+        jdbc.query("SELECT nombre_inci, comedogenicidad FROM ingrediente WHERE comedogenicidad IS NOT NULL",
+                rs -> { mapa.put(rs.getString(1).toLowerCase(), rs.getInt(2)); });
+        return mapa;
     }
 
     private ReglaPerfil aDominio(ReglaPerfilEntity e) {

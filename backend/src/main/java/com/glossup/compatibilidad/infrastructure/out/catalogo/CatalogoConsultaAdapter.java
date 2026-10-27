@@ -23,6 +23,7 @@ public class CatalogoConsultaAdapter implements CatalogoConsultaPort {
     public Optional<ProductoConsulta> buscar(Long productoId) {
         return productoRepository.buscarPorId(productoId).map(producto -> new ProductoConsulta(
                 producto.getNombre(),
-                producto.getComposicion().stream().map(c -> c.ingrediente().getInci().nombre()).toList()));
+                producto.getComposicion().stream().map(c -> c.ingrediente().getInci().nombre()).toList(),
+                producto.getPh()));
     }
 }

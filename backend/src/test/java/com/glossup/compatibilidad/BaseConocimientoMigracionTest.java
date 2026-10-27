@@ -108,6 +108,34 @@ class BaseConocimientoMigracionTest {
     }
 
     @Test
+    void comedogenicidad_usaLosGradosDeFultonYCorrigeLaLanolinaAcetilada() throws SQLException {
+        assertEquals(Set.of("5"), consulta("SELECT comedogenicidad FROM ingrediente WHERE nombre_inci = 'isopropyl myristate'"));
+        // Fulton 1989: la lanolina acetilada es grado 0; V7 la marcaba comedogénica por error.
+        assertEquals(Set.of("0"), consulta("SELECT comedogenicidad FROM ingrediente WHERE nombre_inci = 'acetylated lanolin'"));
+        assertTrue(consulta("SELECT id::text FROM regla_perfil WHERE ingrediente_inci = 'acetylated lanolin'").isEmpty());
+        assertTrue(consulta("SELECT nombre_inci FROM ingrediente WHERE comedogenicidad IS NOT NULL").size() > 70);
+    }
+
+    @Test
+    void lasReglasComedogenicasRetiradasSiguenCubiertasPorElGrado() throws SQLException {
+        // Cada ingrediente que perdió su regla suelta en V9 debe seguir alertando en acné y piel grasa.
+        Set<String> sinCobertura = consulta("""
+                SELECT i.nombre_inci || '/' || c.condicion FROM ingrediente i
+                CROSS JOIN (VALUES ('ACNE'), ('GRASA')) c(condicion)
+                WHERE i.nombre_inci IN ('isopropyl myristate', 'isopropyl palmitate', 'myristyl myristate',
+                                        'cocos nucifera oil', 'theobroma cacao seed butter')
+                  AND NOT EXISTS (SELECT 1 FROM regla_rango r WHERE r.atributo = 'COMEDOGENICIDAD'
+                                  AND r.condicion = c.condicion AND i.comedogenicidad BETWEEN r.desde AND r.hasta)""");
+        assertTrue(sinCobertura.isEmpty(), "Ingredientes comedogénicos que dejaron de alertar: " + sinCobertura);
+    }
+
+    @Test
+    void laPielMixtaYaTieneReglasYElPhCubreAmbosExtremos() throws SQLException {
+        assertFalse(consulta("SELECT id::text FROM regla_rango WHERE condicion = 'MIXTA'").isEmpty());
+        assertEquals(Set.of("0.0", "7.5"), consulta("SELECT DISTINCT desde::text FROM regla_rango WHERE atributo = 'PH'"));
+    }
+
+    @Test
     void losProductosDemoUsanTodoElCatalogoYTienenImagen() throws SQLException {
         assertEquals(78, consulta("SELECT id::text FROM producto WHERE vendedor_id = 2").size());
         Set<String> sinImagen = consulta("""
