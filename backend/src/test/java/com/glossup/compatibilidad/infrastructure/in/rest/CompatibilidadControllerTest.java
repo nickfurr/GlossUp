@@ -1,6 +1,7 @@
 package com.glossup.compatibilidad.infrastructure.in.rest;
 
 import com.glossup.compatibilidad.domain.model.Alerta;
+import com.glossup.compatibilidad.domain.model.Cruce;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.model.Severidad;
 import com.glossup.compatibilidad.domain.port.in.EvaluarCompatibilidadUseCase;
@@ -76,6 +77,20 @@ class CompatibilidadControllerTest {
                 .andExpect(jsonPath("$[1].compatible").value(false))
                 .andExpect(jsonPath("$[1].alertas[0].severidad").value("ALTA"))
                 .andExpect(jsonPath("$[1].alertas[0].causa").value("Retinoides en embarazo"));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void cruces_devuelveElParConSuCausa() throws Exception {
+        when(evaluarCompatibilidad.evaluarCruces(List.of(1L, 2L))).thenReturn(List.of(
+                new Cruce(1L, 2L, new Alerta(Severidad.MEDIA, "No juntos", "Suman irritación"))));
+
+        mockMvc.perform(get("/api/compatibilidad/cruces").param("ids", "1,2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].productoA").value(1))
+                .andExpect(jsonPath("$[0].productoB").value(2))
+                .andExpect(jsonPath("$[0].severidad").value("MEDIA"))
+                .andExpect(jsonPath("$[0].causa").value("Suman irritación"));
     }
 
     @Test

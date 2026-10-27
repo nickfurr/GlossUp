@@ -6,7 +6,7 @@ import { ProductosService, mensajeDeError } from '../../shared/productos';
 import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
-import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
+import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 /**
  * Catálogo del cliente, estilo marketplace: carrusel "Recomendados para ti" (HU6: productos sin
@@ -25,7 +25,6 @@ import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/mod
       </form>
 
       @if (error()) { <p class="error" style="margin-top:1rem">{{ error() }}</p> }
-      @if (aviso()) { <p class="success-message" style="margin-top:1rem">{{ aviso() }}</p> }
 
       @if (!busqueda()) {
         <div class="section-heading">
@@ -95,6 +94,22 @@ import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/mod
       </article>
     </ng-template>
 
+    @if (aviso()) {
+      <div class="toast" [class.toast-alerta]="crucesNuevos().length" role="status" aria-live="polite">
+        <p>{{ aviso() }}</p>
+        @if (crucesNuevos().length) {
+          <p><strong>⚠️ No conviene usarlo junto con lo que ya tienes en el carrito:</strong></p>
+          <ul>
+            @for (c of crucesNuevos(); track $index) { <li>{{ c.mensaje }} <span class="compat-causa">{{ c.causa }}</span></li> }
+          </ul>
+        }
+        <div class="toast-acciones">
+          <a routerLink="/carrito">Ver carrito →</a>
+          <button type="button" class="btn-sec" (click)="aviso.set(null)">Cerrar</button>
+        </div>
+      </div>
+    }
+
     <dialog #confirmar class="riesgo" aria-labelledby="riesgo-titulo" (close)="pendiente.set(null)">
       @if (pendiente(); as p) {
         <h2 id="riesgo-titulo">⚠️ Este producto NO es compatible contigo</h2>
@@ -125,6 +140,14 @@ import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/mod
     .riesgo ul { padding-left: 1.1rem; display: grid; gap: .4rem; font-size: .9rem; }
     .riesgo-texto { background: #fdecef; border-radius: 10px; padding: .75rem; color: #9b1c36; }
     .riesgo-acciones { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: flex-end; }
+    .toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 50;
+             width: min(32rem, calc(100% - 2rem)); padding: .9rem 1rem; border-radius: 14px; border: 1px solid #b9dfc5;
+             background: #eaf6ee; color: #1f6b3a; box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
+    .toast p { margin: 0 0 .4rem; }
+    .toast ul { margin: 0 0 .5rem; padding-left: 1.1rem; display: grid; gap: .35rem; font-size: .9rem; }
+    .toast-alerta { background: #fdf4e1; border-color: #f2dca6; color: #8a5d00; }
+    .toast-acciones { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .toast-acciones a { color: var(--vino); font-weight: 800; }
     .btn-riesgo { background: #c8102e; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1.1rem; font-weight: 800; cursor: pointer; }
   `],
 })
@@ -143,6 +166,9 @@ export class Catalogo {
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
   readonly aviso = signal<string | null>(null);
+  /** Cruces (HU8) del producto recién agregado con lo que ya había en el carrito. */
+  readonly crucesNuevos = signal<Cruce[]>([]);
+  private avisoN = 0;
   readonly agregando = signal<number | null>(null);
   readonly pendiente = signal<ProductoVendedor | null>(null);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
@@ -244,9 +270,17 @@ export class Catalogo {
     this.agregando.set(p.id);
     this.error.set(null);
     this.carrito.agregar(p.id, 1).subscribe({
-      next: () => {
+      next: (carrito) => {
         this.aviso.set(mensaje);
+        this.crucesNuevos.set([]);
         this.agregando.set(null);
+        this.compatibilidad.cruces(carrito.items.map((i) => i.productoId)).subscribe({
+          next: (cs) => this.crucesNuevos.set(cs.filter((c) => c.productoA === p.id || c.productoB === p.id)),
+          error: () => {},
+        });
+        // El aviso simple se cierra solo; si hay cruces se queda hasta que el cliente lo cierre.
+        const n = ++this.avisoN;
+        setTimeout(() => { if (n === this.avisoN && !this.crucesNuevos().length) this.aviso.set(null); }, 5000);
       },
       error: (e) => {
         this.error.set(mensajeDeError(e));

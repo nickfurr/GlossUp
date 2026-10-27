@@ -1,12 +1,13 @@
 package com.glossup.compatibilidad.domain.port.in;
 
+import com.glossup.compatibilidad.domain.model.Cruce;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * Puerto de entrada: evaluación de compatibilidad producto–perfil (HU6).
+ * Puerto de entrada: compatibilidad producto–perfil (HU6, HU7) y producto–producto (HU8).
  */
 public interface EvaluarCompatibilidadUseCase {
 
@@ -23,4 +24,10 @@ public interface EvaluarCompatibilidadUseCase {
      * existen se omiten. Conserva el orden de entrada.
      */
     Map<Long, ResultadoCompatibilidad> evaluarProductosPerfil(Long usuarioId, List<Long> productoIds);
+
+    /**
+     * Cruces entre productos (HU8): cada par de productos distintos con un ingrediente de uno y otro
+     * que no conviene combinar. No depende del perfil. Los ids que no existen se omiten.
+     */
+    List<Cruce> evaluarCruces(List<Long> productoIds);
 }

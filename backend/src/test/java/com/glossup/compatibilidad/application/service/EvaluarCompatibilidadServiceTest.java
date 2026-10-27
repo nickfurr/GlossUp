@@ -1,6 +1,8 @@
 package com.glossup.compatibilidad.application.service;
 
 import com.glossup.compatibilidad.domain.model.Beneficio;
+import com.glossup.compatibilidad.domain.model.Cruce;
+import com.glossup.compatibilidad.domain.model.ReglaIncompatibilidad;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ReglaRango;
 import com.glossup.compatibilidad.domain.model.ReglaRango.Atributo;
@@ -68,6 +70,48 @@ class EvaluarCompatibilidadServiceTest {
 
     private void perfilCon(Set<String> alergias, Set<String> condiciones) {
         when(perfil.obtener(1L)).thenReturn(new PerfilConsulta(alergias, condiciones));
+    }
+
+    @Test
+    void cruces_detectaElParEnCualquierOrdenYSoloEntreProductosDistintos() {
+        when(reglas.reglasIncompatibilidad()).thenReturn(List.of(
+                new ReglaIncompatibilidad(1L, "retinol", "glycolic acid", Severidad.MEDIA, "Suman irritación")));
+        when(catalogo.buscar(1L)).thenReturn(Optional.of(new ProductoConsulta("Tónico AHA", List.of("aqua", "glycolic acid"))));
+        when(catalogo.buscar(2L)).thenReturn(Optional.of(new ProductoConsulta("Sérum Retinol", List.of("retinol"))));
+        // Un producto que trae los dos ingredientes ya viene formulado así: no es un cruce.
+        when(catalogo.buscar(3L)).thenReturn(Optional.of(new ProductoConsulta("Kit", List.of("retinol", "glycolic acid"))));
+        when(catalogo.buscar(4L)).thenReturn(Optional.of(new ProductoConsulta("Crema", List.of("glycerin"))));
+        when(catalogo.buscar(99L)).thenReturn(Optional.empty());
+
+        List<Cruce> cruces = service.evaluarCruces(List.of(1L, 2L, 4L, 2L, 99L));
+        assertEquals(1, cruces.size(), "ids repetidos o inexistentes no duplican ni rompen");
+        Cruce c = cruces.get(0);
+        assertEquals(List.of(1L, 2L), List.of(c.productoA(), c.productoB()));
+        assertTrue(c.alerta().mensaje().contains("«Tónico AHA» (glycolic acid) y «Sérum Retinol» (retinol)"));
+        assertEquals("Suman irritación", c.alerta().causa());
+
+        assertTrue(service.evaluarCruces(List.of(3L, 4L)).isEmpty());
+        assertEquals(3, service.evaluarCruces(List.of(1L, 2L, 3L)).size(), "los tres pares chocan: tónico-sérum, tónico-kit y sérum-kit");
+
+        // Mismo par de ingredientes, pero uno va en el cabello: no se usan juntos, no hay cruce.
+        when(catalogo.buscar(5L)).thenReturn(Optional.of(new ProductoConsulta("Acondicionador", List.of("glycolic acid"),
+                null, com.glossup.compatibilidad.domain.model.Zona.CABELLO)));
+        assertTrue(service.evaluarCruces(List.of(2L, 5L)).isEmpty());
+    }
+
+    @Test
+    void cruces_variosIngredientesConLaMismaCausaSonUnaSolaAlerta() {
+        when(reglas.reglasIncompatibilidad()).thenReturn(List.of(
+                new ReglaIncompatibilidad(1L, "retinol", "glycolic acid", Severidad.MEDIA, "Retinoide + ácido"),
+                new ReglaIncompatibilidad(2L, "retinol", "lactic acid", Severidad.MEDIA, "Retinoide + ácido"),
+                new ReglaIncompatibilidad(3L, "benzoyl peroxide", "retinol", Severidad.MEDIA, "Oxida el retinol")));
+        when(catalogo.buscar(1L)).thenReturn(Optional.of(new ProductoConsulta("Sérum", List.of("retinol"))));
+        when(catalogo.buscar(2L)).thenReturn(Optional.of(new ProductoConsulta("Peeling",
+                List.of("lactic acid", "glycolic acid", "benzoyl peroxide"))));
+
+        List<Cruce> cruces = service.evaluarCruces(List.of(1L, 2L));
+        assertEquals(2, cruces.size(), "una alerta por causa distinta");
+        assertTrue(cruces.get(0).alerta().mensaje().contains("«Peeling» (glycolic acid, lactic acid)"));
     }
 
     @Test

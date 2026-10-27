@@ -91,8 +91,12 @@ class BaseConocimientoMigracionTest {
     void laBaseDeConocimientoTieneReglasBeneficiosEIncompatibilidades() throws SQLException {
         assertTrue(consulta("SELECT id::text FROM regla_perfil").size() > 100);
         assertTrue(consulta("SELECT id::text FROM beneficio").size() > 100);
-        // Los 14 pares sembrados en V7 deben haber resuelto sus dos ingredientes.
-        assertEquals(14, consulta("SELECT id::text FROM regla_incompatibilidad").size());
+        // 14 pares de V7 + V10 por familias (2×5 retinoide-exfoliante, 3×6 alisado-oxidativo) sin duplicar.
+        assertEquals(36, consulta("SELECT id::text FROM regla_incompatibilidad").size());
+        assertEquals(Set.of("MEDIA"), consulta("""
+                SELECT r.severidad FROM regla_incompatibilidad r
+                JOIN ingrediente a ON a.id = r.ingrediente_a JOIN ingrediente b ON b.id = r.ingrediente_b
+                WHERE a.nombre_inci = 'retinal' AND b.nombre_inci = 'lactic acid'"""), "hueco de V7 cubierto por V10");
         // Cada condición del dominio tiene al menos una regla o un beneficio asociado (salvo NORMAL).
         Set<String> sinConocimiento = consulta("""
                 SELECT codigo FROM condicion c WHERE codigo <> 'NORMAL'

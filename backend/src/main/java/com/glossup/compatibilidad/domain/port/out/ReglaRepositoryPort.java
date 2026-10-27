@@ -1,6 +1,7 @@
 package com.glossup.compatibilidad.domain.port.out;
 
 import com.glossup.compatibilidad.domain.model.Beneficio;
+import com.glossup.compatibilidad.domain.model.ReglaIncompatibilidad;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ReglaRango;
 
@@ -28,4 +29,7 @@ public interface ReglaRepositoryPort {
 
     /** Nombre INCI (minúsculas) → grado comedogénico 0–5; solo los ingredientes calificados. */
     Map<String, Integer> comedogenicidad();
+
+    /** Pares de ingredientes que no conviene combinar entre productos (HU8). */
+    List<ReglaIncompatibilidad> reglasIncompatibilidad();
 }

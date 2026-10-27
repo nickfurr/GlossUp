@@ -1,6 +1,7 @@
 package com.glossup.compatibilidad.infrastructure.out.persistence.adapter;
 
 import com.glossup.compatibilidad.domain.model.Beneficio;
+import com.glossup.compatibilidad.domain.model.ReglaIncompatibilidad;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ReglaRango;
 import com.glossup.compatibilidad.domain.model.Severidad;
@@ -61,6 +62,15 @@ public class ReglaPerfilPersistenceAdapter implements ReglaRepositoryPort {
         jdbc.query("SELECT nombre_inci, comedogenicidad FROM ingrediente WHERE comedogenicidad IS NOT NULL",
                 rs -> { mapa.put(rs.getString(1).toLowerCase(), rs.getInt(2)); });
         return mapa;
+    }
+
+    @Override
+    public List<ReglaIncompatibilidad> reglasIncompatibilidad() {
+        return jdbc.query("""
+                SELECT r.id, a.nombre_inci, b.nombre_inci, r.severidad, r.motivo FROM regla_incompatibilidad r
+                JOIN ingrediente a ON a.id = r.ingrediente_a JOIN ingrediente b ON b.id = r.ingrediente_b""",
+                (rs, i) -> new ReglaIncompatibilidad(rs.getLong(1), rs.getString(2), rs.getString(3),
+                        Severidad.valueOf(rs.getString(4)), rs.getString(5)));
     }
 
     private ReglaPerfil aDominio(ReglaPerfilEntity e) {
