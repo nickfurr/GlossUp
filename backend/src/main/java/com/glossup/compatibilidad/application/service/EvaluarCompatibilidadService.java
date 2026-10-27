@@ -1,6 +1,7 @@
 package com.glossup.compatibilidad.application.service;
 
 import com.glossup.compatibilidad.domain.model.Alerta;
+import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.model.Severidad;
@@ -44,7 +45,8 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
     public ResultadoCompatibilidad evaluarProductoPerfil(Long usuarioId, Long productoId) {
         CatalogoConsultaPort.ProductoConsulta producto = catalogo.buscar(productoId)
                 .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
-        return evaluar(producto, perfil.obtener(usuarioId), reglas.reglasPerfil(), reglas.ingredientesPorAlergeno());
+        return evaluar(producto, perfil.obtener(usuarioId), reglas.reglasPerfil(), reglas.ingredientesPorAlergeno(),
+                reglas.beneficios());
     }
 
     @Override
@@ -54,10 +56,11 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
         PerfilConsultaPort.PerfilConsulta datos = perfil.obtener(usuarioId);
         List<ReglaPerfil> reglasPerfil = reglas.reglasPerfil();
         Map<String, Set<String>> porAlergeno = reglas.ingredientesPorAlergeno();
+        List<Beneficio> beneficios = reglas.beneficios();
         Map<Long, ResultadoCompatibilidad> resultados = new LinkedHashMap<>();
         for (Long id : new LinkedHashSet<>(productoIds)) {
             // Un id inexistente en el lote se omite: no debe tumbar la evaluación del resto.
-            catalogo.buscar(id).ifPresent(p -> resultados.put(id, evaluar(p, datos, reglasPerfil, porAlergeno)));
+            catalogo.buscar(id).ifPresent(p -> resultados.put(id, evaluar(p, datos, reglasPerfil, porAlergeno, beneficios)));
         }
         return resultados;
     }
@@ -65,7 +68,8 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
     private ResultadoCompatibilidad evaluar(CatalogoConsultaPort.ProductoConsulta producto,
                                             PerfilConsultaPort.PerfilConsulta datos,
                                             List<ReglaPerfil> reglasPerfil,
-                                            Map<String, Set<String>> porAlergeno) {
+                                            Map<String, Set<String>> porAlergeno,
+                                            List<Beneficio> beneficios) {
         Set<String> ingredientes = Set.copyOf(producto.ingredientesInci());
         ResultadoCompatibilidad resultado = ResultadoCompatibilidad.vacio();
 
@@ -89,6 +93,14 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
                         "«" + producto.nombre() + "» contiene " + regla.getIngrediente()
                                 + ", no recomendado para tu condición: " + datos.etiqueta(regla.getCondicion()) + ".",
                         regla.getMotivo()));
+            }
+        }
+
+        // 3) Ingredientes recomendados para una condición del perfil → base de la recomendación.
+        for (Beneficio b : beneficios) {
+            if (ingredientes.contains(b.ingrediente()) && datos.condiciones().contains(b.condicion())) {
+                resultado.agregarBeneficio("Contiene " + b.ingrediente() + ", recomendado para "
+                        + datos.etiqueta(b.condicion()) + ": " + b.motivo());
             }
         }
         return resultado;

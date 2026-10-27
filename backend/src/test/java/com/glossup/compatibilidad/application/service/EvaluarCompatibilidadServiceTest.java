@@ -1,5 +1,6 @@
 package com.glossup.compatibilidad.application.service;
 
+import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.model.Severidad;
@@ -43,6 +44,8 @@ class EvaluarCompatibilidadServiceTest {
         lenient().when(reglas.ingredientesPorAlergeno()).thenReturn(Map.of(
                 "parabenos", Set.of("methylparaben", "propylparaben"),
                 "fragancia", Set.of("parfum", "linalool")));
+        lenient().when(reglas.beneficios()).thenReturn(List.of(
+                new Beneficio("niacinamide", "acne", "Antiinflamatorio y seborregulador.")));
     }
 
     private void producto(String... inci) {
@@ -51,6 +54,21 @@ class EvaluarCompatibilidadServiceTest {
 
     private void perfilCon(Set<String> alergias, Set<String> condiciones) {
         when(perfil.obtener(1L)).thenReturn(new PerfilConsulta(alergias, condiciones));
+    }
+
+    @Test
+    void beneficio_soloRecomiendaSiNoHayNingunaAlerta() {
+        producto("niacinamide");
+        perfilCon(Set.of(), Set.of("acne"));
+        ResultadoCompatibilidad r = service.evaluarProductoPerfil(1L, 10L);
+        assertTrue(r.esRecomendado());
+        assertTrue(r.getBeneficios().get(0).contains("niacinamide"));
+
+        producto("niacinamide", "retinol");
+        perfilCon(Set.of(), Set.of("acne", "sensible"));
+        ResultadoCompatibilidad conAlerta = service.evaluarProductoPerfil(1L, 10L);
+        assertFalse(conAlerta.esRecomendado(), "un producto con alertas nunca se recomienda");
+        assertEquals(1, conAlerta.getBeneficios().size());
     }
 
     @Test

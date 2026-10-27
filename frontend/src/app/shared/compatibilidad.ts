@@ -10,11 +10,12 @@ export interface EvaluacionPerfil {
   resultados: Record<number, ResultadoCompatibilidad>;
 }
 
-export type EstadoCompatibilidad = 'compatible' | 'precaucion' | 'no-compatible';
+export type EstadoCompatibilidad = 'recomendado' | 'compatible' | 'precaucion' | 'no-compatible';
 
 export function estadoDe(r: ResultadoCompatibilidad): EstadoCompatibilidad {
   if (!r.compatible) return 'no-compatible';
-  return r.alertas.length ? 'precaucion' : 'compatible';
+  if (r.alertas.length) return 'precaucion';
+  return r.recomendado ? 'recomendado' : 'compatible';
 }
 
 function perfilVacio(p: PerfilDermatologico): boolean {

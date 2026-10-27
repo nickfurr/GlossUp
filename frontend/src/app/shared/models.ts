@@ -124,5 +124,9 @@ export interface AlertaCompatibilidad {
 export interface ResultadoCompatibilidad {
   productoId: number;
   compatible: boolean;
+  /** Sin ninguna alerta y con ingredientes recomendados para alguna condición del perfil. */
+  recomendado: boolean;
   alertas: AlertaCompatibilidad[];
+  /** Por qué le conviene al perfil: un texto por ingrediente recomendado. */
+  beneficios: string[];
 }

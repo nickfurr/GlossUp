@@ -86,7 +86,8 @@ interface ItemVista extends LineaCompra {
 
         @if (noCompatibles() > 0) {
           <p class="compat-aviso" role="alert">⚠️ {{ noCompatibles() }} producto(s) de tu carrito no son compatibles con tu
-            perfil dermatológico. Revisa las alertas antes de confirmar.</p>
+            perfil dermatológico. No te recomendamos comprarlos: si confirmas el pedido, lo haces bajo tu propia
+            responsabilidad. Revisa las alertas de cada uno.</p>
         } @else if (perfilVacio()) {
           <p class="compat-aviso">Tu perfil está vacío: no podemos revisar alergias ni irritantes.
             <a routerLink="/perfil">Completa tu perfil →</a></p>

@@ -10,7 +10,8 @@ import java.util.List;
  * alerta ALTA; las alertas BAJA/MEDIA informan sin bloquear.
  */
 /** @param productoId producto evaluado (sirve para cruzar la respuesta por lote con el catálogo). */
-public record ResultadoCompatibilidadResponse(Long productoId, boolean compatible, List<AlertaResponse> alertas) {
+public record ResultadoCompatibilidadResponse(Long productoId, boolean compatible, boolean recomendado,
+                                              List<AlertaResponse> alertas, List<String> beneficios) {
 
     public record AlertaResponse(String severidad, String mensaje, String causa) {}
 
@@ -18,7 +19,7 @@ public record ResultadoCompatibilidadResponse(Long productoId, boolean compatibl
         List<AlertaResponse> alertas = r.getAlertas().stream()
                 .map(ResultadoCompatibilidadResponse::aResponse)
                 .toList();
-        return new ResultadoCompatibilidadResponse(productoId, r.esCompatible(), alertas);
+        return new ResultadoCompatibilidadResponse(productoId, r.esCompatible(), r.esRecomendado(), alertas, r.getBeneficios());
     }
 
     private static AlertaResponse aResponse(Alerta a) {

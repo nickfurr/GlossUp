@@ -7,7 +7,7 @@ import { ProductosService, mensajeDeError } from '../../shared/productos';
 import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 type Filtro = 'todos' | EstadoCompatibilidad;
-const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precaucion: 1, compatible: 2 };
+const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precaucion: 1, compatible: 2, recomendado: 3 };
 
 /**
  * Compatibilidad producto–perfil (HU6): todo el catálogo publicado evaluado contra el perfil
@@ -79,6 +79,7 @@ export class Compatibilidad {
     { id: 'no-compatible', label: 'No compatibles' },
     { id: 'precaucion', label: 'Con precaución' },
     { id: 'compatible', label: 'Compatibles' },
+    { id: 'recomendado', label: 'Recomendados' },
   ];
 
   /** Solo los productos evaluados, de los más riesgosos a los compatibles. */
@@ -92,7 +93,7 @@ export class Compatibilidad {
     this.evaluados().filter((e) => this.filtro() === 'todos' || e.estado === this.filtro()).map((e) => e.p),
   );
   readonly conteo = computed(() => {
-    const c: Record<Filtro, number> = { todos: 0, 'no-compatible': 0, precaucion: 0, compatible: 0 };
+    const c: Record<Filtro, number> = { todos: 0, 'no-compatible': 0, precaucion: 0, compatible: 0, recomendado: 0 };
     for (const e of this.evaluados()) { c.todos++; c[e.estado]++; }
     return c;
   });
