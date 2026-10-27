@@ -6,6 +6,7 @@ import { ProductosService, mensajeDeError } from '../../shared/productos';
 import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
+import { Cargando } from '../../shared/cargando';
 import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 /**
@@ -15,7 +16,7 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
  */
 @Component({
   selector: 'app-catalogo',
-  imports: [FormsModule, RouterLink, CompatInfo, NgTemplateOutlet],
+  imports: [FormsModule, RouterLink, CompatInfo, NgTemplateOutlet, Cargando],
   template: `
     <section class="cliente-home">
       <form class="home-search" (ngSubmit)="buscar()">
@@ -31,10 +32,12 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
           <div><span class="eyebrow">Según tu perfil dermatológico</span><h2>Recomendados para ti</h2></div>
           @if (recomendados().length) { <span class="catalog-note">{{ recomendados().length }} producto(s)</span> }
         </div>
-        @if (perfilVacio()) {
+        @if (cargando() || evaluando()) {
+          <app-cargando [pasos]="pasosRecomendados" [cantidad]="3" />
+        } @else if (perfilVacio()) {
           <p class="compat-aviso">Completa tu perfil dermatológico y te recomendaremos los productos que le sirven a tu piel y cabello.
             <a routerLink="/perfil">Completar mi perfil →</a></p>
-        } @else if (recomendados().length === 0 && !cargando()) {
+        } @else if (recomendados().length === 0) {
           <p class="nota">Aún no tenemos productos con ingredientes específicos para tu perfil.</p>
         } @else {
           <div class="carrusel" role="list" aria-label="Productos recomendados para ti">
@@ -64,7 +67,7 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
       }
 
       @if (cargando()) {
-        <p class="loading">Cargando productos…</p>
+        <app-cargando [texto]="busqueda() ? 'Buscando productos…' : 'Cargando productos…'" />
       } @else if (visibles().length === 0) {
         <p class="nota">No hay productos que coincidan.</p>
       } @else {
@@ -167,6 +170,9 @@ export class Catalogo {
   readonly pendiente = signal<ProductoVendedor | null>(null);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
+  /** La primera evaluación contra el perfil, de la que salen los recomendados. */
+  readonly evaluando = signal(true);
+  readonly pasosRecomendados = ['Buscando lo mejor para tu piel…', 'Revisando tus afecciones y tipo de piel…', 'Eligiendo tus recomendados…'];
 
   /** Los que más beneficios aportan al perfil, primero. */
   readonly recomendados = computed(() =>
@@ -191,6 +197,7 @@ export class Catalogo {
       error: (e) => {
         this.error.set(mensajeDeError(e));
         this.cargando.set(false);
+        this.evaluando.set(false);
       },
     });
     const q = inject(ActivatedRoute).snapshot.queryParamMap.get('q');
@@ -235,13 +242,14 @@ export class Catalogo {
 
   /** Una sola petición por lote; se acumula en el mapa. Si falla, el catálogo sigue usable sin sellos. */
   private evaluarCompatibilidad(ps: ProductoVendedor[]): void {
-    if (!ps.length) return;
+    if (!ps.length) { this.evaluando.set(false); return; }
     this.compatibilidad.evaluar(ps.map((p) => p.id)).subscribe({
       next: (e) => {
         this.perfilVacio.set(e.perfilVacio);
         this.compat.update((c) => ({ ...c, ...e.resultados }));
+        this.evaluando.set(false);
       },
-      error: () => {},
+      error: () => this.evaluando.set(false),
     });
   }
 

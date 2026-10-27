@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { CompatibilidadService, EstadoCompatibilidad, estadoDe } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
+import { Cargando } from '../../shared/cargando';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
 import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
@@ -15,7 +16,7 @@ const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precau
  */
 @Component({
   selector: 'app-compatibilidad',
-  imports: [RouterLink, CompatInfo],
+  imports: [RouterLink, CompatInfo, Cargando],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
@@ -29,7 +30,7 @@ const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precau
       @if (error()) { <p class="error">{{ error() }}</p> }
 
       @if (cargando()) {
-        <p class="loading">Evaluando el catálogo contra tu perfil…</p>
+        <app-cargando [pasos]="pasosEvaluacion" />
       } @else if (perfilVacio()) {
         <p class="compat-aviso">Tu perfil dermatológico está vacío. Registra tus alergias, tipo de piel y afecciones
           para que podamos evaluar cada producto. <a routerLink="/perfil">Completar mi perfil →</a></p>
@@ -74,6 +75,13 @@ export class Compatibilidad {
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
   readonly filtro = signal<Filtro>('todos');
+  readonly pasosEvaluacion = [
+    'Evaluando el catálogo contra tu perfil…',
+    'Leyendo los ingredientes INCI…',
+    'Cruzando con tus alergias…',
+    'Revisando tu tipo de piel y afecciones…',
+    'Midiendo pH y comedogenicidad…',
+  ];
   readonly filtros: { id: Filtro; label: string }[] = [
     { id: 'todos', label: 'Todos' },
     { id: 'no-compatible', label: 'No compatibles' },

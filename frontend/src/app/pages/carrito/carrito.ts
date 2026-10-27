@@ -5,6 +5,7 @@ import { catchError, map } from 'rxjs/operators';
 import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
+import { Cargando } from '../../shared/cargando';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
 import type { Carrito as CarritoDto, Cruce, LineaCompra, Pedido, ResultadoCompatibilidad } from '../../shared/models';
 
@@ -20,7 +21,7 @@ interface ItemVista extends LineaCompra {
  */
 @Component({
   selector: 'app-carrito',
-  imports: [RouterLink, CompatInfo],
+  imports: [RouterLink, CompatInfo, Cargando],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
@@ -42,7 +43,7 @@ interface ItemVista extends LineaCompra {
           <p class="precio" style="font-size:1.3rem">{{ formatearCop(ped.total) }}</p>
         </div>
       } @else if (cargando()) {
-        <p class="loading">Cargando carrito…</p>
+        <app-cargando texto="Cargando tu carrito…" forma="filas" [cantidad]="3" />
       } @else if (items().length === 0) {
         <p class="nota">Tu carrito está vacío. Ve al <a routerLink="/catalogo" class="perfil-callout">catálogo</a> para agregar productos.</p>
       } @else {
