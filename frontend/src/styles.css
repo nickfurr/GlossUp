@@ -348,8 +348,9 @@ main.full { max-width: none; margin: 0; padding: 0; }
 /* ---- Editor a dos columnas ---- */
 .editor { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 .campo { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.8rem; }
-.campo input { padding: 0.6rem; border: 1px solid var(--borde); border-radius: 8px; font: inherit; font-weight: 400; }
-.campos-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.campo input, .campo textarea { width: 100%; box-sizing: border-box; min-width: 0; padding: 0.6rem; border: 1px solid var(--borde); border-radius: 8px; font: inherit; font-weight: 400; }
+.campo textarea { resize: vertical; min-height: 6rem; }
+.campos-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.8rem; }
 .dropzone { border: 2px dashed var(--borde); border-radius: 12px; min-height: 110px; display: flex; align-items: center; justify-content: center; color: #b98aa0; font-size: 0.85rem; overflow: hidden; }
 .dropzone img { width: 100%; max-height: 180px; object-fit: cover; }
 
@@ -474,3 +475,11 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .toast-acciones { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .toast-acciones a { color: var(--vino); font-weight: 800; }
 .btn-mini.agregado, .btn-mini.agregado:disabled { background: #1f6b3a; border-color: #1f6b3a; color: #fff; opacity: 1; }
+
+/* Tarjetas de producto clicables: imagen y nombre abren la ficha. */
+.cat-enlace { display: block; color: inherit; text-decoration: none; }
+.cat-enlace:hover .cat-nombre, .cat-enlace:focus-visible .cat-nombre { color: var(--vino); text-decoration: underline; }
+.cat-enlace:hover img { transform: scale(1.03); }
+.product-image img { transition: transform .25s ease; }
+.enlace-producto { color: inherit; font-weight: 700; text-decoration: none; }
+.enlace-producto:hover { color: var(--vino); text-decoration: underline; }

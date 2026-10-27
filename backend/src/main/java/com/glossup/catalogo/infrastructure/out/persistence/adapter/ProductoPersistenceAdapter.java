@@ -88,6 +88,7 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
         entity.setStock(dominio.getStock());
         entity.setPh(dominio.getPh());
         entity.setRegistroInvima(dominio.getRegistroInvima());
+        entity.setDescripcion(dominio.getDescripcion());
         entity.setActivo(dominio.isActivo());
         entity.setCreadoEn(dominio.getCreadoEn());
 
@@ -134,7 +135,7 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
                 })
                 .toList();
 
-        return new Producto(
+        Producto producto = new Producto(
                 entity.getId(),
                 entity.getVendedorId(),
                 entity.getNombre(),
@@ -149,5 +150,7 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
                 composicion,
                 entity.getCreadoEn()
         );
+        producto.describir(entity.getDescripcion());
+        return producto;
     }
 }

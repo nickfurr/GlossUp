@@ -71,10 +71,13 @@ export class Vendedor {
   readonly edEsNuevo = signal(true);
   private edId = 0;
   edNombre = '';
+  edMarca = '';
   edCategoria = '';
   edPrecio = '';
   edStock = '0';
   edInvima = '';
+  edPh = '';
+  edDescripcion = '';
   readonly edImagenes = signal<string[]>(['']);
   readonly edFicha = signal<InciLocal[]>([]);
   edInci = '';
@@ -141,10 +144,13 @@ export class Vendedor {
     this.edEsNuevo.set(true);
     this.edId = 0;
     this.edNombre = '';
+    this.edMarca = '';
     this.edCategoria = '';
     this.edPrecio = '';
     this.edStock = '0';
     this.edInvima = '';
+    this.edPh = '';
+    this.edDescripcion = '';
     this.edImagenes.set(['']);
     this.edFicha.set([]);
     this.limpiarAddInci();
@@ -156,10 +162,13 @@ export class Vendedor {
     this.edEsNuevo.set(false);
     this.edId = p.id;
     this.edNombre = p.nombre;
+    this.edMarca = p.marca ?? '';
     this.edCategoria = p.categoria ?? '';
     this.edPrecio = String(p.precio ?? '');
     this.edStock = String(p.stock ?? '0');
     this.edInvima = p.registroInvima ?? '';
+    this.edPh = p.ph != null ? String(p.ph) : '';
+    this.edDescripcion = p.descripcion ?? '';
     this.edImagenes.set(p.imagenes?.length ? [...p.imagenes] : ['']);
     this.edFicha.set(
       (p.ingredientes ?? []).map((i) => ({
@@ -218,11 +227,14 @@ export class Vendedor {
   private datos(): DatosProducto {
     return {
       nombre: this.edNombre.trim(),
+      marca: this.edMarca.trim() || undefined,
       categoria: this.edCategoria.trim() || undefined,
       precio: Number(this.edPrecio),
       stock: Number(this.edStock),
-      ph: null,
+      // Antes se enviaba siempre null y editar un producto borraba su pH.
+      ph: String(this.edPh).trim() === '' ? null : Number(this.edPh),
       registroInvima: this.edInvima.trim() || undefined,
+      descripcion: this.edDescripcion.trim() || undefined,
       imagenes: this.edImagenes().map((u) => u.trim()).filter(Boolean),
       ingredientes: this.edFicha().map((f) => ({
         inci: f.inci,

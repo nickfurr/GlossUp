@@ -58,6 +58,8 @@ public class RegistrarProductoService implements RegistrarProductoUseCase {
                 composicion
         );
 
+        producto.describir(command.descripcion());
+
         // 4. Persistir a través del puerto de salida
         return productoRepository.guardar(producto);
     }

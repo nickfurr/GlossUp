@@ -47,10 +47,12 @@ const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precau
           <div class="product-grid">
             @for (p of visibles(); track p.id) {
               <article class="cat-card">
-                <div class="product-image">
-                  @if (p.imagenes?.length) { <img [src]="p.imagenes[0]" [alt]="p.nombre" /> } @else { <span>✦</span> }
-                </div>
-                <h3 class="cat-nombre">{{ p.nombre }}</h3>
+                <a class="cat-enlace" [routerLink]="['/producto', p.id]">
+                  <div class="product-image">
+                    @if (p.imagenes?.length) { <img [src]="p.imagenes[0]" [alt]="p.nombre" /> } @else { <span>✦</span> }
+                  </div>
+                  <h3 class="cat-nombre">{{ p.nombre }}</h3>
+                </a>
                 <p class="cat-marca">{{ p.marca || p.categoria || 'Cosmético' }}</p>
                 <app-compat-info [resultado]="compat()[p.id]" />
               </article>

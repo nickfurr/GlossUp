@@ -146,6 +146,8 @@ class BaseConocimientoMigracionTest {
                 SELECT nombre FROM producto p WHERE vendedor_id = 2
                   AND NOT EXISTS (SELECT 1 FROM producto_imagen i WHERE i.producto_id = p.id AND i.url LIKE 'https://%')""");
         assertTrue(sinImagen.isEmpty(), "Productos sin imagen: " + sinImagen);
+        Set<String> sinDescripcion = consulta("SELECT nombre FROM producto WHERE vendedor_id = 2 AND descripcion IS NULL");
+        assertTrue(sinDescripcion.isEmpty(), "Productos demo sin descripción: " + sinDescripcion);
         Set<String> sinUso = consulta("""
                 SELECT nombre_inci FROM ingrediente i
                 WHERE NOT EXISTS (SELECT 1 FROM producto_ingrediente pi WHERE pi.ingrediente_id = i.id)""");

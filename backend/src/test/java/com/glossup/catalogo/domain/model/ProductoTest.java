@@ -195,4 +195,19 @@ class ProductoTest {
         p.despublicar();
         assertFalse(p.isActivo());
     }
+
+    @Test
+    void descripcion_esOpcionalSeNormalizaYTieneLimite() {
+        Producto p = Producto.registrar(1L, "Sérum", null, null, Dinero.de(1000.0), 1, null, null,
+                List.of(), List.of(ingredienteEjemplo("Aqua", null)));
+        assertNull(p.getDescripcion());
+
+        p.describir("  Hidrata y calma.  ");
+        assertEquals("Hidrata y calma.", p.getDescripcion());
+
+        p.describir("   ");
+        assertNull(p.getDescripcion(), "una descripción en blanco se guarda como vacía");
+
+        assertThrows(ReglaNegocioException.class, () -> p.describir("x".repeat(2001)));
+    }
 }

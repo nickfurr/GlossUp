@@ -9,6 +9,7 @@ import { Perfil } from './pages/perfil/perfil';
 import { Catalogo } from './pages/catalogo/catalogo';
 import { Carrito } from './pages/carrito/carrito';
 import { Compatibilidad } from './pages/compatibilidad/compatibilidad';
+import { Producto } from './pages/producto/producto';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -21,6 +22,7 @@ export const routes: Routes = [
 
   // Zona del cliente.
   { path: 'catalogo', component: Catalogo, canActivate: [roleGuard('CLIENTE')] },
+  { path: 'producto/:id', component: Producto, canActivate: [roleGuard('CLIENTE')] },
   { path: 'compatibilidad', component: Compatibilidad, canActivate: [roleGuard('CLIENTE')] },
   { path: 'perfil', component: Perfil, canActivate: [roleGuard('CLIENTE')] },
   { path: 'carrito', component: Carrito, canActivate: [roleGuard('CLIENTE')] },

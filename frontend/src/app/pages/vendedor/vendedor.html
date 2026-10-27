@@ -103,13 +103,23 @@
             <input [(ngModel)]="edNombre" [ngModelOptions]="{ standalone: true }" placeholder="Ej: Serum Vitamina C 10%" maxlength="200" />
           </label>
           <div class="campos-2">
+            <label class="campo">Marca<input [(ngModel)]="edMarca" [ngModelOptions]="{ standalone: true }" maxlength="150" /></label>
             <label class="campo">Categoría<input [(ngModel)]="edCategoria" [ngModelOptions]="{ standalone: true }" maxlength="120" /></label>
-            <label class="campo">Precio (COP)<input type="number" min="0" [(ngModel)]="edPrecio" [ngModelOptions]="{ standalone: true }" /></label>
           </div>
           <div class="campos-2">
+            <label class="campo">Precio (COP)<input type="number" min="0" [(ngModel)]="edPrecio" [ngModelOptions]="{ standalone: true }" /></label>
             <label class="campo">Stock<input type="number" min="0" [(ngModel)]="edStock" [ngModelOptions]="{ standalone: true }" /></label>
+          </div>
+          <div class="campos-2">
+            <label class="campo">pH (opcional)<input type="number" min="0" max="14" step="0.1" [(ngModel)]="edPh" [ngModelOptions]="{ standalone: true }" placeholder="Ej. 5.5" /></label>
             <label class="campo">Registro INVIMA<input [(ngModel)]="edInvima" [ngModelOptions]="{ standalone: true }" maxlength="100" placeholder="NSOC01234-56CO" /></label>
           </div>
+          <label class="campo">
+            Descripción
+            <textarea rows="5" [(ngModel)]="edDescripcion" [ngModelOptions]="{ standalone: true }" maxlength="2000"
+                      placeholder="Qué es, para qué sirve, cómo se usa y para quién está pensado."></textarea>
+            <span class="field-hint">{{ edDescripcion.length }}/2000 · Se muestra en la ficha del producto.</span>
+          </label>
 
           <span class="etiqueta">Imágenes (URL)</span>
           @for (u of edImagenes(); track $index) {

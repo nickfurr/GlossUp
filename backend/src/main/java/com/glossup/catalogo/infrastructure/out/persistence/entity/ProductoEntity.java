@@ -42,6 +42,9 @@ public class ProductoEntity {
     @Column(name = "activo", nullable = false)
     private boolean activo;
 
+    @Column(name = "descripcion", columnDefinition = "TEXT")
+    private String descripcion;
+
     @Column(name = "creado_en", nullable = false)
     private OffsetDateTime creadoEn;
 
@@ -79,6 +82,8 @@ public class ProductoEntity {
     public void setPh(Double ph) { this.ph = ph; }
 
     public String getRegistroInvima() { return registroInvima; }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public void setRegistroInvima(String registroInvima) { this.registroInvima = registroInvima; }
 
     public boolean isActivo() { return activo; }

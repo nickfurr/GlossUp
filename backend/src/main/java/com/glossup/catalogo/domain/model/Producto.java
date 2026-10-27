@@ -31,6 +31,7 @@ public class Producto {
     private Double ph;
     private String registroInvima;
     private boolean activo;
+    private String descripcion;
     private final List<ImagenProducto> imagenes;
     private final List<ComposicionProducto> composicion;
     private final OffsetDateTime creadoEn;
@@ -234,6 +235,17 @@ public class Producto {
     public Double getPh() { return ph; }
     public String getRegistroInvima() { return registroInvima; }
     public boolean isActivo() { return activo; }
+
+    public String getDescripcion() { return descripcion; }
+
+    /** Descripción comercial que redacta el vendedor (opcional, hasta 2000 caracteres). */
+    public void describir(String descripcion) {
+        String d = normalizarOpcional(descripcion);
+        if (d != null && d.length() > 2000) {
+            throw new ReglaNegocioException("La descripción no puede superar 2000 caracteres");
+        }
+        this.descripcion = d;
+    }
 
     /** Regla de negocio: el cliente solo ve en el catálogo lo que puede comprar (activo y con stock). */
     public boolean estaEnCatalogo() { return activo && stock > 0; }
