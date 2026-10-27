@@ -97,6 +97,8 @@ export class AuthService {
 
   private cargar(): SesionUsuario | null {
     try {
+      // Sin token no hay sesión: el usuario guardado solo no sirve para llamar a la API.
+      if (!localStorage.getItem(TOKEN_KEY)) return null;
       const raw = localStorage.getItem(USER_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as Partial<SesionUsuario>;

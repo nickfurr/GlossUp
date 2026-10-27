@@ -1,0 +1,39 @@
+# compose para correr todo junto: frontend (Angular) servido por el backend + PostgreSQL.
+# Usa el Dockerfile de la raiz, el mismo que se despliega en Azure.
+# Uso (desde la raiz): podman-compose up --build  ->  http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: glossup-db
+    environment:
+      POSTGRES_DB: glossup
+      POSTGRES_USER: glossup
+      POSTGRES_PASSWORD: glossup
+    ports:
+      - "5432:5432"
+    volumes:
+      - glossup_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glossup -d glossup"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: glossup-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      GLOSSUP_JWT_SECRET: cambia-este-secreto-de-desarrollo-min-32-bytes!!
+    ports:
+      - "8080:8080"
+
+volumes:
+  glossup_pgdata:
+    # mismo volumen que crea backend/docker-compose.yml, para no perder los datos
+    name: backend_glossup_pgdata
