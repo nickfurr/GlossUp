@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, of, switchMap } from 'rxjs';
+import { Observable, forkJoin, map, of } from 'rxjs';
 import { PerfilService } from './perfil';
 import type { Cruce, PerfilDermatologico, ResultadoCompatibilidad } from './models';
 
@@ -27,17 +27,21 @@ export class CompatibilidadService {
   private http = inject(HttpClient);
   private perfil = inject(PerfilService);
 
-  /** Evalúa varios productos de una vez contra el perfil del cliente (HU6). */
+  /**
+   * Evalúa varios productos de una vez contra el perfil del cliente (HU6). Perfil y evaluación se
+   * piden en paralelo: esperar uno para pedir el otro sumaba un viaje completo al servidor.
+   */
   evaluar(productoIds: number[]): Observable<EvaluacionPerfil> {
-    return this.perfil.obtener().pipe(
-      switchMap((p) => {
-        if (perfilVacio(p) || productoIds.length === 0) {
-          return of({ perfilVacio: perfilVacio(p), resultados: {} });
-        }
-        return this.http
-          .get<ResultadoCompatibilidad[]>('/api/compatibilidad/productos', { params: { ids: productoIds.join(',') } })
-          .pipe(map((lista) => ({ perfilVacio: false, resultados: Object.fromEntries(lista.map((r) => [r.productoId, r])) })));
-      }),
+    if (productoIds.length === 0) {
+      return this.perfil.obtener().pipe(map((p) => ({ perfilVacio: perfilVacio(p), resultados: {} })));
+    }
+    return forkJoin({
+      p: this.perfil.obtener(),
+      lista: this.http.get<ResultadoCompatibilidad[]>('/api/compatibilidad/productos', { params: { ids: productoIds.join(',') } }),
+    }).pipe(
+      map(({ p, lista }) => perfilVacio(p)
+        ? { perfilVacio: true, resultados: {} }
+        : { perfilVacio: false, resultados: Object.fromEntries(lista.map((r) => [r.productoId, r])) }),
     );
   }
 
