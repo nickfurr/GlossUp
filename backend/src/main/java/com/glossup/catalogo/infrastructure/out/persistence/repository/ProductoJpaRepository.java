@@ -13,9 +13,12 @@ public interface ProductoJpaRepository extends JpaRepository<ProductoEntity, Lon
 
     List<ProductoEntity> findByVendedorId(Long vendedorId);
 
-    /** {@code q} debe llegar en minúsculas y sin tildes: la comparación ignora tildes ("serum" encuentra "Sérum"). */
+    /**
+     * {@code q} debe llegar en minúsculas y sin tildes: la comparación ignora tildes ("serum" encuentra "Sérum").
+     * Solo productos en catálogo: activos y con stock (mismo criterio que {@code Producto.estaEnCatalogo}).
+     */
     @Query("""
-            SELECT p FROM ProductoEntity p WHERE p.activo = true AND (
+            SELECT p FROM ProductoEntity p WHERE p.activo = true AND p.stock > 0 AND (
                 cast(function('translate', LOWER(p.nombre),    'áéíóúüñ', 'aeiouun') as String) LIKE CONCAT('%', :q, '%') OR
                 cast(function('translate', LOWER(p.marca),     'áéíóúüñ', 'aeiouun') as String) LIKE CONCAT('%', :q, '%') OR
                 cast(function('translate', LOWER(p.categoria), 'áéíóúüñ', 'aeiouun') as String) LIKE CONCAT('%', :q, '%'))

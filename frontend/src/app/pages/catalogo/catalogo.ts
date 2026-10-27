@@ -87,8 +87,9 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
         <app-compat-info [resultado]="compat()[p.id]" />
         <div class="cat-pie">
           <span class="precio">{{ formatearCop(p.precio) }}</span>
-          <button type="button" class="btn-mini" [disabled]="p.stock === 0 || agregando() === p.id" (click)="intentarAgregar(p)">
-            {{ p.stock === 0 ? 'Sin stock' : 'Agregar' }}
+          <button type="button" class="btn-mini" [class.agregado]="agregado() === p.id"
+                  [disabled]="agregando() === p.id || agregado() === p.id" (click)="intentarAgregar(p)">
+            {{ agregado() === p.id ? '✓ Agregado' : agregando() === p.id ? 'Agregando…' : 'Agregar' }}
           </button>
         </div>
       </article>
@@ -96,7 +97,7 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
 
     @if (aviso()) {
       <div class="toast" [class.toast-alerta]="crucesNuevos().length" role="status" aria-live="polite">
-        <p>{{ aviso() }}</p>
+        <p>✓ {{ aviso() }}</p>
         @if (crucesNuevos().length) {
           <p><strong>⚠️ No conviene usarlo junto con lo que ya tienes en el carrito:</strong></p>
           <ul>
@@ -140,14 +141,6 @@ import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../sha
     .riesgo ul { padding-left: 1.1rem; display: grid; gap: .4rem; font-size: .9rem; }
     .riesgo-texto { background: #fdecef; border-radius: 10px; padding: .75rem; color: #9b1c36; }
     .riesgo-acciones { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: flex-end; }
-    .toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 50;
-             width: min(32rem, calc(100% - 2rem)); padding: .9rem 1rem; border-radius: 14px; border: 1px solid #b9dfc5;
-             background: #eaf6ee; color: #1f6b3a; box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
-    .toast p { margin: 0 0 .4rem; }
-    .toast ul { margin: 0 0 .5rem; padding-left: 1.1rem; display: grid; gap: .35rem; font-size: .9rem; }
-    .toast-alerta { background: #fdf4e1; border-color: #f2dca6; color: #8a5d00; }
-    .toast-acciones { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    .toast-acciones a { color: var(--vino); font-weight: 800; }
     .btn-riesgo { background: #c8102e; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1.1rem; font-weight: 800; cursor: pointer; }
   `],
 })
@@ -170,6 +163,7 @@ export class Catalogo {
   readonly crucesNuevos = signal<Cruce[]>([]);
   private avisoN = 0;
   readonly agregando = signal<number | null>(null);
+  readonly agregado = signal<number | null>(null);
   readonly pendiente = signal<ProductoVendedor | null>(null);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
@@ -274,6 +268,8 @@ export class Catalogo {
         this.aviso.set(mensaje);
         this.crucesNuevos.set([]);
         this.agregando.set(null);
+        this.agregado.set(p.id);
+        setTimeout(() => this.agregado.update((id) => (id === p.id ? null : id)), 2000);
         this.compatibilidad.cruces(carrito.items.map((i) => i.productoId)).subscribe({
           next: (cs) => this.crucesNuevos.set(cs.filter((c) => c.productoA === p.id || c.productoB === p.id)),
           error: () => {},

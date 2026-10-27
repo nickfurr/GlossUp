@@ -463,3 +463,14 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .compat li.sev-MEDIA strong { color: #8a5d00; }
 .compat-aviso { margin: 1rem 0; padding: .8rem 1rem; border-radius: 12px; background: #fdf4e1; border: 1px solid #f2dca6; color: #8a5d00; }
 .compat-aviso a { color: var(--vino); font-weight: 800; }
+
+/* Aviso flotante al agregar al carrito (catálogo y panel del cliente): visible aunque se haya hecho scroll. */
+.toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 50;
+  width: min(32rem, calc(100% - 2rem)); padding: .9rem 1rem; border-radius: 14px; border: 1px solid #b9dfc5;
+  background: #eaf6ee; color: #1f6b3a; box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
+.toast p { margin: 0 0 .4rem; }
+.toast ul { margin: 0 0 .5rem; padding-left: 1.1rem; display: grid; gap: .35rem; font-size: .9rem; }
+.toast-alerta { background: #fdf4e1; border-color: #f2dca6; color: #8a5d00; }
+.toast-acciones { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.toast-acciones a { color: var(--vino); font-weight: 800; }
+.btn-mini.agregado, .btn-mini.agregado:disabled { background: #1f6b3a; border-color: #1f6b3a; color: #fff; opacity: 1; }

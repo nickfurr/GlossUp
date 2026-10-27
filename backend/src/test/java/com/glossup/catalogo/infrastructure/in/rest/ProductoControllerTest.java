@@ -341,6 +341,25 @@ class ProductoControllerTest {
 
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
+    void listarCatalogo_ocultaAgotadosEInactivos() throws Exception {
+        when(productoRepository.listarTodos()).thenReturn(List.of(
+                productoCatalogo(1L, "Con stock", 5, true),
+                productoCatalogo(2L, "Agotado", 0, true),
+                productoCatalogo(3L, "Despublicado", 9, false)));
+
+        mockMvc.perform(get("/api/catalogo/productos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nombre").value("Con stock"));
+    }
+
+    private static Producto productoCatalogo(Long id, String nombre, int stock, boolean activo) {
+        return new Producto(id, 5L, nombre, "GlossLab", "Sérums", Dinero.de(10000.0), stock, null, null, activo,
+                List.of(), List.of(new ComposicionProducto(new Ingrediente(1L, new Inci("Aqua"), null), null)), null);
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
     void buscar_palabraClaveEnBlanco_retornaListaVacia() throws Exception {
         mockMvc.perform(get("/api/catalogo/productos/buscar").param("q", "   "))
                 .andExpect(status().isOk())

@@ -6,7 +6,7 @@ import { ProductosService, mensajeDeError } from '../../shared/productos';
 import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService, EstadoCompatibilidad, estadoDe } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
-import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
+import type { Cruce, ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
 
 const MAX_RECOMENDADOS = 6;
 
@@ -31,9 +31,6 @@ const MAX_RECOMENDADOS = 6;
 
       @if (error()) {
         <p class="error" style="margin-top:1rem">{{ error() }}</p>
-      }
-      @if (aviso()) {
-        <p class="success-message" style="margin-top:1rem">{{ aviso() }}</p>
       }
 
       <div class="section-heading">
@@ -73,8 +70,9 @@ const MAX_RECOMENDADOS = 6;
               <app-compat-info [resultado]="compat()[p.id]" />
               <div class="cat-pie">
                 <span class="precio">{{ formatearCop(p.precio) }}</span>
-                <button type="button" class="btn-mini" [disabled]="p.stock === 0 || agregando() === p.id" (click)="agregar(p)">
-                  {{ p.stock === 0 ? 'Sin stock' : 'Agregar' }}
+                <button type="button" class="btn-mini" [class.agregado]="agregado() === p.id"
+                        [disabled]="agregando() === p.id || agregado() === p.id" (click)="agregar(p)">
+                  {{ agregado() === p.id ? '✓ Agregado' : agregando() === p.id ? 'Agregando…' : 'Agregar' }}
                 </button>
               </div>
             </article>
@@ -89,6 +87,22 @@ const MAX_RECOMENDADOS = 6;
         <p style="margin-top:1.5rem"><a routerLink="/catalogo" class="perfil-callout">Ver todo el catálogo →</a></p>
       }
     </section>
+
+    @if (aviso()) {
+      <div class="toast" [class.toast-alerta]="crucesNuevos().length" role="status" aria-live="polite">
+        <p>✓ {{ aviso() }}</p>
+        @if (crucesNuevos().length) {
+          <p><strong>⚠️ No conviene usarlo junto con lo que ya tienes en el carrito:</strong></p>
+          <ul>
+            @for (c of crucesNuevos(); track $index) { <li>{{ c.mensaje }} <span class="compat-causa">{{ c.causa }}</span></li> }
+          </ul>
+        }
+        <div class="toast-acciones">
+          <a routerLink="/carrito">Ver carrito →</a>
+          <button type="button" class="btn-sec" (click)="aviso.set(null)">Cerrar</button>
+        </div>
+      </div>
+    }
   `,
 })
 export class Cliente {
@@ -107,6 +121,10 @@ export class Cliente {
   readonly error = signal<string | null>(null);
   readonly aviso = signal<string | null>(null);
   readonly agregando = signal<number | null>(null);
+  readonly agregado = signal<number | null>(null);
+  /** Cruces (HU8) del producto recién agregado con lo que ya había en el carrito. */
+  readonly crucesNuevos = signal<Cruce[]>([]);
+  private avisoN = 0;
   q = '';
 
   constructor() {
@@ -154,9 +172,19 @@ export class Cliente {
     this.agregando.set(p.id);
     this.error.set(null);
     this.carrito.agregar(p.id, 1).subscribe({
-      next: () => {
+      next: (carrito) => {
         this.aviso.set(`"${p.nombre}" se agregó al carrito.`);
+        this.crucesNuevos.set([]);
         this.agregando.set(null);
+        this.agregado.set(p.id);
+        setTimeout(() => this.agregado.update((id) => (id === p.id ? null : id)), 2000);
+        this.compatibilidad.cruces(carrito.items.map((i) => i.productoId)).subscribe({
+          next: (cs) => this.crucesNuevos.set(cs.filter((c) => c.productoA === p.id || c.productoB === p.id)),
+          error: () => {},
+        });
+        // El aviso simple se cierra solo; si hay cruces se queda hasta que el cliente lo cierre.
+        const n = ++this.avisoN;
+        setTimeout(() => { if (n === this.avisoN && !this.crucesNuevos().length) this.aviso.set(null); }, 5000);
       },
       error: (e) => {
         this.error.set(mensajeDeError(e));

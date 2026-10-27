@@ -149,18 +149,18 @@ public class ProductoController {
 
     @GetMapping
     @Operation(summary = "Listar el catálogo publicado",
-               description = "Todos los productos activos, para evaluarlos contra el perfil del cliente (HU6).",
+               description = "Productos activos y con stock (los agotados no se muestran al cliente).",
                security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<List<ProductoResponse>> listarCatalogo() {
         return ResponseEntity.ok(productoRepository.listarTodos().stream()
-                .filter(Producto::isActivo)
+                .filter(Producto::estaEnCatalogo)
                 .map(ProductoResponse::fromDomain)
                 .toList());
     }
 
     @GetMapping("/buscar")
     @Operation(summary = "Buscar productos por palabra clave (HU12)",
-               description = "Busqueda basica de productos publicados cuyo nombre, marca o categoria contengan la palabra clave.",
+               description = "Busqueda basica de productos publicados y con stock cuyo nombre, marca o categoria contengan la palabra clave.",
                security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<List<ProductoResponse>> buscar(@RequestParam("q") String q) {
         if (q == null || q.isBlank()) {
