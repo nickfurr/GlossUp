@@ -16,10 +16,11 @@ public interface PerfilConsultaPort {
      * @param alergias   códigos de alérgeno declarados (ej. "parabenos"), en minúsculas
      * @param condiciones afecciones + tipo de piel del usuario, normalizados (para cruzar irritantes)
      * @param etiquetas   código (minúsculas) → nombre legible, para los mensajes al usuario (RNF-07)
+     * @param ph          pH medido de la piel, o null si no lo registró
      */
-    record PerfilConsulta(Set<String> alergias, Set<String> condiciones, Map<String, String> etiquetas) {
+    record PerfilConsulta(Set<String> alergias, Set<String> condiciones, Map<String, String> etiquetas, Double ph) {
         public PerfilConsulta(Set<String> alergias, Set<String> condiciones) {
-            this(alergias, condiciones, Map.of());
+            this(alergias, condiciones, Map.of(), null);
         }
 
         public String etiqueta(String codigo) {

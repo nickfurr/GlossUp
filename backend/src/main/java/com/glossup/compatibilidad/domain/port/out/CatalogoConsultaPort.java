@@ -13,5 +13,9 @@ public interface CatalogoConsultaPort {
     Optional<ProductoConsulta> buscar(Long productoId);
 
     /** @param ingredientesInci nombres INCI de la ficha, normalizados (minúsculas). */
-    record ProductoConsulta(String nombre, List<String> ingredientesInci) {}
+    record ProductoConsulta(String nombre, List<String> ingredientesInci, Double ph) {
+        public ProductoConsulta(String nombre, List<String> ingredientesInci) {
+            this(nombre, ingredientesInci, null);
+        }
+    }
 }

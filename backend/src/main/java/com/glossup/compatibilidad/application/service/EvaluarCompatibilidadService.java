@@ -3,6 +3,7 @@ package com.glossup.compatibilidad.application.service;
 import com.glossup.compatibilidad.domain.model.Alerta;
 import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
+import com.glossup.compatibilidad.domain.model.ReglaRango;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.model.Severidad;
 import com.glossup.compatibilidad.domain.port.in.EvaluarCompatibilidadUseCase;
@@ -20,14 +21,20 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Motor de reglas de compatibilidad producto–perfil (HU6).
+ * Motor de reglas de compatibilidad producto–perfil (HU6 alergias e irritantes, HU7 tipo de piel,
+ * comedogenia y pH).
  *
  * <p>Es determinista y explicable (no probabilístico): toda alerta nace de un hecho concreto del
  * perfil, por eso cumple RNF-01 (0 falsos negativos críticos) y RNF-05 (causa explicada). Las
- * alergias siempre son ALTA (bloqueo); los irritantes toman la severidad de su regla.</p>
+ * alergias siempre son ALTA (bloqueo); el resto toma la severidad de su regla.</p>
  */
 @Service
 public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCase {
+
+    /** Límite superior del pH de piel sana (glosario y {@code Ph.esFisiologico}). */
+    private static final double PH_PIEL_MAXIMO = 5.75;
+    /** Desde aquí un producto es alcalino para la piel (jabones: 9–10). */
+    private static final double PH_ALCALINO = 7.5;
 
     private final PerfilConsultaPort perfil;
     private final CatalogoConsultaPort catalogo;
@@ -40,13 +47,22 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
         this.reglas = reglas;
     }
 
+    /** Base de conocimiento completa; se carga una vez por petición. */
+    private record Conocimiento(List<ReglaPerfil> reglasPerfil, Map<String, Set<String>> porAlergeno,
+                                List<Beneficio> beneficios, List<ReglaRango> rangos,
+                                Map<String, Integer> comedogenicidad) {}
+
+    private Conocimiento cargarConocimiento() {
+        return new Conocimiento(reglas.reglasPerfil(), reglas.ingredientesPorAlergeno(), reglas.beneficios(),
+                reglas.reglasRango(), reglas.comedogenicidad());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public ResultadoCompatibilidad evaluarProductoPerfil(Long usuarioId, Long productoId) {
         CatalogoConsultaPort.ProductoConsulta producto = catalogo.buscar(productoId)
                 .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
-        return evaluar(producto, perfil.obtener(usuarioId), reglas.reglasPerfil(), reglas.ingredientesPorAlergeno(),
-                reglas.beneficios());
+        return evaluar(producto, perfil.obtener(usuarioId), cargarConocimiento());
     }
 
     @Override
@@ -54,29 +70,24 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
     public Map<Long, ResultadoCompatibilidad> evaluarProductosPerfil(Long usuarioId, List<Long> productoIds) {
         // Perfil y base de conocimiento se cargan una sola vez para todo el lote.
         PerfilConsultaPort.PerfilConsulta datos = perfil.obtener(usuarioId);
-        List<ReglaPerfil> reglasPerfil = reglas.reglasPerfil();
-        Map<String, Set<String>> porAlergeno = reglas.ingredientesPorAlergeno();
-        List<Beneficio> beneficios = reglas.beneficios();
+        Conocimiento conocimiento = cargarConocimiento();
         Map<Long, ResultadoCompatibilidad> resultados = new LinkedHashMap<>();
         for (Long id : new LinkedHashSet<>(productoIds)) {
             // Un id inexistente en el lote se omite: no debe tumbar la evaluación del resto.
-            catalogo.buscar(id).ifPresent(p -> resultados.put(id, evaluar(p, datos, reglasPerfil, porAlergeno, beneficios)));
+            catalogo.buscar(id).ifPresent(p -> resultados.put(id, evaluar(p, datos, conocimiento)));
         }
         return resultados;
     }
 
     private ResultadoCompatibilidad evaluar(CatalogoConsultaPort.ProductoConsulta producto,
-                                            PerfilConsultaPort.PerfilConsulta datos,
-                                            List<ReglaPerfil> reglasPerfil,
-                                            Map<String, Set<String>> porAlergeno,
-                                            List<Beneficio> beneficios) {
+                                            PerfilConsultaPort.PerfilConsulta datos, Conocimiento k) {
         Set<String> ingredientes = Set.copyOf(producto.ingredientesInci());
         ResultadoCompatibilidad resultado = ResultadoCompatibilidad.vacio();
 
         // 1) Alergias declaradas → siempre crítico (RNF-01: ningún falso negativo aquí). Cada
         //    alérgeno es un grupo (ej. parabenos) que se expande a todos sus nombres INCI.
         for (String alergeno : datos.alergias()) {
-            for (String inci : porAlergeno.getOrDefault(alergeno, Set.of())) {
+            for (String inci : k.porAlergeno().getOrDefault(alergeno, Set.of())) {
                 if (ingredientes.contains(inci)) {
                     String grupo = datos.etiqueta(alergeno);
                     resultado.agregar(new Alerta(Severidad.ALTA,
@@ -87,7 +98,7 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
         }
 
         // 2) Irritantes conocidos para una condición del perfil (tipo de piel o afección).
-        for (ReglaPerfil regla : reglasPerfil) {
+        for (ReglaPerfil regla : k.reglasPerfil()) {
             if (ingredientes.contains(regla.getIngrediente()) && datos.condiciones().contains(regla.getCondicion())) {
                 resultado.agregar(new Alerta(regla.getSeveridad(),
                         "«" + producto.nombre() + "» contiene " + regla.getIngrediente()
@@ -96,8 +107,39 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
             }
         }
 
-        // 3) Ingredientes recomendados para una condición del perfil → base de la recomendación.
-        for (Beneficio b : beneficios) {
+        // 3) Rangos por condición (HU7): grado comedogénico de cada ingrediente y pH del producto.
+        for (ReglaRango regla : k.rangos()) {
+            if (!datos.condiciones().contains(regla.condicion())) continue;
+            String condicion = datos.etiqueta(regla.condicion());
+            if (regla.atributo() == ReglaRango.Atributo.COMEDOGENICIDAD) {
+                for (String inci : ingredientes) {
+                    Integer grado = k.comedogenicidad().get(inci);
+                    if (grado != null && regla.contiene(grado)) {
+                        resultado.agregar(new Alerta(regla.severidad(),
+                                "«" + producto.nombre() + "» contiene " + inci + " (comedogenicidad " + grado
+                                        + " de 5), poco recomendable para tu condición: " + condicion + ".",
+                                regla.motivo()));
+                    }
+                }
+            } else if (producto.ph() != null && regla.contiene(producto.ph())) {
+                resultado.agregar(new Alerta(regla.severidad(),
+                        "«" + producto.nombre() + "» tiene pH " + producto.ph()
+                                + ", poco recomendable para tu condición: " + condicion + ".",
+                        regla.motivo()));
+            }
+        }
+
+        // 4) pH medido de la piel: si ya está por encima de lo sano, un producto alcalino lo empeora.
+        if (datos.ph() != null && datos.ph() > PH_PIEL_MAXIMO && producto.ph() != null && producto.ph() >= PH_ALCALINO) {
+            resultado.agregar(new Alerta(Severidad.MEDIA,
+                    "«" + producto.nombre() + "» es alcalino (pH " + producto.ph() + ") y el pH de tu piel ya es alto ("
+                            + datos.ph() + ").",
+                    "La piel sana está entre pH 4.7 y 5.75; un pH más alto indica una barrera debilitada y los "
+                            + "productos alcalinos la alteran más (Ali & Yosipovitch, 2013)."));
+        }
+
+        // 5) Ingredientes recomendados para una condición del perfil → base de la recomendación.
+        for (Beneficio b : k.beneficios()) {
             if (ingredientes.contains(b.ingrediente()) && datos.condiciones().contains(b.condicion())) {
                 resultado.agregarBeneficio("Contiene " + b.ingrediente() + ", recomendado para "
                         + datos.etiqueta(b.condicion()) + ": " + b.motivo());

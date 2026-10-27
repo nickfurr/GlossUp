@@ -41,7 +41,8 @@ public class PerfilConsultaAdapter implements PerfilConsultaPort {
             condiciones.add(piel);
             etiquetas.put(piel, "Piel " + piel);
         }
-        return new PerfilConsulta(codigos(p.getAlergias()), condiciones, etiquetas);
+        return new PerfilConsulta(codigos(p.getAlergias()), condiciones, etiquetas,
+                p.getPh() == null ? null : p.getPh().valor());
     }
 
     private static Set<String> codigos(Set<? extends Enum<?>> valores) {

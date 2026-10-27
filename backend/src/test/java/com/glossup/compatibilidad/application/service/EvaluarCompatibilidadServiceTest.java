@@ -2,6 +2,8 @@ package com.glossup.compatibilidad.application.service;
 
 import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
+import com.glossup.compatibilidad.domain.model.ReglaRango;
+import com.glossup.compatibilidad.domain.model.ReglaRango.Atributo;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.model.Severidad;
 import com.glossup.compatibilidad.domain.port.out.CatalogoConsultaPort;
@@ -46,6 +48,18 @@ class EvaluarCompatibilidadServiceTest {
                 "fragancia", Set.of("parfum", "linalool")));
         lenient().when(reglas.beneficios()).thenReturn(List.of(
                 new Beneficio("niacinamide", "acne", "Antiinflamatorio y seborregulador.")));
+        lenient().when(reglas.comedogenicidad()).thenReturn(Map.of(
+                "isopropyl myristate", 5, "tocopherol", 3, "glycerin", 0));
+        lenient().when(reglas.reglasRango()).thenReturn(List.of(
+                new ReglaRango(Atributo.COMEDOGENICIDAD, "acne", 4, 5, Severidad.MEDIA, "Comedogénico alto"),
+                new ReglaRango(Atributo.COMEDOGENICIDAD, "acne", 3, 3, Severidad.BAJA, "Comedogénico moderado"),
+                new ReglaRango(Atributo.COMEDOGENICIDAD, "mixta", 4, 5, Severidad.BAJA, "Zona T"),
+                new ReglaRango(Atributo.PH, "sensible", 0, 3.4, Severidad.MEDIA, "Muy ácido"),
+                new ReglaRango(Atributo.PH, "seca", 7.5, 14, Severidad.MEDIA, "Alcalino")));
+    }
+
+    private void productoConPh(Double ph, String... inci) {
+        when(catalogo.buscar(10L)).thenReturn(Optional.of(new ProductoConsulta("Serum X", List.of(inci), ph)));
     }
 
     private void producto(String... inci) {
@@ -54,6 +68,52 @@ class EvaluarCompatibilidadServiceTest {
 
     private void perfilCon(Set<String> alergias, Set<String> condiciones) {
         when(perfil.obtener(1L)).thenReturn(new PerfilConsulta(alergias, condiciones));
+    }
+
+    @Test
+    void comedogenicidad_laSeveridadDependeDelGradoYDeLaCondicion() {
+        producto("isopropyl myristate", "tocopherol", "glycerin");
+        perfilCon(Set.of(), Set.of("acne"));
+        ResultadoCompatibilidad acne = service.evaluarProductoPerfil(1L, 10L);
+        assertEquals(List.of(Severidad.MEDIA, Severidad.BAJA),
+                acne.getAlertas().stream().map(a -> a.severidad()).sorted().toList().reversed());
+        assertTrue(acne.esCompatible(), "la comedogenia avisa pero nunca bloquea");
+        assertTrue(acne.getAlertas().stream().anyMatch(a -> a.mensaje().contains("comedogenicidad 5 de 5")));
+
+        perfilCon(Set.of(), Set.of("mixta"));
+        ResultadoCompatibilidad mixta = service.evaluarProductoPerfil(1L, 10L);
+        assertEquals(1, mixta.getAlertas().size(), "en piel mixta solo alerta el grado 4–5");
+        assertEquals(Severidad.BAJA, mixta.getAlertas().get(0).severidad());
+
+        perfilCon(Set.of(), Set.of("normal"));
+        assertFalse(service.evaluarProductoPerfil(1L, 10L).tieneAlertas());
+    }
+
+    @Test
+    void ph_alertaFueraDelRangoToleradoPorLaCondicion() {
+        productoConPh(3.0, "glycolic acid");
+        perfilCon(Set.of(), Set.of("sensible"));
+        ResultadoCompatibilidad acido = service.evaluarProductoPerfil(1L, 10L);
+        assertEquals(1, acido.getAlertas().size());
+        assertTrue(acido.getAlertas().get(0).mensaje().contains("pH 3.0"));
+
+        productoConPh(3.5, "glycolic acid");
+        assertFalse(service.evaluarProductoPerfil(1L, 10L).tieneAlertas(), "3.5 ya es tolerable (límite del CIR)");
+
+        productoConPh(null, "glycolic acid");
+        assertFalse(service.evaluarProductoPerfil(1L, 10L).tieneAlertas(), "sin pH declarado no se evalúa");
+    }
+
+    @Test
+    void phDeLaPiel_altoMasProductoAlcalinoAlerta() {
+        productoConPh(9.0, "sodium stearate");
+        when(perfil.obtener(1L)).thenReturn(new PerfilConsulta(Set.of(), Set.of(), Map.of(), 6.2));
+        ResultadoCompatibilidad r = service.evaluarProductoPerfil(1L, 10L);
+        assertEquals(1, r.getAlertas().size());
+        assertEquals(Severidad.MEDIA, r.getAlertas().get(0).severidad());
+
+        when(perfil.obtener(1L)).thenReturn(new PerfilConsulta(Set.of(), Set.of(), Map.of(), 5.2));
+        assertFalse(service.evaluarProductoPerfil(1L, 10L).tieneAlertas(), "piel con pH sano no recibe aviso");
     }
 
     @Test
