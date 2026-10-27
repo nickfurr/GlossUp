@@ -454,6 +454,8 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .compat-n { font-weight: 500; opacity: .8; }
 .compat ul { margin: .5rem 0 .1rem; padding-left: 1rem; font-weight: 400; display: grid; gap: .45rem; }
 .compat-causa { display: block; color: #6b5a61; font-size: .75rem; margin-top: .1rem; }
+.compat-recomendado { background: #fff6e6; border-color: #f0c987; color: #7a4a00; }
+.compat-recomendado li { list-style: '✓ '; }
 .compat-compatible { background: #eaf6ee; border-color: #b9dfc5; color: #1f6b3a; }
 .compat-precaucion { background: #fdf4e1; border-color: #f2dca6; color: #8a5d00; }
 .compat-no-compatible { background: #fdecef; border-color: #f2b8c4; color: #9b1c36; }

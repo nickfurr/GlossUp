@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { estadoDe } from './compatibilidad';
 import type { ResultadoCompatibilidad } from './models';
 
-const ETIQUETA = { compatible: '✓ Compatible contigo', precaucion: '! Úsalo con precaución', 'no-compatible': '✕ No compatible contigo' };
+const ETIQUETA = { recomendado: '★ Recomendado para ti', compatible: '✓ Compatible contigo', precaucion: '! Úsalo con precaución', 'no-compatible': '✕ No compatible contigo' };
 const SEVERIDAD = { ALTA: 'Alta', MEDIA: 'Media', BAJA: 'Baja' };
 
 /** Sello de compatibilidad de un producto con el perfil (HU6) y, al desplegarlo, cada alerta con su causa. */
@@ -20,6 +20,13 @@ const SEVERIDAD = { ALTA: 'Alta', MEDIA: 'Media', BAJA: 'Baja' };
                 <span class="compat-causa">Por qué: {{ a.causa }}</span>
               </li>
             }
+          </ul>
+        </details>
+      } @else if (r.recomendado) {
+        <details class="compat compat-recomendado">
+          <summary>{{ etiqueta() }}</summary>
+          <ul>
+            @for (b of r.beneficios; track $index) { <li>{{ b }}</li> }
           </ul>
         </details>
       } @else {

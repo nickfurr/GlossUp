@@ -1,5 +1,6 @@
 package com.glossup.compatibilidad.domain.port.out;
 
+import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 
 import java.util.List;
@@ -17,4 +18,7 @@ public interface ReglaRepositoryPort {
 
     /** Código de alérgeno (minúsculas) → nombres INCI que lo contienen (minúsculas). */
     Map<String, Set<String>> ingredientesPorAlergeno();
+
+    /** Ingredientes recomendados por condición (tabla beneficio). */
+    List<Beneficio> beneficios();
 }

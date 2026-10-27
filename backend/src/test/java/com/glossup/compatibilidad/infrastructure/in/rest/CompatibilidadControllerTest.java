@@ -72,6 +72,7 @@ class CompatibilidadControllerTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].productoId").value(1))
                 .andExpect(jsonPath("$[0].compatible").value(true))
+                .andExpect(jsonPath("$[0].recomendado").value(false))
                 .andExpect(jsonPath("$[1].compatible").value(false))
                 .andExpect(jsonPath("$[1].alertas[0].severidad").value("ALTA"))
                 .andExpect(jsonPath("$[1].alertas[0].causa").value("Retinoides en embarazo"));

@@ -1,5 +1,6 @@
 package com.glossup.compatibilidad.infrastructure.out.persistence.adapter;
 
+import com.glossup.compatibilidad.domain.model.Beneficio;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.Severidad;
 import com.glossup.compatibilidad.domain.port.out.ReglaRepositoryPort;
@@ -38,6 +39,12 @@ public class ReglaPerfilPersistenceAdapter implements ReglaRepositoryPort {
                     .add(rs.getString(2).toLowerCase());
         });
         return mapa;
+    }
+
+    @Override
+    public List<Beneficio> beneficios() {
+        return jdbc.query("SELECT ingrediente_inci, condicion, motivo FROM beneficio",
+                (rs, i) -> new Beneficio(rs.getString(1).toLowerCase(), rs.getString(2).toLowerCase(), rs.getString(3)));
     }
 
     private ReglaPerfil aDominio(ReglaPerfilEntity e) {
