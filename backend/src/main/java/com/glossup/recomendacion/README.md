@@ -20,10 +20,19 @@ Recomendación con IA, carrito de compras, checkout y orquestación con sistemas
 - `application/service` → crear pedido, procesar pago, generar comprobante
 - `infrastructure/in/rest` → `CheckoutController`, `RecomendacionController` (+ `dto/`)
 - `infrastructure/out/persistence` → adaptadores JPA
-- `infrastructure/out/client` → adaptadores a sistemas externos:
-  - `IARecomendacionClient` — motor de IA
-  - `PasarelaPagosClient` — pagos
-  - `EnvioApiClient` — API de envíos (fulfillment)
+- `infrastructure/out/pago` → `WompiPasarelaAdapter` (HU10): Web Checkout firmado, consulta de
+  transacciones y verificación del checksum de eventos. Llaves por variables de entorno `WOMPI_*`.
+- `infrastructure/in/tarea` → `PedidosVencidosTarea`: cada minuto cancela pedidos sin pagar vencidos
+  (30 min + 5 de margen) y devuelve su inventario.
+- Pendientes: `IARecomendacionClient` (motor de IA) y `EnvioApiClient` (API de envíos, HU14).
+
+## Flujo de pago (HU10)
+1. `POST /api/pedidos` reserva inventario (HU9) → pedido `CREADO`, vence a los 30 min.
+2. `POST /api/pedidos/{id}/pago` → URL del checkout de Wompi (firma SHA256 de integridad).
+3. El cliente paga en Wompi (GlossUP nunca ve la tarjeta, RNF-13) y vuelve a `/pago/resultado/{id}?id={tx}`.
+4. `GET /api/pedidos/{id}/pago/{tx}` consulta la transacción a Wompi; el webhook
+   `POST /api/pagos/wompi/eventos` (checksum con el secreto de eventos) hace lo mismo sin depender del cliente.
+   Solo una transacción APROBADA con el mismo monto y moneda pasa el pedido a `PAGADO`; aplicarla dos veces no cambia nada.
 
 ## Tablas (ver V1__init.sql)
-`pedido`, `pedido_item`
+`pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12), `pedido_item`

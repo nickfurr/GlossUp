@@ -13,7 +13,11 @@ public record PedidoResponse(
         String estado,
         List<Item> items,
         BigDecimal total,
-        OffsetDateTime creadoEn
+        OffsetDateTime creadoEn,
+        OffsetDateTime expiraEn,
+        String transaccionId,
+        String metodoPago,
+        OffsetDateTime pagadoEn
 ) {
     public record Item(Long productoId, int cantidad, BigDecimal precioUnitario, BigDecimal subtotal) {}
 
@@ -32,6 +36,10 @@ public record PedidoResponse(
                 pedido.getEstado().name(),
                 items,
                 pedido.getTotal().monto(),
-                pedido.getCreadoEn());
+                pedido.getCreadoEn(),
+                pedido.getEstado().name().equals("CREADO") ? pedido.expiraEn() : null,
+                pedido.getTransaccionId(),
+                pedido.getMetodoPago(),
+                pedido.getPagadoEn());
     }
 }

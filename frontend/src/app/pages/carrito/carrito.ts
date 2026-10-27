@@ -6,6 +6,7 @@ import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { Cargando } from '../../shared/cargando';
+import { PagoPendiente } from '../../shared/pago-pendiente';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
 import type { Carrito as CarritoDto, Cruce, LineaCompra, Pedido, ResultadoCompatibilidad } from '../../shared/models';
 
@@ -17,18 +18,19 @@ interface ItemVista extends LineaCompra {
 
 /**
  * Carrito del cliente (HU9 - SCRUM-36): CRUD de ítems + checkout que consolida y reserva
- * inventario. Los nombres se completan consultando cada producto (el carrito solo guarda ids).
+ * inventario, y luego lleva a pagar con Wompi (HU10). Muestra los pedidos que quedaron sin pagar.
+ * Los nombres se completan consultando cada producto (el carrito solo guarda ids).
  */
 @Component({
   selector: 'app-carrito',
-  imports: [RouterLink, CompatInfo, Cargando],
+  imports: [RouterLink, CompatInfo, Cargando, PagoPendiente],
   template: `
     <section class="cliente-home">
       <div class="home-intro">
         <div>
           <span class="eyebrow">Tu carrito</span>
-          <h1>Revisa antes de reservar.</h1>
-          <p>El inventario se reserva al confirmar el pedido.</p>
+          <h1>Revisa antes de pagar.</h1>
+          <p>Al confirmar reservamos tu inventario {{ minutosParaPagar }} minutos mientras pagas con Wompi.</p>
         </div>
       </div>
 
@@ -36,12 +38,13 @@ interface ItemVista extends LineaCompra {
         <p class="error" style="margin-bottom:1rem">{{ error() }}</p>
       }
 
-      @if (pedido(); as ped) {
-        <div class="panel">
-          <h3>¡Pedido {{ ped.estado }}! 🎉</h3>
-          <p>Pedido <strong>#{{ ped.id }}</strong> creado con inventario reservado.</p>
-          <p class="precio" style="font-size:1.3rem">{{ formatearCop(ped.total) }}</p>
-        </div>
+      @for (p of pendientes(); track p.id) {
+        <app-pago-pendiente [pedido]="p" (cancelado)="alCancelar($event)" />
+      }
+      @if (aviso()) { <p class="success-message" style="margin-bottom:1rem">{{ aviso() }}</p> }
+
+      @if (redirigiendo()) {
+        <app-cargando texto="Reservamos tu inventario. Te llevamos a Wompi para pagar…" forma="filas" [cantidad]="2" />
       } @else if (cargando()) {
         <app-cargando texto="Cargando tu carrito…" forma="filas" [cantidad]="3" />
       } @else if (items().length === 0) {
@@ -108,7 +111,7 @@ interface ItemVista extends LineaCompra {
 
         <div class="editor-acciones">
           <button type="button" class="btn-primario" [disabled]="ocupado()" (click)="confirmar()">
-            Confirmar pedido y reservar inventario
+            Confirmar pedido e ir a pagar
           </button>
         </div>
       }
@@ -136,7 +139,10 @@ export class Carrito {
   readonly cargando = signal(true);
   readonly ocupado = signal(false);
   readonly error = signal<string | null>(null);
-  readonly pedido = signal<Pedido | null>(null);
+  readonly pendientes = signal<Pedido[]>([]);
+  readonly redirigiendo = signal(false);
+  readonly aviso = signal<string | null>(null);
+  readonly minutosParaPagar = 30;
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
   readonly cruces = signal<Cruce[]>([]);
@@ -150,6 +156,11 @@ export class Carrito {
   );
 
   constructor() {
+    // Pedidos que el cliente dejó sin pagar y que todavía están dentro del plazo.
+    this.carrito.misPedidos().subscribe({
+      next: (ps) => this.pendientes.set(ps.filter((p) => p.estado === 'CREADO' && !!p.expiraEn && Date.parse(p.expiraEn) > Date.now())),
+      error: () => {},
+    });
     this.carrito.ver().subscribe({
       next: (c) => this.enriquecer(c),
       error: (e) => {
@@ -237,15 +248,26 @@ export class Carrito {
     this.operar(this.carrito.vaciar());
   }
 
+  /** Reserva el inventario (HU9) y lleva directo al checkout de Wompi (HU10). */
   confirmar(): void {
     this.ocupado.set(true);
     this.error.set(null);
     const lineas = this.items().map((i) => ({ productoId: i.productoId, cantidad: i.cantidad }));
     this.carrito.consolidar(lineas).subscribe({
       next: (ped) => {
-        this.pedido.set(ped);
         this.carrito.vaciar().subscribe(); // el pedido ya reservó stock; dejamos el carrito limpio
-        this.ocupado.set(false);
+        this.items.set([]);
+        this.redirigiendo.set(true);
+        this.carrito.iniciarPago(ped.id).subscribe({
+          next: ({ url }) => window.location.assign(url),
+          // El pedido ya existe: queda pendiente con su botón de pagar para reintentar.
+          error: (e) => {
+            this.redirigiendo.set(false);
+            this.ocupado.set(false);
+            this.pendientes.update((ps) => [ped, ...ps]);
+            this.error.set(mensajeDeError(e));
+          },
+        });
       },
       error: (e) => {
         this.error.set(mensajeDeError(e));
@@ -253,4 +275,10 @@ export class Carrito {
       },
     });
   }
+
+  alCancelar(p: Pedido): void {
+    this.pendientes.update((ps) => ps.filter((x) => x.id !== p.id));
+    this.aviso.set(`Cancelamos el pedido #${p.id} y su inventario volvió al catálogo.`);
+  }
+
 }
