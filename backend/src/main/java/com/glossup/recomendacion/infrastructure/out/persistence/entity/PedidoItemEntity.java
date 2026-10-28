@@ -19,6 +19,9 @@ public class PedidoItemEntity {
     @Column(name = "producto_id", nullable = false)
     private Long productoId;
 
+    @Column(name = "nombre", length = 200)
+    private String nombre;
+
     @Column(name = "cantidad", nullable = false)
     private int cantidad;
 
@@ -27,9 +30,10 @@ public class PedidoItemEntity {
 
     public PedidoItemEntity() {}
 
-    public PedidoItemEntity(PedidoEntity pedido, Long productoId, int cantidad, BigDecimal precioUnit) {
+    public PedidoItemEntity(PedidoEntity pedido, Long productoId, String nombre, int cantidad, BigDecimal precioUnit) {
         this.pedido = pedido;
         this.productoId = productoId;
+        this.nombre = nombre;
         this.cantidad = cantidad;
         this.precioUnit = precioUnit;
     }
@@ -42,6 +46,9 @@ public class PedidoItemEntity {
 
     public Long getProductoId() { return productoId; }
     public void setProductoId(Long productoId) { this.productoId = productoId; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
     public int getCantidad() { return cantidad; }
     public void setCantidad(int cantidad) { this.cantidad = cantidad; }

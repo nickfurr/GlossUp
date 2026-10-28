@@ -63,7 +63,7 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
         entity.getItems().clear();
         for (PedidoItem item : dominio.getItems()) {
             entity.agregarItem(new PedidoItemEntity(
-                    entity, item.productoId(), item.cantidad(), item.precioUnitario().monto()));
+                    entity, item.productoId(), item.nombre(), item.cantidad(), item.precioUnitario().monto()));
         }
 
         return entity;
@@ -71,7 +71,7 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
 
     private Pedido aDominio(PedidoEntity entity) {
         List<PedidoItem> items = entity.getItems().stream()
-                .map(i -> new PedidoItem(i.getProductoId(), i.getCantidad(), new Dinero(i.getPrecioUnit())))
+                .map(i -> new PedidoItem(i.getProductoId(), i.getNombre(), i.getCantidad(), new Dinero(i.getPrecioUnit())))
                 .toList();
 
         return new Pedido(

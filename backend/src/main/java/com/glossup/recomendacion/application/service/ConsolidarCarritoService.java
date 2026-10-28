@@ -6,7 +6,6 @@ import com.glossup.recomendacion.domain.port.in.ConsolidarCarritoCommand;
 import com.glossup.recomendacion.domain.port.in.ConsolidarCarritoUseCase;
 import com.glossup.recomendacion.domain.port.out.InventarioPort;
 import com.glossup.recomendacion.domain.port.out.PedidoRepositoryPort;
-import com.glossup.shared.domain.Dinero;
 import com.glossup.shared.domain.ReglaNegocioException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,8 +49,8 @@ public class ConsolidarCarritoService implements ConsolidarCarritoUseCase {
 
         List<PedidoItem> items = new ArrayList<>();
         for (Map.Entry<Long, Integer> entrada : consolidado.entrySet()) {
-            Dinero precioUnitario = inventario.reservar(entrada.getKey(), entrada.getValue());
-            items.add(new PedidoItem(entrada.getKey(), entrada.getValue(), precioUnitario));
+            InventarioPort.Reserva reserva = inventario.reservar(entrada.getKey(), entrada.getValue());
+            items.add(new PedidoItem(entrada.getKey(), reserva.nombre(), entrada.getValue(), reserva.precioUnitario()));
         }
 
         Pedido pedido = Pedido.crear(command.usuarioId(), items);

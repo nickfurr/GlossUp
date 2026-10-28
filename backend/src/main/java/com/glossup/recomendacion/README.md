@@ -34,5 +34,14 @@ Recomendación con IA, carrito de compras, checkout y orquestación con sistemas
    `POST /api/pagos/wompi/eventos` (checksum con el secreto de eventos) hace lo mismo sin depender del cliente.
    Solo una transacción APROBADA con el mismo monto y moneda pasa el pedido a `PAGADO`; aplicarla dos veces no cambia nada.
 
+## Comprobante de compra (HU11)
+1. Al pasar a `PAGADO`, `PagarPedidoService` publica `PedidoPagado`; `ComprobanteAlPagarListener` lo atiende
+   después del commit y en otro hilo, así el PDF y el correo no frenan ni revierten el pago.
+2. `ComprobanteService` genera el PDF (`ComprobantePdfAdapter`, OpenPDF), lo guarda una sola vez en `comprobante`
+   y lo envía por correo (`CorreoNotificacionAdapter`, SMTP por `SPRING_MAIL_*`; sin configurar no envía).
+3. `GET /api/pedidos/{id}/comprobante` entrega siempre el mismo PDF; si la emisión automática falló, lo emite ahí.
+4. El front muestra el historial en `/pedidos` (detalle, estado, pago y descarga).
+
 ## Tablas (ver V1__init.sql)
-`pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12), `pedido_item`
+`pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12), `pedido_item` (+ `nombre` al comprar, V13),
+`comprobante` (V13)

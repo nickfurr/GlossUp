@@ -8,5 +8,7 @@ public interface UsuarioRepositoryPort {
 
     Optional<Usuario> buscarPorEmail(String email);
 
+    Optional<Usuario> buscarPorId(Long id);
+
     Usuario guardar(Usuario usuario);
 }

@@ -7,6 +7,7 @@
         <a routerLink="/compatibilidad"><span aria-hidden="true">🧪</span> Compatibilidad</a>
         <a routerLink="/perfil"><span aria-hidden="true">🧴</span> Mi perfil</a>
         <a routerLink="/carrito"><span aria-hidden="true">🛒</span> Carrito</a>
+        <a routerLink="/pedidos"><span aria-hidden="true">📦</span> Mis pedidos</a>
       }
       @if (sesion()?.panel === 'CLIENTE') {
         <div class="cuenta-menu">
@@ -18,6 +19,7 @@
               <strong>{{ sesion()!.nombre }}</strong>
               <a routerLink="/perfil" (click)="menuCuentaAbierto.set(false)">Actualizar perfil dermatológico</a>
               <a routerLink="/compatibilidad" (click)="menuCuentaAbierto.set(false)">Ver compatibilidad</a>
+              <a routerLink="/pedidos" (click)="menuCuentaAbierto.set(false)">Mis pedidos y comprobantes</a>
             </div>
           }
         </div>

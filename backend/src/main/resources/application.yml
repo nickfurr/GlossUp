@@ -22,6 +22,16 @@ spring:
         # Carga imágenes y composición de muchos productos en pocas consultas IN (...) en vez de una por producto.
         default_batch_fetch_size: 100
 
+  # Correo del comprobante (HU11). Servidor y credenciales por variables SPRING_MAIL_HOST, SPRING_MAIL_PORT,
+  # SPRING_MAIL_USERNAME y SPRING_MAIL_PASSWORD; sin SPRING_MAIL_HOST no se envía correo.
+  mail:
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -43,6 +53,10 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    # Un SMTP caído no debe marcar la app como no saludable (Azure la reiniciaría).
+    mail:
+      enabled: false
 
 springdoc:
   swagger-ui:
@@ -57,6 +71,9 @@ glossup:
     allowed-origins: http://localhost:5173,http://localhost:4200,http://localhost:3000
   # Dirección pública del front: Wompi devuelve al cliente a {url-publica}/pago/resultado/{pedido}.
   url-publica: ${GLOSSUP_URL_PUBLICA:http://localhost:4200}
+  correo:
+    # Dirección "De" de los correos (la misma cuenta del SMTP, p. ej. la de Gmail).
+    remitente: ${GLOSSUP_CORREO_REMITENTE:${SPRING_MAIL_USERNAME:}}
   pagos:
     wompi:
       # Llaves del panel de Wompi (Desarrolladores). Sandbox: pub_test_, test_integrity_, test_events_.

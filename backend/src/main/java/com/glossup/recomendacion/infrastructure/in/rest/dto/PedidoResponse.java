@@ -19,12 +19,13 @@ public record PedidoResponse(
         String metodoPago,
         OffsetDateTime pagadoEn
 ) {
-    public record Item(Long productoId, int cantidad, BigDecimal precioUnitario, BigDecimal subtotal) {}
+    public record Item(Long productoId, String nombre, int cantidad, BigDecimal precioUnitario, BigDecimal subtotal) {}
 
     public static PedidoResponse fromDomain(Pedido pedido) {
         List<Item> items = pedido.getItems().stream()
                 .map(i -> new Item(
                         i.productoId(),
+                        i.nombre(),
                         i.cantidad(),
                         i.precioUnitario().monto(),
                         i.subtotal().monto()))
