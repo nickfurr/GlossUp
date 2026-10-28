@@ -29,6 +29,11 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     }
 
     @Override
+    public Optional<Usuario> buscarPorId(Long id) {
+        return repository.findById(id).map(this::aDominio);
+    }
+
+    @Override
     public Usuario guardar(Usuario usuario) {
         UsuarioEntity entity = new UsuarioEntity();
         entity.setEmail(usuario.getEmail());

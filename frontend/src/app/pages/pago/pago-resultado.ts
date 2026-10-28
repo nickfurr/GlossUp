@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CarritoService } from '../../shared/carrito';
 import { Cargando } from '../../shared/cargando';
 import { PagoPendiente } from '../../shared/pago-pendiente';
+import { DescargarComprobante } from '../../shared/descargar-comprobante';
 import { mensajeDeError } from '../../shared/productos';
 import type { EstadoTransaccion, Pedido } from '../../shared/models';
 
@@ -15,7 +16,7 @@ const MAX_CONSULTAS = 20;
  */
 @Component({
   selector: 'app-pago-resultado',
-  imports: [RouterLink, Cargando, PagoPendiente],
+  imports: [RouterLink, Cargando, PagoPendiente, DescargarComprobante],
   template: `
     <section class="cliente-home resultado">
       @if (verificando()) {
@@ -44,7 +45,12 @@ const MAX_CONSULTAS = 20;
                 @if (p.transaccionId) { <dt>Transacción Wompi</dt><dd>{{ p.transaccionId }}</dd> }
                 @if (p.pagadoEn) { <dt>Fecha</dt><dd>{{ fecha(p.pagadoEn) }}</dd> }
               </dl>
-              <div class="acciones"><a routerLink="/catalogo" class="btn-primario">Seguir comprando</a></div>
+              <p class="nota">Te enviamos el comprobante a tu correo. También lo tienes siempre en Mis pedidos.</p>
+              <div class="acciones">
+                <app-descargar-comprobante [pedidoId]="p.id" />
+                <a routerLink="/pedidos" [queryParams]="{ pedido: p.id }" class="btn-sec">Ver mis pedidos</a>
+                <a routerLink="/catalogo" class="btn-sec">Seguir comprando</a>
+              </div>
             </div>
           }
           @case ('en-proceso') {

@@ -40,8 +40,8 @@ class ConsolidarCarritoServiceTest {
 
     @Test
     void consolidar_reservaStockYCreaPedidoCreadoConTotalCorrecto() {
-        when(inventario.reservar(100L, 2)).thenReturn(Dinero.de(30000));
-        when(inventario.reservar(200L, 1)).thenReturn(Dinero.de(15000));
+        when(inventario.reservar(100L, 2)).thenReturn(new InventarioPort.Reserva("Sérum", Dinero.de(30000)));
+        when(inventario.reservar(200L, 1)).thenReturn(new InventarioPort.Reserva("Crema", Dinero.de(15000)));
 
         Pedido pedido = service.consolidar(new ConsolidarCarritoCommand(7L, List.of(
                 new ConsolidarCarritoCommand.Linea(100L, 2),
@@ -51,12 +51,13 @@ class ConsolidarCarritoServiceTest {
         assertEquals(EstadoPedido.CREADO, pedido.getEstado());
         assertEquals(2, pedido.getItems().size());
         assertEquals(Dinero.de(75000), pedido.getTotal());
+        assertEquals("Sérum", pedido.getItems().get(0).nombre(), "la línea guarda el nombre al comprar (HU11)");
         verify(pedidoRepository).guardar(any(Pedido.class));
     }
 
     @Test
     void consolidar_sumaCantidadesDelMismoProductoEnUnaSolaReserva() {
-        when(inventario.reservar(eq(100L), eq(5))).thenReturn(Dinero.de(10000));
+        when(inventario.reservar(eq(100L), eq(5))).thenReturn(new InventarioPort.Reserva("Sérum", Dinero.de(10000)));
 
         Pedido pedido = service.consolidar(new ConsolidarCarritoCommand(7L, List.of(
                 new ConsolidarCarritoCommand.Linea(100L, 2),

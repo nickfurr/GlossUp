@@ -3,6 +3,7 @@ package com.glossup.recomendacion.application.service;
 import com.glossup.recomendacion.domain.model.EstadoPedido;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
+import com.glossup.recomendacion.domain.model.PedidoPagado;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
 import com.glossup.recomendacion.domain.model.TransaccionPago.Estado;
 import com.glossup.recomendacion.domain.port.out.InventarioPort;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -39,12 +41,13 @@ class PagarPedidoServiceTest {
     @Mock private PedidoRepositoryPort pedidos;
     @Mock private PasarelaPagosPort pasarela;
     @Mock private InventarioPort inventario;
+    @Mock private ApplicationEventPublisher eventos;
 
     private PagarPedidoService service;
 
     @BeforeEach
     void setUp() {
-        service = new PagarPedidoService(pedidos, pasarela, inventario, "https://glossup.co/",
+        service = new PagarPedidoService(pedidos, pasarela, inventario, eventos, "https://glossup.co/",
                 Clock.fixed(Instant.from(AHORA), ZoneOffset.UTC));
         lenient().when(pedidos.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -98,6 +101,7 @@ class PagarPedidoServiceTest {
         // El webhook y el regreso del cliente pueden aplicar la misma transacción: no se repite.
         service.confirmarPago(1L, 7L, "tx-1");
         verify(pedidos, times(1)).guardar(any());
+        verify(eventos, times(1)).publishEvent(new PedidoPagado(7L)); // un solo comprobante (HU11)
     }
 
     @Test
@@ -112,6 +116,7 @@ class PagarPedidoServiceTest {
         assertEquals(EstadoPedido.CREADO, service.confirmarPago(1L, 7L, "tx-1").pedido().getEstado(),
                 "un pago aprobado por otro monto no paga el pedido");
         verify(pedidos, never()).guardar(any());
+        verifyNoInteractions(eventos);
     }
 
     @Test

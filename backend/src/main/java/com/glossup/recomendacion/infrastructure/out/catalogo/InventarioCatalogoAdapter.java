@@ -23,14 +23,14 @@ public class InventarioCatalogoAdapter implements InventarioPort {
     }
 
     @Override
-    public Dinero reservar(Long productoId, int cantidad) {
+    public Reserva reservar(Long productoId, int cantidad) {
         // shortcut: sin bloqueo pesimista ni columna de versión, dos checkouts concurrentes del
         // mismo producto podrían sobre-vender; subir a @Lock(PESSIMISTIC_WRITE) o versión optimista
         // cuando haya concurrencia real. @Transactional ya garantiza la atomicidad del pedido.
         Producto producto = cargarDisponible(productoId);
         producto.reducirStock(cantidad); // lanza ReglaNegocioException si el stock es insuficiente
         productoRepository.guardar(producto);
-        return producto.getPrecio();
+        return new Reserva(producto.getNombre(), producto.getPrecio());
     }
 
     @Override

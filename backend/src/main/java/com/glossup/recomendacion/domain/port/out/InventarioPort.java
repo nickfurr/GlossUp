@@ -11,13 +11,13 @@ import com.glossup.shared.domain.Dinero;
 public interface InventarioPort {
 
     /**
-     * Reserva (descuenta) {@code cantidad} unidades del producto y devuelve su precio unitario
-     * actual, para fijarlo en la línea del pedido.
+     * Reserva (descuenta) {@code cantidad} unidades del producto y devuelve su nombre y precio
+     * unitario actuales, para fijarlos en la línea del pedido.
      *
      * @throws com.glossup.shared.exception.NotFoundException si el producto no existe
      * @throws com.glossup.shared.domain.ReglaNegocioException si no está disponible o sin stock suficiente
      */
-    Dinero reservar(Long productoId, int cantidad);
+    Reserva reservar(Long productoId, int cantidad);
 
     /**
      * Devuelve el precio unitario actual de un producto disponible, sin tocar el stock (para
@@ -30,4 +30,6 @@ public interface InventarioPort {
 
     /** Devuelve al stock unidades que reservó un pedido que se canceló o venció sin pagar (HU10). */
     void liberar(Long productoId, int cantidad);
+
+    record Reserva(String nombre, Dinero precioUnitario) {}
 }

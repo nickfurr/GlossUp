@@ -1,12 +1,15 @@
 package com.glossup.recomendacion.infrastructure.in.rest;
 
+import com.glossup.recomendacion.domain.model.Comprobante;
 import com.glossup.recomendacion.domain.model.EstadoPedido;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
+import com.glossup.recomendacion.domain.port.in.ComprobanteUseCase;
 import com.glossup.recomendacion.domain.port.in.PagarPedidoUseCase;
 import com.glossup.shared.config.SecurityConfig;
 import com.glossup.shared.domain.Dinero;
+import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.GlobalExceptionHandler;
 import com.glossup.shared.security.JwtAuthenticationFilter;
 import com.glossup.shared.security.JwtService;
@@ -25,10 +28,12 @@ import java.util.List;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {PagoController.class, EventosWompiController.class})
+@WebMvcTest(controllers = {PagoController.class, EventosWompiController.class, ComprobanteController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, GlobalExceptionHandler.class, PagoControllerTest.TestSecurityConfig.class})
 class PagoControllerTest {
 
@@ -45,6 +50,9 @@ class PagoControllerTest {
 
     @MockBean
     private PagarPedidoUseCase pagos;
+
+    @MockBean
+    private ComprobanteUseCase comprobantes;
 
     private static Pedido pedido(EstadoPedido estado) {
         return new Pedido(55L, 7L, estado, List.of(new PedidoItem(1L, 1, Dinero.de(25000.0))), OffsetDateTime.now());
@@ -105,5 +113,24 @@ class PagoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].estado").value("CREADO"))
                 .andExpect(jsonPath("$[0].expiraEn").exists());
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void comprobante_seDescargaComoPdf() throws Exception {
+        byte[] pdf = "%PDF-1.4 prueba".getBytes();
+        when(comprobantes.descargar(7L, 55L)).thenReturn(new Comprobante(55L, "GU-0000055", pdf, OffsetDateTime.now()));
+        mockMvc.perform(get("/api/pedidos/55/comprobante"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"comprobante-GU-0000055.pdf\""))
+                .andExpect(content().bytes(pdf));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void comprobante_deUnPedidoSinPagarEs422() throws Exception {
+        when(comprobantes.descargar(7L, 55L)).thenThrow(new ReglaNegocioException("El pedido #55 no está pagado"));
+        mockMvc.perform(get("/api/pedidos/55/comprobante")).andExpect(status().isUnprocessableEntity());
     }
 }

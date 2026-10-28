@@ -3,6 +3,7 @@ package com.glossup.recomendacion.application.service;
 import com.glossup.recomendacion.domain.model.EstadoPedido;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
+import com.glossup.recomendacion.domain.model.PedidoPagado;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
 import com.glossup.recomendacion.domain.port.in.PagarPedidoUseCase;
 import com.glossup.recomendacion.domain.port.out.InventarioPort;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,20 +44,22 @@ public class PagarPedidoService implements PagarPedidoUseCase {
     private final PedidoRepositoryPort pedidos;
     private final PasarelaPagosPort pasarela;
     private final InventarioPort inventario;
+    private final ApplicationEventPublisher eventos;
     private final String urlPublica;
     private final Clock reloj;
 
     @Autowired
     public PagarPedidoService(PedidoRepositoryPort pedidos, PasarelaPagosPort pasarela, InventarioPort inventario,
-                              @Value("${glossup.url-publica}") String urlPublica) {
-        this(pedidos, pasarela, inventario, urlPublica, Clock.systemUTC());
+                              ApplicationEventPublisher eventos, @Value("${glossup.url-publica}") String urlPublica) {
+        this(pedidos, pasarela, inventario, eventos, urlPublica, Clock.systemUTC());
     }
 
     PagarPedidoService(PedidoRepositoryPort pedidos, PasarelaPagosPort pasarela, InventarioPort inventario,
-                       String urlPublica, Clock reloj) {
+                       ApplicationEventPublisher eventos, String urlPublica, Clock reloj) {
         this.pedidos = pedidos;
         this.pasarela = pasarela;
         this.inventario = inventario;
+        this.eventos = eventos;
         this.urlPublica = urlPublica.replaceAll("/+$", "");
         this.reloj = reloj;
     }
@@ -144,7 +148,9 @@ public class PagarPedidoService implements PagarPedidoUseCase {
         switch (pedido.getEstado()) {
             case CREADO -> {
                 pedido.registrarPago(t.id(), t.metodo(), ahora());
-                return pedidos.guardar(pedido);
+                Pedido pagado = pedidos.guardar(pedido);
+                eventos.publishEvent(new PedidoPagado(pagado.getId())); // comprobante (HU11), tras el commit
+                return pagado;
             }
             case CANCELADO -> log.error("Pago aprobado {} para el pedido #{} ya cancelado: requiere reembolso manual",
                     t.id(), pedido.getId());

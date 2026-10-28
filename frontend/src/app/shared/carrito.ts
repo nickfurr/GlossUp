@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import type { Carrito, Pedido, ResultadoPago } from './models';
 
@@ -57,5 +57,10 @@ export class CarritoService {
   /** Cancela un pedido sin pagar y devuelve su inventario. */
   cancelarPedido(pedidoId: number): Observable<Pedido> {
     return this.http.post<Pedido>(`/api/pedidos/${pedidoId}/cancelar`, {});
+  }
+
+  /** PDF del comprobante de compra de un pedido pagado (HU11). */
+  comprobante(pedidoId: number): Observable<HttpResponse<Blob>> {
+    return this.http.get(`/api/pedidos/${pedidoId}/comprobante`, { responseType: 'blob', observe: 'response' });
   }
 }

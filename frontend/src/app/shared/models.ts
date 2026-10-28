@@ -60,9 +60,11 @@ export interface DatosProducto {
   ingredientes: { inci: string; concentracion?: number | null }[];
 }
 
-/** Línea del carrito/pedido tal como la expone el backend (HU9). Sin nombre: solo id y montos. */
+/** Línea del carrito/pedido tal como la expone el backend (HU9). */
 export interface LineaCompra {
   productoId: number;
+  /** Solo en pedidos: nombre del producto al momento de la compra (HU11). */
+  nombre?: string | null;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;

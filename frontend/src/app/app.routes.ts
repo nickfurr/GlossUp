@@ -11,6 +11,7 @@ import { Carrito } from './pages/carrito/carrito';
 import { Compatibilidad } from './pages/compatibilidad/compatibilidad';
 import { Producto } from './pages/producto/producto';
 import { PagoResultado } from './pages/pago/pago-resultado';
+import { Pedidos } from './pages/pedidos/pedidos';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -27,6 +28,7 @@ export const routes: Routes = [
   { path: 'compatibilidad', component: Compatibilidad, canActivate: [roleGuard('CLIENTE')] },
   { path: 'perfil', component: Perfil, canActivate: [roleGuard('CLIENTE')] },
   { path: 'carrito', component: Carrito, canActivate: [roleGuard('CLIENTE')] },
+  { path: 'pedidos', component: Pedidos, canActivate: [roleGuard('CLIENTE')] },
   // Wompi devuelve aquí al cliente tras pagar (HU10).
   { path: 'pago/resultado/:pedido', component: PagoResultado, canActivate: [roleGuard('CLIENTE')] },
 
