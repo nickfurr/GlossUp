@@ -19,6 +19,9 @@ public interface CatalogoConsultaPort {
     /** Varios productos de una vez, por id; los que no existen no aparecen en el mapa. */
     Map<Long, ProductoConsulta> buscarVarios(Collection<Long> productoIds);
 
+    /** Productos que el cliente ve en el catálogo (activos y con stock), en el orden del catálogo (HU13). */
+    Map<Long, ProductoConsulta> listarCatalogo();
+
     /** @param ingredientesInci nombres INCI de la ficha, normalizados (minúsculas). */
     record ProductoConsulta(String nombre, List<String> ingredientesInci, Double ph, Zona zona) {
         public ProductoConsulta(String nombre, List<String> ingredientesInci) {

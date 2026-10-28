@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -251,5 +252,36 @@ class EvaluarCompatibilidadServiceTest {
         verify(reglas, times(1)).reglasPerfil();
         verify(perfil, times(1)).obtener(1L);
         verify(catalogo, times(1)).buscarVarios(any());
+    }
+
+    // ---- HU13: filtros dermatológicos del catálogo ----
+
+    private void catalogoDePrueba() {
+        Map<Long, ProductoConsulta> catalogoOrdenado = new java.util.LinkedHashMap<>();
+        catalogoOrdenado.put(1L, new ProductoConsulta("Crema rica", List.of("aqua", "isopropyl myristate")));
+        catalogoOrdenado.put(2L, new ProductoConsulta("Gel ligero", List.of("aqua", "glycerin")));
+        catalogoOrdenado.put(3L, new ProductoConsulta("Loción", List.of("aqua", "methylparaben")));
+        catalogoOrdenado.put(4L, new ProductoConsulta("Sérum noche", List.of("retinol")));
+        when(catalogo.listarCatalogo()).thenReturn(catalogoOrdenado);
+    }
+
+    @Test
+    void filtroTipoPiel_ocultaLosComedogenicosParaEsaPielSinMirarElPerfil() {
+        catalogoDePrueba();
+        assertEquals(List.of(2L, 3L, 4L), service.filtrarCatalogo(1L, "MIXTA", false),
+                "isopropyl myristate (grado 5) no es apto para piel mixta");
+        assertEquals(List.of(1L, 2L, 3L), service.filtrarCatalogo(1L, "SENSIBLE", false), "el retinol irrita la piel sensible");
+        assertEquals(List.of(1L, 2L, 3L, 4L), service.filtrarCatalogo(1L, "NORMAL", false), "piel normal: sin restricciones");
+        verifyNoInteractions(perfil); // sin "excluir alérgenos" el perfil no interviene
+    }
+
+    @Test
+    void excluirAlergenos_descartaLosQueTienenUnAlergenoGuardadoYCombinaConLaPiel() {
+        catalogoDePrueba();
+        // El perfil es sensible, pero solo filtra por piel si el cliente elige ese filtro.
+        perfilCon(Set.of("parabenos"), Set.of("sensible"));
+        assertEquals(List.of(1L, 2L, 4L), service.filtrarCatalogo(1L, null, true));
+        assertEquals(List.of(2L, 4L), service.filtrarCatalogo(1L, "MIXTA", true), "los dos filtros se suman");
+        assertEquals(List.of(1L, 2L, 3L, 4L), service.filtrarCatalogo(1L, null, false), "sin filtros: todo el catálogo");
     }
 }
