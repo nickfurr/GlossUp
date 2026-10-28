@@ -7,6 +7,7 @@ import com.glossup.compatibilidad.domain.port.out.CatalogoConsultaPort;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,6 +34,13 @@ public class CatalogoConsultaAdapter implements CatalogoConsultaPort {
     public Map<Long, ProductoConsulta> buscarVarios(Collection<Long> productoIds) {
         return productoRepository.buscarPorIds(productoIds).stream()
                 .collect(Collectors.toMap(Producto::getId, CatalogoConsultaAdapter::aConsulta));
+    }
+
+    @Override
+    public Map<Long, ProductoConsulta> listarCatalogo() {
+        return productoRepository.listarTodos().stream()
+                .filter(Producto::estaEnCatalogo)
+                .collect(Collectors.toMap(Producto::getId, CatalogoConsultaAdapter::aConsulta, (a, b) -> a, LinkedHashMap::new));
     }
 
     private static ProductoConsulta aConsulta(Producto producto) {

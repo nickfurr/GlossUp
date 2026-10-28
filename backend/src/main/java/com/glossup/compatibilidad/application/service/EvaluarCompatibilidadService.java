@@ -128,6 +128,21 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
         return cruces;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> filtrarCatalogo(Long usuarioId, String tipoPiel, boolean excluirAlergenos) {
+        // Perfil "de filtro": solo lo que el cliente activó, así toda alerta viene de un filtro elegido
+        // (piel grasa no oculta un producto por la rosácea del perfil, ni por alérgenos si no lo pidió).
+        Set<String> alergias = excluirAlergenos ? perfil.obtener(usuarioId).alergias() : Set.of();
+        Set<String> condiciones = tipoPiel == null ? Set.of() : Set.of(tipoPiel.toLowerCase());
+        PerfilConsultaPort.PerfilConsulta filtro = new PerfilConsultaPort.PerfilConsulta(alergias, condiciones);
+        Conocimiento conocimiento = cargarConocimiento();
+        return catalogo.listarCatalogo().entrySet().stream()
+                .filter(e -> !evaluar(e.getValue(), filtro, conocimiento).tieneAlertas())
+                .map(Map.Entry::getKey)
+                .toList();
+    }
+
     private ResultadoCompatibilidad evaluar(CatalogoConsultaPort.ProductoConsulta producto,
                                             PerfilConsultaPort.PerfilConsulta datos, Conocimiento k) {
         Set<String> ingredientes = Set.copyOf(producto.ingredientesInci());

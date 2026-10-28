@@ -100,4 +100,21 @@ class CompatibilidadControllerTest {
         mockMvc.perform(get("/api/compatibilidad/productos").param("ids", ids))
                 .andExpect(status().isUnprocessableEntity());
     }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void filtroCatalogo_devuelveLosIdsAptos() throws Exception {
+        when(evaluarCompatibilidad.filtrarCatalogo(7L, "GRASA", true)).thenReturn(List.of(2L, 5L));
+        mockMvc.perform(get("/api/compatibilidad/catalogo").param("tipoPiel", "grasa").param("excluirAlergenos", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(2))
+                .andExpect(jsonPath("$[1]").value(5));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void filtroCatalogo_tipoDePielInventadoEs422() throws Exception {
+        mockMvc.perform(get("/api/compatibilidad/catalogo").param("tipoPiel", "escamosa"))
+                .andExpect(status().isUnprocessableEntity());
+    }
 }

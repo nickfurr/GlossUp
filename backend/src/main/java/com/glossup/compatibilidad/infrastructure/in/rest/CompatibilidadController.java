@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/compatibilidad")
@@ -27,6 +28,8 @@ import java.util.List;
 public class CompatibilidadController {
 
     private static final int MAX_LOTE = 200;
+    /** Tipos de piel del perfil (glosario); el filtro HU13 no acepta otros valores. */
+    private static final Set<String> TIPOS_PIEL = Set.of("NORMAL", "SECA", "GRASA", "MIXTA", "SENSIBLE");
 
     private final EvaluarCompatibilidadUseCase evaluarCompatibilidad;
 
@@ -69,6 +72,22 @@ public class CompatibilidadController {
             throw new ReglaNegocioException("Máximo " + MAX_LOTE + " productos por evaluación");
         }
         return ResponseEntity.ok(evaluarCompatibilidad.evaluarCruces(ids).stream().map(CruceResponse::fromDomain).toList());
+    }
+
+    @GetMapping("/catalogo")
+    @Operation(summary = "Filtros dermatológicos del catálogo (HU13)",
+               description = "Ids de los productos del catálogo aptos para el tipo de piel elegido (oculta los comedogénicos, "
+                       + "irritantes o con pH inadecuado para esa piel) y, con excluirAlergenos=true, sin ingredientes de "
+                       + "los alérgenos guardados en mi perfil. Sin filtros devuelve todo el catálogo.")
+    public ResponseEntity<List<Long>> filtrarCatalogo(
+            @RequestParam(required = false) String tipoPiel,
+            @RequestParam(defaultValue = "false") boolean excluirAlergenos,
+            Authentication authentication) {
+        String piel = tipoPiel == null || tipoPiel.isBlank() ? null : tipoPiel.trim().toUpperCase();
+        if (piel != null && !TIPOS_PIEL.contains(piel)) {
+            throw new ReglaNegocioException("Tipo de piel no válido: " + tipoPiel + ". Usa uno de " + TIPOS_PIEL);
+        }
+        return ResponseEntity.ok(evaluarCompatibilidad.filtrarCatalogo(extraerUsuarioId(authentication), piel, excluirAlergenos));
     }
 
     private Long extraerUsuarioId(Authentication authentication) {

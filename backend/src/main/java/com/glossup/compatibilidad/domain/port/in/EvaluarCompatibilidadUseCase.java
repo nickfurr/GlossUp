@@ -30,4 +30,13 @@ public interface EvaluarCompatibilidadUseCase {
      * que no conviene combinar. No depende del perfil. Los ids que no existen se omiten.
      */
     List<Cruce> evaluarCruces(List<Long> productoIds);
+
+    /**
+     * Filtros dermatológicos del catálogo (HU13): ids de los productos del catálogo aptos para el tipo
+     * de piel elegido (sin irritantes, comedogénicos ni pH inadecuado para él) y, si se pide, sin
+     * ingredientes de los alérgenos guardados en el perfil del usuario. Sin filtros devuelve todo el catálogo.
+     *
+     * @param tipoPiel código del tipo de piel (ej. "grasa"), o null para no filtrar por piel
+     */
+    List<Long> filtrarCatalogo(Long usuarioId, String tipoPiel, boolean excluirAlergenos);
 }
