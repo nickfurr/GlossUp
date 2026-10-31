@@ -32,6 +32,12 @@ spring:
       "[mail.smtp.timeout]": 5000
       "[mail.smtp.writetimeout]": 5000
 
+  # Las fotos de etiquetas (HU5) tomadas con el celular suelen pasar del 1 MB por defecto.
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 8MB
+
   flyway:
     enabled: true
     locations: classpath:db/migration

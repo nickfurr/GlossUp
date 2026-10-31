@@ -24,4 +24,7 @@ public interface GestionarProductoUseCase {
 
     /** Busca en el catálogo cerrado de ingredientes (para armar la ficha INCI desde una lista). */
     List<Ingrediente> buscarIngredientes(String texto);
+
+    /** Vuelve a publicar un producto dado de baja, si pertenece al vendedor y conserva su ficha INCI (RNF-04). */
+    Producto publicar(Long productoId, Long vendedorId);
 }

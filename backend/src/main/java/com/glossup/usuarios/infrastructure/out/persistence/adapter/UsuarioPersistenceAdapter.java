@@ -36,6 +36,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     @Override
     public Usuario guardar(Usuario usuario) {
         UsuarioEntity entity = new UsuarioEntity();
+        entity.setId(usuario.getId()); // con id actualiza la cuenta existente; sin id la crea
         entity.setEmail(usuario.getEmail());
         entity.setPasswordHash(usuario.getPasswordHash());
         entity.setNombre(usuario.getNombre());

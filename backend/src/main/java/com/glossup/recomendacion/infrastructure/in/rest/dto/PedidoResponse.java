@@ -2,6 +2,7 @@ package com.glossup.recomendacion.infrastructure.in.rest.dto;
 
 import com.glossup.recomendacion.domain.model.Direccion;
 import com.glossup.recomendacion.domain.model.Pedido;
+import com.glossup.recomendacion.domain.model.PedidoItem;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,7 +32,11 @@ public record PedidoResponse(
                                 OffsetDateTime notificadoEn, OffsetDateTime enviadoEn,
                                 OffsetDateTime entregadoEn, OffsetDateTime noEntregadoEn) {}
 
-    private static EnvioResponse envioDe(Pedido pedido) {
+    public static Item itemDe(PedidoItem i) {
+        return new Item(i.productoId(), i.nombre(), i.cantidad(), i.precioUnitario().monto(), i.subtotal().monto());
+    }
+
+    public static EnvioResponse envioDe(Pedido pedido) {
         var e = pedido.getEnvio();
         if (e == null) {
             return null;
@@ -44,14 +49,7 @@ public record PedidoResponse(
     }
 
     public static PedidoResponse fromDomain(Pedido pedido) {
-        List<Item> items = pedido.getItems().stream()
-                .map(i -> new Item(
-                        i.productoId(),
-                        i.nombre(),
-                        i.cantidad(),
-                        i.precioUnitario().monto(),
-                        i.subtotal().monto()))
-                .toList();
+        List<Item> items = pedido.getItems().stream().map(PedidoResponse::itemDe).toList();
 
         return new PedidoResponse(
                 pedido.getId(),

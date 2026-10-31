@@ -54,7 +54,7 @@ import type { Pedido } from './models';
   `],
 })
 export class SeguimientoEnvio {
-  readonly pedido = input.required<Pedido>();
+  readonly pedido = input.required<Pick<Pedido, 'estado' | 'pagadoEn' | 'envio'>>();
   readonly llegada = fechaLlegada;
 
   readonly etapas = computed(() => {

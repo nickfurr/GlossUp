@@ -21,18 +21,57 @@
     <!-- Dashboard -->
     @if (vista() === 'dashboard') {
       <div class="vend-topline">
-        <h2>Buenos días, {{ sesion()?.nombre }}</h2>
+        <h2>{{ saludo() }}, {{ sesion()?.nombre }}</h2>
         <button type="button" class="btn-primario" (click)="abrirNuevo()">＋ Nuevo producto</button>
       </div>
+      @if (errorVentas()) {
+        <p class="error" role="alert">{{ errorVentas() }} <button type="button" class="btn-mini" (click)="recargar()">Reintentar</button></p>
+      }
       <div class="tiles">
-        <div class="tile-stat"><span class="label">Ventas del mes</span><span class="val val-vino">{{ formatearCop(0) }}</span></div>
-        <div class="tile-stat"><span class="label">Pedidos</span><span class="val val-rosa">0</span></div>
-        <div class="tile-stat"><span class="label">Productos activos</span><span class="val val-ok">{{ activos() }}</span></div>
-        <div class="tile-stat"><span class="label">Alertas de INCI</span><span class="val val-amber">{{ alertas() }}</span></div>
+        <div class="tile-stat"><span class="label">Ventas del mes</span><span class="val val-vino">{{ cargandoVentas() ? '…' : formatearCop(resumen()?.ingresosMes ?? 0) }}</span></div>
+        <button type="button" class="tile-stat tile-accion" (click)="verPedidos()"><span class="label">Pedidos del mes</span><span class="val val-rosa">{{ cargandoVentas() ? '…' : (resumen()?.pedidosMes ?? 0) }}</span>
+          @if (porEnviar()) { <span class="tile-nota">{{ porEnviar() }} por enviar</span> }</button>
+        <button type="button" class="tile-stat tile-accion" (click)="verProductos('activos')"><span class="label">Productos activos</span><span class="val val-ok">{{ activos() }}</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verProductos('pocas')"><span class="label">Por reabastecer</span><span class="val val-amber">{{ porReabastecer() }}</span><span class="tile-nota">5 unidades o menos</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verProductos('alertas')"><span class="label">Fichas por completar</span><span class="val val-amber">{{ alertas() }}</span><span class="tile-nota">Sin imagen o INVIMA</span></button>
       </div>
       <div class="dash-row">
-        <section class="panel"><h3>Ventas por semana</h3><p class="nota">Aún no hay ventas registradas.</p></section>
-        <section class="panel"><h3>Pedidos recientes</h3><p class="nota">No hay pedidos aún.</p></section>
+        <section class="panel">
+          <h3>Ventas por semana</h3>
+          @if (hayVentasRecientes()) {
+            <div class="chart" role="img" [attr.aria-label]="descripcionGrafica()">
+              @for (s of semanas(); track s.inicio) {
+                <div class="chart-col">
+                  <div class="chart-area">
+                    <span class="chart-valor" [class.fijo]="s.esMayor">{{ formatearCop(s.ingresos) }}</span>
+                    <div class="bar" [style.height.%]="s.alto"></div>
+                  </div>
+                  <span class="chart-eje">{{ s.eje }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="nota">Aún no hay ventas en las últimas 8 semanas.</p>
+          }
+        </section>
+        <section class="panel">
+          <h3>Pedidos recientes</h3>
+          @if (ventas().length === 0) {
+            <p class="nota">{{ cargandoVentas() ? 'Cargando…' : 'Cuando te compren, aquí verás los pedidos.' }}</p>
+          } @else {
+            <ul class="pedidos">
+              @for (v of ventas().slice(0, 5); track v.id) {
+                <li>
+                  <button type="button" class="pedido-row" (click)="verPedido(v.id)">
+                    <span>#{{ v.id }}</span>
+                    <span class="precio-fila">{{ formatearCop(v.ingresos) }}</span>
+                    <span [class]="'pill ' + estadoVenta(v).cls">{{ estadoVenta(v).txt }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
       </div>
     }
 
@@ -46,14 +85,15 @@
         <input
           class="buscador"
           placeholder="Buscar por nombre o ingrediente (INCI)"
+          aria-label="Buscar por nombre o ingrediente (INCI)"
           [ngModel]="q()"
           (ngModelChange)="q.set($event)"
           [ngModelOptions]="{ standalone: true }"
         />
-        <div class="filtros">
-          <button type="button" class="filtro" [class.activo]="filtro() === 'todos'" (click)="filtro.set('todos')">Todos</button>
-          <button type="button" class="filtro" [class.activo]="filtro() === 'activos'" (click)="filtro.set('activos')">Activos</button>
-          <button type="button" class="filtro" [class.activo]="filtro() === 'sinstock'" (click)="filtro.set('sinstock')">Sin stock</button>
+        <div class="filtros" role="group" aria-label="Filtrar productos">
+          @for (f of filtrosProductos; track f.id) {
+            <button type="button" class="filtro" [class.activo]="filtro() === f.id" [attr.aria-pressed]="filtro() === f.id" (click)="filtro.set(f.id)">{{ f.label }}</button>
+          }
         </div>
       </div>
       <div class="panel">
@@ -62,6 +102,7 @@
         } @else if (lista().length === 0) {
           <p class="nota">No hay productos que coincidan.</p>
         } @else {
+          <div class="tabla-scroll">
           <table class="tabla">
             <thead>
               <tr><th>PRODUCTO</th><th>FICHA INCI</th><th>PRECIO</th><th>STOCK</th><th>ESTADO</th></tr>
@@ -73,27 +114,35 @@
                     <span class="thumb">
                       @if (p.imagenes && p.imagenes[0]) { <img [src]="p.imagenes[0]" [alt]="p.nombre" /> }
                     </span>
-                    {{ p.nombre }}
+                    <button type="button" class="nombre-fila" (click)="abrirEditor(p); $event.stopPropagation()">{{ p.nombre }}</button>
                   </td>
                   <td>{{ p.ingredientes.length }} ingredientes</td>
                   <td class="precio">{{ formatearCop(p.precio) }}</td>
                   <td [class.rojo-txt]="p.stock === 0">{{ p.stock }}</td>
-                  <td><span [class]="'badge-estado ' + estadoDe(p).cls">{{ estadoDe(p).txt }}</span></td>
+                  <td>
+                    <span [class]="'badge-estado ' + estadoDe(p).cls">{{ estadoDe(p).txt }}</span>
+                    @if (faltantes(p).length) { <span class="falta">Falta {{ faltantes(p).join(' y ') }}</span> }
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
+          </div>
         }
       </div>
-      <p class="nota">Haz clic en un producto para editarlo, gestionar su ficha INCI o darlo de baja.</p>
+      <p class="nota">Haz clic en un producto para editarlo, gestionar su ficha INCI, darlo de baja o volver a publicarlo.</p>
     }
 
     <!-- Editor -->
     @if (vista() === 'editor') {
       <div class="vend-topline">
         <h2>{{ edEsNuevo() ? 'Nuevo producto' : 'Editar: ' + edNombre }}</h2>
-        <button type="button" class="btn-sec" (click)="vista.set('productos')">← Volver</button>
+        <button type="button" class="btn-sec" (click)="irA('productos')">← Volver</button>
       </div>
+
+      @if (!edEsNuevo() && !edActivo()) {
+        <p class="nota-amber aviso-baja">Este producto está dado de baja: los clientes no lo ven. Vuelve a publicarlo cuando quieras.</p>
+      }
 
       <div class="editor">
         <section class="panel">
@@ -146,6 +195,13 @@
 
         <section class="panel">
           <h3>Ficha de ingredientes (INCI)</h3>
+          <div class="etiqueta-lector">
+            <label class="btn-sec" [class.ocupado]="leyendoEtiqueta()">
+              📷 {{ leyendoEtiqueta() ? 'Leyendo la etiqueta…' : 'Leer ingredientes de una foto' }}
+              <input class="sr-only" type="file" accept="image/*" [disabled]="leyendoEtiqueta()" (change)="leerEtiqueta($event)" />
+            </label>
+            @if (avisoEtiqueta()) { <p class="nota-amber" role="status">{{ avisoEtiqueta() }}</p> }
+          </div>
           <table class="inci-tabla">
             <thead>
               <tr><th>INGREDIENTE (INCI)</th><th>FUNCIÓN</th><th>CONC.</th><th></th></tr>
@@ -192,11 +248,17 @@
         </section>
       </div>
 
-      @if (edError()) { <p class="error">{{ edError() }}</p> }
+      @if (edError()) { <p class="error" role="alert">{{ edError() }}</p> }
 
       <div class="editor-acciones">
-        @if (!edEsNuevo()) {
-          <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="eliminar()">Dar de baja</button>
+        @if (!edEsNuevo() && !edActivo()) {
+          <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="volverAPublicar()">Volver a publicar</button>
+        } @else if (!edEsNuevo() && confirmandoBaja()) {
+          <span class="confirma">¿Dar de baja? Los clientes dejarán de verlo.</span>
+          <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="confirmandoBaja.set(false)">No</button>
+          <button type="button" class="btn-sec peligro" [disabled]="edOcupado()" (click)="eliminar()">Sí, dar de baja</button>
+        } @else if (!edEsNuevo()) {
+          <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="confirmandoBaja.set(true)">Dar de baja</button>
         }
         <button type="button" class="btn-primario" [disabled]="edOcupado()" (click)="guardar()">
           {{ edOcupado() ? 'Guardando…' : edEsNuevo() ? 'Crear producto' : 'Guardar cambios' }}
@@ -204,10 +266,108 @@
       </div>
     }
 
-    <!-- Pedidos / Ventas / Ajustes -->
-    @if (vista() === 'pedidos' || vista() === 'ventas' || vista() === 'ajustes') {
-      <div class="vend-topline"><h2>{{ tituloVista() }}</h2></div>
-      <div class="panel"><p class="nota">Esta sección estará disponible al implementar su módulo (pedidos/ventas).</p></div>
+    <!-- Pedidos -->
+    @if (vista() === 'pedidos') {
+      <div class="vend-topline">
+        <h2>Pedidos</h2>
+        <button type="button" class="btn-sec" (click)="recargar()">Actualizar</button>
+      </div>
+      <div class="filtros filtros-pedidos" role="group" aria-label="Filtrar pedidos">
+        @for (f of filtrosPedidos; track f.id) {
+          <button type="button" class="filtro" [class.activo]="filtroPedidos() === f.id" [attr.aria-pressed]="filtroPedidos() === f.id" (click)="filtroPedidos.set(f.id)">{{ f.label }}</button>
+        }
+      </div>
+      @if (errorVentas()) {
+        <p class="error" role="alert">{{ errorVentas() }}</p>
+      } @else if (cargandoVentas()) {
+        <div class="panel"><p class="nota">Cargando…</p></div>
+      } @else if (pedidosFiltrados().length === 0) {
+        <div class="panel"><p class="nota">{{ ventas().length ? 'No hay pedidos con este filtro.' : 'Cuando te compren, aquí verás los pedidos pagados.' }}</p></div>
+      } @else {
+        <ul class="lista-ventas">
+          @for (v of pedidosFiltrados(); track v.id) {
+            <li class="panel venta">
+              <button type="button" class="venta-resumen" (click)="alternarVenta(v.id)"
+                      [attr.aria-expanded]="ventaAbierta() === v.id" [attr.aria-controls]="'venta-' + v.id">
+                <span class="venta-titulo"><strong>Pedido #{{ v.id }}</strong>
+                  <span class="suave">{{ fecha(v.pagadoEn) }} · {{ v.cliente }} · {{ unidades(v) }} {{ unidades(v) === 1 ? 'unidad' : 'unidades' }}</span></span>
+                <span [class]="'pill ' + estadoVenta(v).cls">{{ estadoVenta(v).txt }}</span>
+                <strong class="precio-fila">{{ formatearCop(v.ingresos) }}</strong>
+              </button>
+              @if (ventaAbierta() === v.id) {
+                <div [id]="'venta-' + v.id" class="venta-detalle">
+                  @if (v.envio) { <app-seguimiento-envio [pedido]="v" /> }
+                  <div class="tabla-scroll">
+                  <table class="tabla">
+                    <caption class="sr-only">Productos tuyos en el pedido #{{ v.id }}</caption>
+                    <thead><tr><th scope="col">PRODUCTO</th><th scope="col">CANT.</th><th scope="col">PRECIO</th><th scope="col">SUBTOTAL</th></tr></thead>
+                    <tbody>
+                      @for (i of v.items; track i.productoId) {
+                        <tr><td>{{ i.nombre ?? 'Producto #' + i.productoId }}</td><td>{{ i.cantidad }}</td><td>{{ formatearCop(i.precioUnitario) }}</td><td>{{ formatearCop(i.subtotal) }}</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                  </div>
+                  <p class="nota">Solo ves tus productos de este pedido. Tus ingresos no incluyen el envío.</p>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+
+    <!-- Ventas -->
+    @if (vista() === 'ventas') {
+      <div class="vend-topline"><h2>Ventas</h2></div>
+      @if (errorVentas()) {
+        <p class="error" role="alert">{{ errorVentas() }}</p>
+      } @else if (cargandoVentas()) {
+        <div class="panel"><p class="nota">Cargando…</p></div>
+      } @else if (resumen(); as r) {
+        <div class="tiles">
+          <div class="tile-stat"><span class="label">Ingresos del mes</span><span class="val val-vino">{{ formatearCop(r.ingresosMes) }}</span></div>
+          <div class="tile-stat"><span class="label">Pedidos del mes</span><span class="val val-rosa">{{ r.pedidosMes }}</span></div>
+          <div class="tile-stat"><span class="label">Unidades del mes</span><span class="val val-ok">{{ r.unidadesMes }}</span></div>
+        </div>
+        <div class="dash-row dash-row-igual">
+          <section class="panel">
+            <h3>Más vendidos</h3>
+            @if (r.masVendidos.length === 0) {
+              <p class="nota">Todavía no has vendido productos.</p>
+            } @else {
+              <div class="tabla-scroll">
+              <table class="tabla">
+                <thead><tr><th scope="col">PRODUCTO</th><th scope="col">UNIDADES</th><th scope="col">INGRESOS</th></tr></thead>
+                <tbody>
+                  @for (m of r.masVendidos; track m.productoId) {
+                    <tr><td>{{ m.nombre ?? 'Producto #' + m.productoId }}</td><td>{{ m.unidades }}</td><td>{{ formatearCop(m.ingresos) }}</td></tr>
+                  }
+                </tbody>
+              </table>
+              </div>
+            }
+          </section>
+          <section class="panel">
+            <h3>Ingresos por semana</h3>
+            <div class="tabla-scroll">
+            <table class="tabla">
+              <thead><tr><th scope="col">SEMANA DEL</th><th scope="col">INGRESOS</th></tr></thead>
+              <tbody>
+                @for (s of semanas(); track s.inicio) { <tr><td>{{ s.etiqueta }}</td><td>{{ formatearCop(s.ingresos) }}</td></tr> }
+              </tbody>
+            </table>
+            </div>
+          </section>
+        </div>
+        <p class="nota">Cuenta los pedidos pagados en hora de Colombia, sin incluir el envío.</p>
+      }
+    }
+
+    <!-- Ajustes -->
+    @if (vista() === 'ajustes') {
+      <div class="vend-topline"><h2>Ajustes</h2></div>
+      <app-ajustes-cuenta />
     }
   </main>
 </div>

@@ -84,6 +84,19 @@ public class GestionarProductoService implements GestionarProductoUseCase {
     }
 
     @Override
+    public Producto publicar(Long productoId, Long vendedorId) {
+        Producto producto = productoRepository.buscarPorId(productoId)
+                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
+
+        if (!producto.perteneceAVendedor(vendedorId)) {
+            throw new AccessDeniedException("Acceso denegado: no puedes publicar un producto de otro vendedor");
+        }
+
+        producto.publicar();
+        return productoRepository.guardar(producto);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Ingrediente> buscarIngredientes(String texto) {
         return texto == null || texto.isBlank() ? List.of() : ingredienteRepository.buscar(texto);

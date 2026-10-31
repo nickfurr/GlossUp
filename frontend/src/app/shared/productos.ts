@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import type { DatosProducto, IngredienteCatalogo, ProductoVendedor } from './models';
+import type { DatosProducto, IngredienteCatalogo, LecturaEtiqueta, ProductoVendedor, VentasVendedor } from './models';
 
 const BASE = '/api/catalogo/productos';
 
@@ -43,6 +43,23 @@ export class ProductosService {
 
   eliminar(id: number): Observable<void> {
     return this.http.delete<void>(`${BASE}/${id}`);
+  }
+
+  /** Vuelve a publicar un producto dado de baja. */
+  publicar(id: number): Observable<ProductoVendedor> {
+    return this.http.post<ProductoVendedor>(`${BASE}/${id}/publicar`, {});
+  }
+
+  /** Lee los ingredientes de la foto de una etiqueta (HU5). */
+  leerEtiqueta(imagen: File): Observable<LecturaEtiqueta> {
+    const datos = new FormData();
+    datos.append('imagen', imagen);
+    return this.http.post<LecturaEtiqueta>(`${BASE}/extraer-ingredientes`, datos);
+  }
+
+  /** Pedidos pagados con productos de este vendedor y sus cifras. */
+  ventas(): Observable<VentasVendedor> {
+    return this.http.get<VentasVendedor>('/api/vendedor/ventas');
   }
 }
 

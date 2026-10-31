@@ -264,6 +264,21 @@ class ProductoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "5", roles = "VENDEDOR")
+    void extraerIngredientes_marcaSoloLosQueCoincidenExactoConElCatalogo() throws Exception {
+        when(extraerIngredientesImagenUseCase.extraer(any(), any())).thenReturn(List.of("glycerin", "agua de rosas"));
+        when(gestionarProductoUseCase.buscarIngredientes("glycerin")).thenReturn(List.of(
+                new com.glossup.catalogo.domain.model.Ingrediente(1L, new com.glossup.catalogo.domain.model.Inci("polyglycerin-3"), "Otro"),
+                new com.glossup.catalogo.domain.model.Ingrediente(2L, new com.glossup.catalogo.domain.model.Inci("glycerin"), "Glicerina")));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/catalogo/productos/extraer-ingredientes")
+                        .file(new org.springframework.mock.web.MockMultipartFile("imagen", "e.jpg", "image/jpeg", "x".getBytes())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enCatalogo.length()").value(1))
+                .andExpect(jsonPath("$.enCatalogo[0].inci").value("glycerin"));
+    }
+
+    @Test
     void extraerIngredientes_sinAutenticacion_retorna401() throws Exception {
         org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
                 "imagen", "etiqueta.jpg", "image/jpeg", "dummy-content".getBytes()
