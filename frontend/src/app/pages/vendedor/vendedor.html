@@ -18,6 +18,20 @@
   <main class="vend-main">
     @if (error()) { <p class="error">{{ error() }}</p> }
 
+    @if (suspendidos().length && vista() !== 'editor') {
+      <details class="notificacion-bloqueo" open role="alert">
+        <summary>🔔 Administración suspendió {{ suspendidos().length === 1 ? 'uno de tus productos' : suspendidos().length + ' de tus productos' }}</summary>
+        <ul>
+          @for (p of suspendidos(); track p.id) {
+            <li>
+              <span class="detalle"><strong>{{ p.nombre }}</strong><span>Motivo: {{ p.motivoBaneo || 'sin indicar' }}</span></span>
+              <button type="button" class="btn-sec" (click)="abrirEditor(p)">Ver producto</button>
+            </li>
+          }
+        </ul>
+      </details>
+    }
+
     <!-- Dashboard -->
     @if (vista() === 'dashboard') {
       <div class="vend-topline">
@@ -141,7 +155,7 @@
       </div>
 
       @if (edBloqueo()) {
-        <p class="aviso-bloqueo" role="status">🚫 <strong>Bloqueado por administración:</strong> {{ edBloqueo() }}. Los clientes no lo ven y no puedes publicarlo hasta que lo revisen.</p>
+        <p class="aviso-bloqueo" role="status">🚫 <strong>Suspendido por administración.</strong> Motivo: {{ edBloqueo() }}. Los clientes no lo ven y no puedes publicarlo hasta que lo revisen.</p>
       } @else if (!edEsNuevo() && !edActivo()) {
         <p class="nota-amber aviso-baja">Este producto está dado de baja: los clientes no lo ven. Vuelve a publicarlo cuando quieras.</p>
       }
@@ -254,7 +268,7 @@
 
       <div class="editor-acciones">
         @if (edBloqueo()) {
-          <!-- Bloqueado: publicarlo o darlo de baja no aplica hasta que administración lo revise. -->
+          <!-- Suspendido: publicarlo o darlo de baja no aplica hasta que administración lo revise. -->
         } @else if (!edEsNuevo() && !edActivo()) {
           <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="volverAPublicar()">Volver a publicar</button>
         } @else if (!edEsNuevo() && confirmandoBaja()) {

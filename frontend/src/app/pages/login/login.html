@@ -91,3 +91,12 @@
     </p>
   </div>
 </section>
+
+<dialog #dialogoSuspension class="suspension" role="alertdialog" aria-labelledby="suspension-titulo" aria-describedby="suspension-motivo">
+  <span class="suspension-icono" aria-hidden="true">🚫</span>
+  <h2 id="suspension-titulo">Tu cuenta está suspendida</h2>
+  <p>La administración de GlossUP suspendió tu cuenta por este motivo:</p>
+  <blockquote id="suspension-motivo">{{ motivoSuspension() }}</blockquote>
+  <p class="suspension-nota">Mientras siga suspendida no puedes entrar. Si crees que es un error, comunícate con la administración de GlossUP.</p>
+  <button type="button" class="btn-primario" autofocus (click)="dialogoSuspension.close()">Entendido</button>
+</dialog>

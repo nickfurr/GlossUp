@@ -1,7 +1,7 @@
 package com.glossup.usuarios.application.service;
 
-import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.CredencialesInvalidasException;
+import com.glossup.shared.exception.CuentaSuspendidaException;
 import com.glossup.shared.security.JwtService;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
@@ -37,8 +37,7 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
         }
         // Solo después de comprobar la contraseña: así nadie averigua qué correos están suspendidos.
         if (!usuario.isActivo()) {
-            throw new ReglaNegocioException("Tu cuenta está suspendida"
-                    + (usuario.getMotivoSuspension() != null ? ". Motivo: " + usuario.getMotivoSuspension() : "."));
+            throw new CuentaSuspendidaException(usuario.getMotivoSuspension());
         }
 
         String token = jwtService.generarToken(

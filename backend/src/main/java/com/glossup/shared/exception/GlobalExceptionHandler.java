@@ -29,6 +29,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), req, List.of());
     }
 
+    @ExceptionHandler(CuentaSuspendidaException.class)
+    public ResponseEntity<ApiError> handleCuentaSuspendida(CuentaSuspendidaException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), req, ex.getMotivo() != null ? List.of(ex.getMotivo()) : List.of());
+    }
+
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<ApiError> handleReglaNegocio(ReglaNegocioException ex, HttpServletRequest req) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, List.of());

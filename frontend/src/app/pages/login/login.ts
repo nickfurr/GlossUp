@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, rutaDePanel } from '../../shared/auth';
@@ -17,6 +17,10 @@ import type { RolUsuario } from '../../shared/models';
 export class Login {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private readonly dialogoSuspension = viewChild<ElementRef<HTMLDialogElement>>('dialogoSuspension');
+
+  /** Motivo que escribió el administrador; se muestra en una ventana grande al intentar entrar. */
+  readonly motivoSuspension = signal<string | null>(null);
 
   modo = signal<'login' | 'registro'>('login');
   readonly esRegistro = computed(() => this.modo() === 'registro');
@@ -50,8 +54,14 @@ export class Login {
       this.auth.login(this.email, this.password).subscribe({
         next: (s) => this.router.navigateByUrl(rutaDePanel(s.panel), { replaceUrl: true }),
         error: (e) => {
-          this.error.set(this.msg(e, this.modo()));
           this.cargando.set(false);
+          if (e?.status === 403) {
+            this.motivoSuspension.set(e.error?.detalles?.[0] ?? 'No se indicó un motivo.');
+            this.password = '';
+            this.dialogoSuspension()?.nativeElement.showModal();
+            return;
+          }
+          this.error.set(this.msg(e, this.modo()));
         },
       });
 

@@ -396,6 +396,21 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .badge-estado.rojo { background: #fbe4e2; color: #c0392b; }
 .badge-estado.amber { background: #fdf0d8; color: #c98a1e; }
 
+/* ---- Avisos de suspensión ---- */
+.suspension { width: min(34rem, calc(100vw - 2rem)); padding: 2rem; border: 0; border-top: 6px solid #a51d3a; border-radius: 16px; text-align: center; box-shadow: 0 24px 70px #2b0a1a55; }
+.suspension::backdrop { background: rgb(30 10 20 / .65); }
+.suspension-icono { display: block; font-size: 3rem; line-height: 1; }
+.suspension h2 { margin: .7rem 0 .5rem; color: #8f1c33; font-size: 1.6rem; }
+.suspension p { margin: 0 0 .7rem; }
+.suspension blockquote { margin: 0 0 1rem; padding: 1rem 1.1rem; border-radius: 10px; background: #fdecef; color: #5e1226; font-size: 1.1rem; font-weight: 700; text-align: left; white-space: pre-line; overflow-wrap: anywhere; }
+.suspension-nota { color: #6b5a61; font-size: .9rem; }
+.notificacion-bloqueo { margin-bottom: 1rem; border: 1px solid #f2b8c4; border-left: 5px solid #a51d3a; border-radius: 10px; background: #fdecef; color: #5e1226; }
+.notificacion-bloqueo summary { padding: .75rem 1rem; font-weight: 800; cursor: pointer; }
+.notificacion-bloqueo summary:focus-visible { outline: 3px solid var(--vino); outline-offset: 2px; }
+.notificacion-bloqueo ul { list-style: none; margin: 0; padding: 0 1rem .7rem; display: grid; gap: .5rem; }
+.notificacion-bloqueo li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .9rem; padding-top: .55rem; border-top: 1px solid #f7d3db; }
+.notificacion-bloqueo .detalle { display: grid; gap: .1rem; flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
+
 /* ---- Panel del administrador ---- */
 .aviso-bloqueo { margin: 0 0 1rem; padding: .7rem .9rem; border: 1px solid #f2b8c4; border-radius: 10px; background: #fdecef; color: #8f1c33; font-size: .88rem; }
 .aviso-ok { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 10px; background: #e3f3ea; color: #1f6b3a; font-weight: 600; }
