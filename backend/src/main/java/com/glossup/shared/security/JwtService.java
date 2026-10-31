@@ -55,6 +55,11 @@ public class JwtService {
         return roles instanceof List ? (List<String>) roles : List.of();
     }
 
+    public java.time.Instant extraerEmision(String token) {
+        java.util.Date emitido = parse(token).getIssuedAt();
+        return emitido != null ? emitido.toInstant() : java.time.Instant.EPOCH;
+    }
+
     public boolean esValido(String token) {
         try {
             parse(token);

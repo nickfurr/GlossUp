@@ -19,11 +19,23 @@ public record ProductoResponse(
         String registroInvima,
         String descripcion,
         boolean activo,
+        boolean baneado,
+        /** Solo para el dueño y el administrador; ver {@link #conModeracion}. */
+        String motivoBaneo,
         List<String> imagenes,
         List<IngredienteResponse> ingredientes,
         OffsetDateTime creadoEn
 ) {
+    /** Para el dueño y el administrador: incluye el motivo del bloqueo, que el cliente no necesita ver. */
+    public static ProductoResponse conModeracion(Producto producto) {
+        return armar(producto, producto.getMotivoBaneo());
+    }
+
     public static ProductoResponse fromDomain(Producto producto) {
+        return armar(producto, null);
+    }
+
+    private static ProductoResponse armar(Producto producto, String motivoBaneo) {
         List<String> imagenes = producto.getImagenes().stream()
                 .map(ImagenProducto::url)
                 .toList();
@@ -44,6 +56,8 @@ public record ProductoResponse(
                 producto.getRegistroInvima(),
                 producto.getDescripcion(),
                 producto.isActivo(),
+                producto.isBaneado(),
+                motivoBaneo,
                 imagenes,
                 ingredientes,
                 producto.getCreadoEn()

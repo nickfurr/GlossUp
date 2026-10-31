@@ -24,7 +24,9 @@ public class Usuario {
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
-    private final String email;
+    private String email;
+    private String motivoSuspension;
+    private OffsetDateTime sesionesDesde;
     private String nombre;
     private String passwordHash;
     private boolean activo;
@@ -76,6 +78,41 @@ public class Usuario {
         this.activo = true;
     }
 
+    /** Suspensión por el administrador: no puede entrar y sus sesiones abiertas dejan de valer. */
+    public void suspender(String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new ReglaNegocioException("Escribe el motivo de la suspensión");
+        }
+        this.activo = false;
+        this.motivoSuspension = motivo.trim();
+    }
+
+    public void reactivar() {
+        this.activo = true;
+        this.motivoSuspension = null;
+    }
+
+    public void cerrarSesiones(OffsetDateTime desde) {
+        this.sesionesDesde = desde;
+    }
+
+    /** Reconstrucción desde persistencia. */
+    public Usuario conModeracion(String motivoSuspension, OffsetDateTime sesionesDesde) {
+        this.motivoSuspension = motivoSuspension;
+        this.sesionesDesde = sesionesDesde;
+        return this;
+    }
+
+    public void cambiarEmail(String nuevoEmail) {
+        this.email = validarEmail(nuevoEmail);
+    }
+
+    /** Deja al usuario con un solo rol. */
+    public void cambiarRol(Rol rol) {
+        this.roles.clear();
+        this.roles.add(Objects.requireNonNull(rol, "rol requerido"));
+    }
+
     public void cambiarNombre(String nuevoNombre) {
         this.nombre = validarNombre(nuevoNombre);
     }
@@ -118,6 +155,8 @@ public class Usuario {
     public String getNombre() { return nombre; }
     public String getPasswordHash() { return passwordHash; }
     public boolean isActivo() { return activo; }
+    public String getMotivoSuspension() { return motivoSuspension; }
+    public OffsetDateTime getSesionesDesde() { return sesionesDesde; }
     public Set<Rol> getRoles() { return Set.copyOf(roles); }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
 }

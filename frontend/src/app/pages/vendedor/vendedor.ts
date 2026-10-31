@@ -71,7 +71,7 @@ export class Vendedor {
     const hora = new Date().getHours();
     return hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
   });
-  readonly activos = computed(() => this.productos().filter((p) => p.activo).length);
+  readonly activos = computed(() => this.productos().filter((p) => p.activo && !p.baneado).length);
   readonly porReabastecer = computed(() => this.productos().filter((p) => this.stockBajo(p)).length);
   readonly alertas = computed(() => this.productos().filter((p) => this.faltantes(p).length > 0).length);
   readonly semanas = computed(() => {
@@ -99,8 +99,8 @@ export class Vendedor {
     const texto = this.q().trim().toLowerCase();
     const f = this.filtro();
     return this.productos().filter((p) => {
-      if (f === 'activos' && !p.activo) return false;
-      if (f === 'sinstock' && (!p.activo || p.stock !== 0)) return false;
+      if (f === 'activos' && (!p.activo || p.baneado)) return false;
+      if (f === 'sinstock' && (!p.activo || p.baneado || p.stock !== 0)) return false;
       if (f === 'pocas' && !this.stockBajo(p)) return false;
       if (f === 'alertas' && this.faltantes(p).length === 0) return false;
       if (f === 'baja' && p.activo) return false;
@@ -130,6 +130,7 @@ export class Vendedor {
   // ---- Estado del editor ----
   readonly edEsNuevo = signal(true);
   readonly edActivo = signal(true);
+  readonly edBloqueo = signal<string | null>(null);
   readonly confirmandoBaja = signal(false);
   readonly leyendoEtiqueta = signal(false);
   readonly avisoEtiqueta = signal<string | null>(null);
@@ -220,12 +221,12 @@ export class Vendedor {
   }
 
   stockBajo(p: ProductoVendedor): boolean {
-    return p.activo && p.stock <= STOCK_BAJO;
+    return p.activo && !p.baneado && p.stock <= STOCK_BAJO;
   }
 
   /** Lo que le falta a un producto publicado para estar completo ante el cliente. */
   faltantes(p: ProductoVendedor): string[] {
-    if (!p.activo) return [];
+    if (!p.activo || p.baneado) return [];
     return [...(p.imagenes?.length ? [] : ['imagen']), ...(p.registroInvima ? [] : ['registro INVIMA'])];
   }
 
@@ -286,6 +287,7 @@ export class Vendedor {
   }
 
   estadoDe(p: ProductoVendedor): { txt: string; cls: string } {
+    if (p.baneado) return { txt: 'Bloqueado', cls: 'rojo' };
     if (!p.activo) return { txt: 'Dado de baja', cls: 'amber' };
     if (p.stock === 0) return { txt: 'Sin stock', cls: 'rojo' };
     return { txt: 'Publicado', cls: 'ok' };
@@ -315,6 +317,7 @@ export class Vendedor {
   abrirNuevo(): void {
     this.edEsNuevo.set(true);
     this.edActivo.set(true);
+    this.edBloqueo.set(null);
     this.confirmandoBaja.set(false);
     this.avisoEtiqueta.set(null);
     this.edId = 0;
@@ -336,6 +339,7 @@ export class Vendedor {
   abrirEditor(p: ProductoVendedor): void {
     this.edEsNuevo.set(false);
     this.edActivo.set(p.activo);
+    this.edBloqueo.set(p.baneado ? p.motivoBaneo ?? 'Sin motivo indicado' : null);
     this.confirmandoBaja.set(false);
     this.avisoEtiqueta.set(null);
     this.edId = p.id;

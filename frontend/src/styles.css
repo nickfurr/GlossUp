@@ -396,6 +396,37 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .badge-estado.rojo { background: #fbe4e2; color: #c0392b; }
 .badge-estado.amber { background: #fdf0d8; color: #c98a1e; }
 
+/* ---- Panel del administrador ---- */
+.aviso-bloqueo { margin: 0 0 1rem; padding: .7rem .9rem; border: 1px solid #f2b8c4; border-radius: 10px; background: #fdecef; color: #8f1c33; font-size: .88rem; }
+.aviso-ok { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 10px; background: #e3f3ea; color: #1f6b3a; font-weight: 600; }
+.celda-persona { display: grid; gap: .1rem; min-width: 0; overflow-wrap: anywhere; }
+.tabla-admin td { vertical-align: middle; }
+.tabla-admin td:first-child, .tabla-admin th:first-child { width: 100%; } /* el texto largo se queda con el espacio libre */
+.tabla-admin td:not(:first-child) { white-space: nowrap; }
+.tabla-admin .col-accion { width: 1%; text-align: right; white-space: nowrap; }
+.paginador { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; margin-top: .9rem; color: #7c6870; font-size: .85rem; }
+.paginador-botones { display: flex; gap: .4rem; }
+.filtros-admin { display: grid; gap: .6rem; margin-bottom: 1rem; }
+.filtros-admin .buscador { width: 100%; box-sizing: border-box; }
+.gestion { width: min(30rem, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0 0 0 auto; padding: 0; border: 0; box-shadow: -10px 0 40px #2b0a1a33; background: var(--crema); overflow-y: auto; }
+.gestion::backdrop { background: rgb(30 10 20 / .45); }
+.gestion-cabeza { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding: 1rem 1.2rem; background: #fff; border-bottom: 1px solid var(--borde); }
+.gestion-cabeza h2 { margin: 0; font-size: 1.1rem; overflow-wrap: anywhere; }
+.gestion-cuerpo { display: grid; gap: .8rem; padding: 1rem 1.2rem 1.5rem; }
+.gestion .panel h3 { margin-bottom: .6rem; }
+.gestion .campo select { width: 100%; padding: .6rem; border: 1px solid var(--borde); border-radius: 8px; font: inherit; font-weight: 400; background: #fff; }
+.gestion-acciones { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+.gestion p { margin: 0 0 .6rem; }
+.zona-peligro { border-color: #f2b8c4; }
+.zona-peligro h3 { color: #8f1c33; }
+.btn-peligro { padding: .55rem 1rem; border: 0; border-radius: 999px; background: #a51d3a; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.btn-peligro:disabled { opacity: .55; cursor: not-allowed; }
+.enlace-recuperacion { display: flex; gap: .4rem; margin-bottom: .5rem; }
+.enlace-recuperacion input { flex: 1; min-width: 0; padding: .5rem; border: 1px solid var(--borde); border-radius: 8px; font: inherit; font-size: .8rem; }
+.datos-lista { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .3rem .9rem; margin: 0; font-size: .9rem; }
+.datos-lista dt { color: #7c6870; }
+.datos-lista dd { margin: 0; overflow-wrap: anywhere; }
+
 /* ---- Editor a dos columnas ---- */
 .editor { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 .campo { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.8rem; }
@@ -429,6 +460,14 @@ main.full { max-width: none; margin: 0; padding: 0; }
   .dash-row, .dash-row-igual, .editor { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 680px) {
+  /* Cada fila pasa a tarjeta: así los botones nunca quedan cortados a la derecha. */
+  .tabla-admin, .tabla-admin tbody { display: block; }
+  .tabla-admin thead { display: none; }
+  .tabla-admin tr { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .7rem; padding: .8rem 0; border-bottom: 1px solid var(--borde); }
+  .tabla-admin td { display: block; width: auto; padding: 0; border: 0; }
+  .tabla-admin td:first-child { flex: 1 1 100%; width: auto; }
+  .tabla-admin td.celda-prod { display: flex; }
+  .tabla-admin .col-accion { width: auto; margin-left: auto; }
   .vend-layout { flex-direction: column; }
   .vend-side { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.8rem 1rem; }
   .vend-sub { display: none; }

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import type { Panel, RolUsuario, SesionUsuario } from './models';
 
 interface LoginResponse {
@@ -47,18 +47,6 @@ export class AuthService {
   login(email: string, password: string): Observable<SesionUsuario> {
     return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
       map((data) => this.guardarSesion(data.token, data.usuarioId, data.email, data.roles ?? [], data.nombre)),
-      catchError((err) => {
-        if (err?.status === 0 || err?.status === 502 || err?.status === 504) {
-          const correo = email.trim().toLowerCase();
-          const roles: RolUsuario[] = correo.includes('admin')
-            ? ['ADMIN']
-            : correo.includes('vend')
-              ? ['VENDEDOR']
-              : ['CLIENTE'];
-          return of(this.guardarSesion('demo-jwt-token', 1, correo, roles));
-        }
-        return throwError(() => err);
-      }),
     );
   }
 
@@ -103,6 +91,15 @@ export class AuthService {
 
   cambiarClave(actual: string, nueva: string): Observable<void> {
     return this.http.put<void>('/api/cuenta/clave', { actual, nueva });
+  }
+
+  /** Pide el enlace de recuperación. La respuesta es igual exista o no el correo. */
+  recuperarClave(email: string): Observable<void> {
+    return this.http.post<void>('/api/auth/recuperar', { email });
+  }
+
+  restablecerClave(token: string, nueva: string): Observable<void> {
+    return this.http.post<void>('/api/auth/restablecer', { token, nueva });
   }
 
   salir(): void {

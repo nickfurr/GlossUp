@@ -2,9 +2,9 @@
   <aside class="vend-side">
     <div class="vend-brand">GlossUP</div>
     <div class="vend-sub">Panel Administrador</div>
-    <nav class="vend-nav">
+    <nav class="vend-nav" aria-label="Secciones del panel">
       @for (n of nav; track n.id) {
-        <button type="button" [class.activo]="vista() === n.id" (click)="irA(n.id)">
+        <button type="button" [class.activo]="vista() === n.id" [attr.aria-current]="vista() === n.id ? 'page' : null" (click)="irA(n.id)">
           <span class="dot"></span>{{ n.label }}
         </button>
       }
@@ -16,114 +16,51 @@
   </aside>
 
   <main class="vend-main">
-    @if (aviso()) {
-      <p class="nota" style="background: #dcfce7; color: #166534; padding: 0.75rem 1rem; border-radius: 10px; font-weight: 600">
-        {{ aviso() }}
-      </p>
-    }
     @if (error()) {
-      <p class="error">{{ error() }}</p>
+      <p class="error" role="alert">{{ error() }} <button type="button" class="btn-mini" (click)="cargar()">Reintentar</button></p>
     }
 
-    <!-- ===================================================== DASHBOARD -->
+    <!-- ===================================================== RESUMEN -->
     @if (vista() === 'dashboard') {
-      <div class="vend-topline">
-        <h2>{{ saludo }}, {{ sesion()?.nombre }}</h2>
-        <button type="button" class="btn-primario" (click)="irA('nuevo-vendedor')">
-          ＋ Nuevo vendedor
-        </button>
-      </div>
+      <div class="vend-topline"><h2>{{ saludo() }}, {{ sesion()?.nombre }}</h2></div>
 
       <div class="tiles">
-        <div class="tile-stat">
-          <span class="label">Usuarios registrados</span>
-          <span class="val val-vino">{{ usuarios().length }}</span>
-        </div>
-        <div class="tile-stat">
-          <span class="label">Vendedores activos</span>
-          <span class="val val-rosa">{{ totalVendedores() }}</span>
-        </div>
-        <div class="tile-stat">
-          <span class="label">Clientes registrados</span>
-          <span class="val val-ok">{{ totalClientes() }}</span>
-        </div>
-        <div class="tile-stat">
-          <span class="label">Productos en catálogo</span>
-          <span class="val val-amber">{{ productos().length }}</span>
-        </div>
+        <button type="button" class="tile-stat tile-accion" (click)="verUsuarios('todos')"><span class="label">Usuarios</span><span class="val val-vino">{{ usuarios().length }}</span><span class="tile-nota">{{ vendedores() }} vendedores · {{ clientes() }} clientes</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verUsuarios('suspendidos')"><span class="label">Cuentas suspendidas</span><span class="val val-rosa">{{ suspendidos() }}</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verProductos('publicados')"><span class="label">Productos publicados</span><span class="val val-ok">{{ publicados() }}</span><span class="tile-nota">de {{ productos().length }} registrados</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verProductos('bloqueados')"><span class="label">Productos bloqueados</span><span class="val val-amber">{{ bloqueados() }}</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verPedidos('PAGADO')"><span class="label">Pedidos por enviar</span><span class="val val-rosa">{{ porEnviar() }}</span><span class="tile-nota">{{ porPagar() }} sin pagar</span></button>
+        <div class="tile-stat"><span class="label">Ventas pagadas</span><span class="val val-vino">{{ cop.format(ingresos()) }}</span><span class="tile-nota">Incluye el envío</span></div>
       </div>
 
-      <div class="dash-row">
+      <div class="dash-row dash-row-igual">
         <section class="panel">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem">
-            <h3 style="margin: 0">Usuarios registrados</h3>
-            <button type="button" class="link" (click)="irA('usuarios')">Ver todos →</button>
-          </div>
-          @if (usuarios().length === 0) {
-            <p class="nota">No hay usuarios registrados.</p>
-          } @else {
-            <table class="tabla">
-              <thead>
-                <tr>
-                  <th>USUARIO</th>
-                  <th>CORREO</th>
-                  <th>ROL</th>
-                  <th>ESTADO</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (u of usuarios(); track u.id) {
-                  <tr>
-                    <td><strong>#{{ u.id }}</strong> · {{ u.nombre }}</td>
-                    <td>{{ u.email }}</td>
-                    <td>
-                      @for (r of u.roles; track r) {
-                        <span class="pill">{{ r }}</span>
-                      }
-                    </td>
-                    <td>
-                      <span class="badge-estado" [class.activo]="u.activo" [class.agotado]="!u.activo">
-                        ● {{ u.activo ? 'Activo' : 'Inactivo' }}
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
+          <div class="vend-topline"><h3 style="margin:0">Últimos usuarios</h3><button type="button" class="link" (click)="verUsuarios('todos')">Ver todos →</button></div>
+          <ul class="pedidos">
+            @for (u of ultimosUsuarios(); track u.id) {
+              <li>
+                <button type="button" class="pedido-row" (click)="abrirUsuario(u)">
+                  <span class="celda-persona"><span>{{ u.nombre }}</span><span class="suave">{{ u.email }}</span></span>
+                  <span></span>
+                  <span [class]="'pill ' + (u.activo ? 'pill-ok' : 'pill-rojo')">{{ u.activo ? (etiquetaRol[u.roles[0]] || 'Sin rol') : 'Suspendido' }}</span>
+                </button>
+              </li>
+            } @empty { <li class="nota">{{ cargando() ? 'Cargando…' : 'No hay usuarios.' }}</li> }
+          </ul>
         </section>
-
         <section class="panel">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem">
-            <h3 style="margin: 0">Productos recientes</h3>
-            <button type="button" class="link" (click)="irA('productos')">Ver catálogo →</button>
-          </div>
-          @if (productos().length === 0) {
-            <p class="nota">No hay productos registrados en el catálogo aún.</p>
-          } @else {
-            <table class="tabla">
-              <thead>
-                <tr>
-                  <th>PRODUCTO</th>
-                  <th>PRECIO</th>
-                  <th>ESTADO</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (p of productos(); track p.id) {
-                  <tr>
-                    <td><strong>{{ p.nombre }}</strong></td>
-                    <td class="precio">${{ p.precio | number: '1.0-0' }}</td>
-                    <td>
-                      <span class="badge-estado" [class.activo]="p.activo" [class.agotado]="!p.activo">
-                        ● {{ p.activo ? 'Activo' : 'Inactivo' }}
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
+          <div class="vend-topline"><h3 style="margin:0">Últimos pedidos</h3><button type="button" class="link" (click)="verPedidos('todos')">Ver todos →</button></div>
+          <ul class="pedidos">
+            @for (p of ultimosPedidos(); track p.id) {
+              <li>
+                <button type="button" class="pedido-row" (click)="verPedidos('todos')">
+                  <span class="celda-persona"><span>#{{ p.id }} · {{ nombreDe(p.usuarioId) }}</span><span class="suave">{{ fecha(p.creadoEn) }}</span></span>
+                  <span class="precio-fila">{{ cop.format(p.total) }}</span>
+                  <span [class]="'pill ' + estadoPedido(p).cls">{{ estadoPedido(p).txt }}</span>
+                </button>
+              </li>
+            } @empty { <li class="nota">{{ cargando() ? 'Cargando…' : 'Todavía no hay pedidos.' }}</li> }
+          </ul>
         </section>
       </div>
     }
@@ -131,208 +68,259 @@
     <!-- ===================================================== USUARIOS -->
     @if (vista() === 'usuarios') {
       <div class="vend-topline">
-        <h2>Usuarios registrados</h2>
-        <button type="button" class="btn-primario" (click)="irA('nuevo-vendedor')">
-          ＋ Nuevo vendedor
-        </button>
+        <h2>Usuarios</h2>
+        <button type="button" class="btn-primario" (click)="abrirNuevo()">＋ Nuevo vendedor</button>
       </div>
-
-      <div class="filtros-fila">
-        <input
-          class="buscador"
-          placeholder="Buscar por nombre o correo electrónico"
-          [ngModel]="qUsuario()"
-          (ngModelChange)="qUsuario.set($event)"
-          [ngModelOptions]="{ standalone: true }"
-        />
-        <div class="filtros">
-          <button
-            type="button"
-            class="filtro"
-            [class.activo]="filtroRol() === 'todos'"
-            (click)="filtroRol.set('todos')"
-          >
-            Todos
-          </button>
-          <button
-            type="button"
-            class="filtro"
-            [class.activo]="filtroRol() === 'VENDEDOR'"
-            (click)="filtroRol.set('VENDEDOR')"
-          >
-            Vendedores
-          </button>
-          <button
-            type="button"
-            class="filtro"
-            [class.activo]="filtroRol() === 'CLIENTE'"
-            (click)="filtroRol.set('CLIENTE')"
-          >
-            Clientes
-          </button>
-          <button
-            type="button"
-            class="filtro"
-            [class.activo]="filtroRol() === 'ADMIN'"
-            (click)="filtroRol.set('ADMIN')"
-          >
-            Admins
-          </button>
+      <div class="filtros-admin">
+        <input class="buscador" placeholder="Buscar por nombre o correo" aria-label="Buscar por nombre o correo"
+               [ngModel]="qUsuario()" (ngModelChange)="qUsuario.set($event); paginaUsuarios.set(0)" [ngModelOptions]="{ standalone: true }" />
+        <div class="filtros" role="group" aria-label="Filtrar usuarios">
+          <button type="button" class="filtro" [class.activo]="filtroRol() === 'todos'" [attr.aria-pressed]="filtroRol() === 'todos'" (click)="filtroRol.set('todos'); paginaUsuarios.set(0)">Todos</button>
+          @for (r of roles; track r) {
+            <button type="button" class="filtro" [class.activo]="filtroRol() === r" [attr.aria-pressed]="filtroRol() === r" (click)="filtroRol.set(r); paginaUsuarios.set(0)">{{ etiquetaRol[r] }}</button>
+          }
+          <button type="button" class="filtro" [class.activo]="filtroRol() === 'suspendidos'" [attr.aria-pressed]="filtroRol() === 'suspendidos'" (click)="filtroRol.set('suspendidos'); paginaUsuarios.set(0)">Suspendidos</button>
         </div>
       </div>
-
       <div class="panel">
         @if (usuariosFiltrados().length === 0) {
-          <p class="nota">No hay usuarios que coincidan con el filtro.</p>
+          <p class="nota">{{ cargando() ? 'Cargando…' : 'No hay usuarios que coincidan.' }}</p>
         } @else {
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>NOMBRE</th>
-                <th>CORREO</th>
-                <th>ROL</th>
-                <th>ESTADO</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (u of usuariosFiltrados(); track u.id) {
-                <tr>
-                  <td><strong>#{{ u.id }}</strong></td>
-                  <td>{{ u.nombre }}</td>
-                  <td>{{ u.email }}</td>
-                  <td>
-                    @for (r of u.roles; track r) {
-                      <span class="pill">{{ r }}</span>
-                    }
-                  </td>
-                  <td>
-                    <span class="badge-estado" [class.activo]="u.activo" [class.agotado]="!u.activo">
-                      ● {{ u.activo ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <div class="tabla-scroll">
+            <table class="tabla tabla-admin">
+              <thead><tr><th scope="col">USUARIO</th><th scope="col">ROL</th><th scope="col">ESTADO</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+              <tbody>
+                @for (u of usuariosPagina(); track u.id) {
+                  <tr>
+                    <td><span class="celda-persona"><strong>{{ u.nombre }}</strong><span class="suave">{{ u.email }}</span></span></td>
+                    <td>{{ etiquetaRol[u.roles[0]] || 'Sin rol' }}</td>
+                    <td><span [class]="'badge-estado ' + (u.activo ? 'ok' : 'rojo')">{{ u.activo ? 'Activo' : 'Suspendido' }}</span></td>
+                    <td class="col-accion"><button type="button" class="btn-sec" (click)="abrirUsuario(u)" [attr.aria-label]="'Gestionar a ' + u.nombre">Gestionar</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="paginador">
+            <span>{{ rango(usuariosFiltrados().length, paginaUsuarios()) }}</span>
+            <span class="paginador-botones">
+              <button type="button" class="btn-sec" [disabled]="paginaUsuarios() === 0" (click)="paginaUsuarios.set(paginaUsuarios() - 1)">Anterior</button>
+              <button type="button" class="btn-sec" [disabled]="paginaUsuarios() >= ultimaPagina(usuariosFiltrados().length)" (click)="paginaUsuarios.set(paginaUsuarios() + 1)">Siguiente</button>
+            </span>
+          </div>
         }
       </div>
-    }
-
-    <!-- ===================================================== NUEVO VENDEDOR -->
-    @if (vista() === 'nuevo-vendedor') {
-      <div class="vend-topline">
-        <h2>Nuevo vendedor</h2>
-        <button type="button" class="btn-sec" (click)="irA('usuarios')">← Volver</button>
-      </div>
-
-      <section class="panel" style="max-width: 680px">
-        <h3>Datos de la cuenta de vendedor</h3>
-        <form (ngSubmit)="crearVendedor()">
-          <label class="campo">
-            Nombre de la marca o vendedor
-            <input
-              name="nombreVendedor"
-              [(ngModel)]="nombreVendedor"
-              placeholder="Ej: Aurora Cosmetics / Laboratorio Dermaskin"
-              maxlength="150"
-              required
-            />
-          </label>
-
-          <div class="campos-2">
-            <label class="campo">
-              Correo electrónico
-              <input
-                type="email"
-                name="emailVendedor"
-                [(ngModel)]="emailVendedor"
-                placeholder="vendedor@marca.com"
-                maxlength="180"
-                required
-              />
-            </label>
-            <label class="campo">
-              Contraseña inicial (mín. 8 caracteres)
-              <input
-                type="password"
-                name="passwordVendedor"
-                [(ngModel)]="passwordVendedor"
-                placeholder="••••••••"
-                required
-              />
-            </label>
-          </div>
-
-          <div class="editor-acciones">
-            <button type="button" class="btn-sec" (click)="irA('dashboard')">Cancelar</button>
-            <button type="submit" class="btn-primario" [disabled]="guardando()">
-              {{ guardando() ? 'Guardando…' : 'Crear vendedor' }}
-            </button>
-          </div>
-        </form>
-      </section>
     }
 
     <!-- ===================================================== PRODUCTOS -->
     @if (vista() === 'productos') {
-      <div class="vend-topline">
-        <h2>Productos en el catálogo</h2>
+      <div class="vend-topline"><h2>Productos</h2></div>
+      <div class="filtros-admin">
+        <input class="buscador" placeholder="Buscar por nombre, marca o ingrediente (INCI)" aria-label="Buscar por nombre, marca o ingrediente"
+               [ngModel]="qProducto()" (ngModelChange)="qProducto.set($event); paginaProductos.set(0)" [ngModelOptions]="{ standalone: true }" />
+        <div class="filtros" role="group" aria-label="Filtrar productos">
+          @for (f of filtrosProducto; track f.id) {
+            <button type="button" class="filtro" [class.activo]="filtroProducto() === f.id" [attr.aria-pressed]="filtroProducto() === f.id" (click)="filtroProducto.set(f.id); paginaProductos.set(0)">{{ f.label }}</button>
+          }
+        </div>
       </div>
-
-      <div class="filtros-fila">
-        <input
-          class="buscador"
-          placeholder="Buscar por nombre, marca o ingrediente (INCI)"
-          [ngModel]="qProducto()"
-          (ngModelChange)="qProducto.set($event)"
-          [ngModelOptions]="{ standalone: true }"
-        />
-      </div>
-
       <div class="panel">
         @if (productosFiltrados().length === 0) {
-          <p class="nota">No hay productos registrados en el catálogo.</p>
+          <p class="nota">{{ cargando() ? 'Cargando…' : 'No hay productos que coincidan.' }}</p>
         } @else {
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>PRODUCTO</th>
-                <th>MARCA / CATEGORÍA</th>
-                <th>FICHA INCI</th>
-                <th>PRECIO</th>
-                <th>STOCK</th>
-                <th>INVIMA</th>
-                <th>ESTADO</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (p of productosFiltrados(); track p.id) {
-                <tr>
-                  <td class="celda-prod">
-                    <span class="thumb">
-                      @if (p.imagenes && p.imagenes[0]) {
-                        <img [src]="p.imagenes[0]" [alt]="p.nombre" />
-                      }
-                    </span>
-                    {{ p.nombre }}
-                  </td>
-                  <td>{{ p.marca || '—' }} · {{ p.categoria || 'General' }}</td>
-                  <td>{{ p.ingredientes.length }} ingredientes</td>
-                  <td class="precio">${{ p.precio | number: '1.0-0' }}</td>
-                  <td [class.rojo-txt]="p.stock === 0">{{ p.stock }}</td>
-                  <td>{{ p.registroInvima || '—' }}</td>
-                  <td>
-                    <span class="badge-estado" [class.activo]="p.activo" [class.agotado]="!p.activo">
-                      ● {{ p.activo ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <div class="tabla-scroll">
+            <table class="tabla tabla-admin">
+              <thead><tr><th scope="col">PRODUCTO</th><th scope="col">PRECIO</th><th scope="col">ESTADO</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+              <tbody>
+                @for (p of productosPagina(); track p.id) {
+                  <tr>
+                    <td class="celda-prod">
+                      <span class="thumb">@if (p.imagenes && p.imagenes[0]) { <img [src]="p.imagenes[0]" alt="" /> }</span>
+                      <span class="celda-persona"><strong>{{ p.nombre }}</strong><span class="suave">{{ nombreDe(p.vendedorId) }} · stock {{ p.stock }}</span></span>
+                    </td>
+                    <td class="precio">{{ cop.format(p.precio) }}</td>
+                    <td><span [class]="'badge-estado ' + estadoProducto(p).cls">{{ estadoProducto(p).txt }}</span></td>
+                    <td class="col-accion"><button type="button" class="btn-sec" (click)="abrirProducto(p)" [attr.aria-label]="'Gestionar ' + p.nombre">Gestionar</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="paginador">
+            <span>{{ rango(productosFiltrados().length, paginaProductos()) }}</span>
+            <span class="paginador-botones">
+              <button type="button" class="btn-sec" [disabled]="paginaProductos() === 0" (click)="paginaProductos.set(paginaProductos() - 1)">Anterior</button>
+              <button type="button" class="btn-sec" [disabled]="paginaProductos() >= ultimaPagina(productosFiltrados().length)" (click)="paginaProductos.set(paginaProductos() + 1)">Siguiente</button>
+            </span>
+          </div>
         }
       </div>
     }
+
+    <!-- ===================================================== PEDIDOS -->
+    @if (vista() === 'pedidos') {
+      <div class="vend-topline"><h2>Pedidos</h2><button type="button" class="btn-sec" (click)="cargar()">Actualizar</button></div>
+      <div class="filtros filtros-pedidos" role="group" aria-label="Filtrar pedidos">
+        @for (f of [['todos', 'Todos'], ['CREADO', 'Sin pagar'], ['PAGADO', 'Por enviar'], ['ENVIADO', 'Enviados'], ['CANCELADO', 'Cancelados']]; track f[0]) {
+          <button type="button" class="filtro" [class.activo]="filtroPedido() === f[0]" [attr.aria-pressed]="filtroPedido() === f[0]" (click)="filtroPedido.set(f[0]); paginaPedidos.set(0)">{{ f[1] }}</button>
+        }
+      </div>
+      <div class="panel">
+        @if (pedidosFiltrados().length === 0) {
+          <p class="nota">{{ cargando() ? 'Cargando…' : 'No hay pedidos con este filtro.' }}</p>
+        } @else {
+          <div class="tabla-scroll">
+            <table class="tabla tabla-admin">
+              <thead><tr><th scope="col">PEDIDO</th><th scope="col">TOTAL</th><th scope="col">ESTADO</th></tr></thead>
+              <tbody>
+                @for (p of pedidosPagina(); track p.id) {
+                  <tr>
+                    <td><span class="celda-persona"><strong>#{{ p.id }} · {{ nombreDe(p.usuarioId) }}</strong>
+                      <span class="suave">{{ fecha(p.creadoEn) }} · {{ p.items.length }} {{ p.items.length === 1 ? 'producto' : 'productos' }}@if (p.envio?.guia; as guia) { · Guía {{ guia }} }</span></span></td>
+                    <td class="precio">{{ cop.format(p.total) }}</td>
+                    <td><span [class]="'pill ' + estadoPedido(p).cls">{{ estadoPedido(p).txt }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="paginador">
+            <span>{{ rango(pedidosFiltrados().length, paginaPedidos()) }}</span>
+            <span class="paginador-botones">
+              <button type="button" class="btn-sec" [disabled]="paginaPedidos() === 0" (click)="paginaPedidos.set(paginaPedidos() - 1)">Anterior</button>
+              <button type="button" class="btn-sec" [disabled]="paginaPedidos() >= ultimaPagina(pedidosFiltrados().length)" (click)="paginaPedidos.set(paginaPedidos() + 1)">Siguiente</button>
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ===================================================== MI CUENTA -->
+    @if (vista() === 'cuenta') {
+      <div class="vend-topline"><h2>Mi cuenta</h2></div>
+      <app-ajustes-cuenta />
+    }
   </main>
 </div>
+
+<!-- ===================================================== GESTIONAR USUARIO -->
+<dialog #dialogoUsuario class="gestion" aria-labelledby="gestion-usuario-titulo">
+  @if (usuarioActivo(); as u) {
+    <div class="gestion-cabeza">
+      <div class="celda-persona"><h2 id="gestion-usuario-titulo">{{ u.nombre }}</h2><span class="suave">{{ u.email }}</span></div>
+      <button type="button" class="btn-sec" (click)="dialogoUsuario.close()">Cerrar</button>
+    </div>
+    <div class="gestion-cuerpo">
+      @if (avisoGestion()) { <p class="aviso-ok" role="status">{{ avisoGestion() }}</p> }
+      @if (errorGestion()) { <p class="aviso-bloqueo" role="alert">{{ errorGestion() }}</p> }
+      @if (!u.activo) { <p class="aviso-bloqueo">Cuenta suspendida. Motivo: {{ u.motivoSuspension || 'sin indicar' }}</p> }
+
+      <form class="panel" (ngSubmit)="guardarDatos(u)" novalidate>
+        <h3>Datos</h3>
+        <label class="campo">Nombre<input name="nombre" [(ngModel)]="edNombre" maxlength="150" /></label>
+        <label class="campo">Correo<input name="email" type="email" [(ngModel)]="edEmail" maxlength="255" /></label>
+        <div class="gestion-acciones"><button type="submit" class="btn-primario" [disabled]="ocupado()">Guardar datos</button></div>
+      </form>
+
+      <section class="panel">
+        <h3>Recuperar contraseña</h3>
+        <p class="suave">Genera un enlace de un solo uso, válido 24 horas, para que cree su contraseña. Tú nunca la ves. También se lo enviamos por correo si el correo está configurado.</p>
+        @if (enlace(); as e) {
+          <div class="enlace-recuperacion">
+            <input [value]="e" readonly aria-label="Enlace de recuperación" (focus)="$any($event.target).select()" />
+            <button type="button" class="btn-sec" (click)="copiarEnlace()">{{ copiado() ? 'Copiado ✓' : 'Copiar' }}</button>
+          </div>
+          <p class="suave">Entrégaselo solo a esta persona: quien lo tenga puede entrar a su cuenta.</p>
+        }
+        <div class="gestion-acciones"><button type="button" class="btn-sec" [disabled]="ocupado() || !u.activo" (click)="generarEnlace(u)">{{ enlace() ? 'Generar otro enlace' : 'Generar enlace' }}</button></div>
+      </section>
+
+      @if (esMiCuenta()) {
+        <p class="nota">Esta es tu cuenta: no puedes cambiar tu rol ni suspenderte.</p>
+      } @else {
+        <section class="panel">
+          <h3>Rol</h3>
+          <label class="campo">Tipo de cuenta
+            <select name="rol" [(ngModel)]="edRol">
+              @for (r of roles; track r) { <option [value]="r">{{ etiquetaRol[r] }}</option> }
+            </select>
+          </label>
+          <div class="gestion-acciones"><button type="button" class="btn-sec" [disabled]="ocupado() || edRol === u.roles[0]" (click)="guardarRol(u)">Cambiar rol</button></div>
+        </section>
+
+        @if (u.activo) {
+          <section class="panel zona-peligro">
+            <h3>Suspender cuenta</h3>
+            <p class="suave">No podrá entrar y sus sesiones abiertas dejan de funcionar.@if (u.roles[0] === 'VENDEDOR') { Sus productos saldrán del catálogo. Revisa antes si tiene pedidos por enviar. }</p>
+            <label class="campo">Motivo<textarea name="motivo" rows="2" [(ngModel)]="edMotivo" maxlength="300" placeholder="Se le muestra al intentar entrar"></textarea></label>
+            <div class="gestion-acciones"><button type="button" class="btn-peligro" [disabled]="ocupado()" (click)="suspender(u)">Suspender cuenta</button></div>
+          </section>
+        } @else {
+          <section class="panel">
+            <h3>Reactivar cuenta</h3>
+            <p class="suave">Podrá volver a entrar.@if (u.roles[0] === 'VENDEDOR') { Vuelven los productos bloqueados por esta suspensión. }</p>
+            <div class="gestion-acciones"><button type="button" class="btn-primario" [disabled]="ocupado()" (click)="reactivar(u)">Reactivar cuenta</button></div>
+          </section>
+        }
+      }
+    </div>
+  }
+</dialog>
+
+<!-- ===================================================== GESTIONAR PRODUCTO -->
+<dialog #dialogoProducto class="gestion" aria-labelledby="gestion-producto-titulo">
+  @if (productoActivo(); as p) {
+    <div class="gestion-cabeza">
+      <div class="celda-persona"><h2 id="gestion-producto-titulo">{{ p.nombre }}</h2><span class="suave">{{ nombreDe(p.vendedorId) }}</span></div>
+      <button type="button" class="btn-sec" (click)="dialogoProducto.close()">Cerrar</button>
+    </div>
+    <div class="gestion-cuerpo">
+      @if (avisoGestion()) { <p class="aviso-ok" role="status">{{ avisoGestion() }}</p> }
+      @if (errorGestion()) { <p class="aviso-bloqueo" role="alert">{{ errorGestion() }}</p> }
+      <section class="panel">
+        <h3>Ficha</h3>
+        <dl class="datos-lista">
+          <dt>Estado</dt><dd><span [class]="'badge-estado ' + estadoProducto(p).cls">{{ estadoProducto(p).txt }}</span></dd>
+          <dt>Marca</dt><dd>{{ p.marca || '—' }}</dd>
+          <dt>Categoría</dt><dd>{{ p.categoria || '—' }}</dd>
+          <dt>Precio</dt><dd>{{ cop.format(p.precio) }}</dd>
+          <dt>Stock</dt><dd>{{ p.stock }}</dd>
+          <dt>INVIMA</dt><dd>{{ p.registroInvima || 'Sin registro' }}</dd>
+          <dt>Ingredientes</dt><dd>{{ p.ingredientes.length }}</dd>
+        </dl>
+      </section>
+      @if (p.baneado) {
+        <section class="panel">
+          <h3>Producto bloqueado</h3>
+          <p>Motivo: {{ p.motivoBaneo || 'sin indicar' }}</p>
+          <p class="suave">Al quitar el bloqueo vuelve como lo tenía el vendedor.</p>
+          <div class="gestion-acciones"><button type="button" class="btn-primario" [disabled]="ocupado()" (click)="desbloquear(p)">Quitar bloqueo</button></div>
+        </section>
+      } @else {
+        <section class="panel zona-peligro">
+          <h3>Bloquear producto</h3>
+          <p class="suave">Sale del catálogo y el vendedor no puede volver a publicarlo. Los pedidos ya creados no cambian.</p>
+          <label class="campo">Motivo<textarea name="motivoProducto" rows="2" [(ngModel)]="edMotivo" maxlength="300" placeholder="Se le muestra al vendedor"></textarea></label>
+          <div class="gestion-acciones"><button type="button" class="btn-peligro" [disabled]="ocupado()" (click)="bloquear(p)">Bloquear producto</button></div>
+        </section>
+      }
+    </div>
+  }
+</dialog>
+
+<!-- ===================================================== NUEVO VENDEDOR -->
+<dialog #dialogoNuevo class="gestion" aria-labelledby="gestion-nuevo-titulo">
+  <div class="gestion-cabeza">
+    <h2 id="gestion-nuevo-titulo">Nuevo vendedor</h2>
+    <button type="button" class="btn-sec" (click)="dialogoNuevo.close()">Cerrar</button>
+  </div>
+  <form class="gestion-cuerpo" (ngSubmit)="crearVendedor()" novalidate>
+    @if (errorGestion()) { <p class="aviso-bloqueo" role="alert">{{ errorGestion() }}</p> }
+    <section class="panel">
+      <label class="campo">Nombre de la marca o vendedor<input name="nuevoNombre" [(ngModel)]="nuevoNombre" maxlength="150" /></label>
+      <label class="campo">Correo<input name="nuevoEmail" type="email" [(ngModel)]="nuevoEmail" maxlength="180" /></label>
+      <label class="campo">Contraseña inicial (mínimo 8 caracteres)<input name="nuevoClave" type="password" [(ngModel)]="nuevoClave" autocomplete="new-password" /></label>
+      <div class="gestion-acciones"><button type="submit" class="btn-primario" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Crear vendedor' }}</button></div>
+    </section>
+  </form>
+</dialog>

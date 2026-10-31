@@ -67,6 +67,11 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
     }
 
     @Override
+    public List<Pedido> listarTodos() {
+        return pedidoJpaRepository.findAllByOrderByCreadoEnDesc().stream().map(this::aDominio).toList();
+    }
+
+    @Override
     public Optional<Pedido> buscarPorGuia(String guia) {
         return pedidoJpaRepository.findByEnvioGuia(guia).map(this::aDominio);
     }

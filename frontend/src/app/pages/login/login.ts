@@ -70,8 +70,19 @@ export class Login {
     }
   }
 
+  /** Usa el correo ya escrito en el formulario. El mensaje es igual exista o no la cuenta. */
   avisoOlvido(): void {
-    this.info.set('Recuperación de contraseña: próximamente.');
+    this.error.set(null);
+    this.info.set(null);
+    const correo = this.email.trim();
+    if (!correo) {
+      this.error.set('Escribe tu correo arriba y vuelve a tocar "¿Olvidaste tu contraseña?".');
+      return;
+    }
+    this.auth.recuperarClave(correo).subscribe({
+      next: () => this.info.set('Si ese correo tiene cuenta, te enviamos un enlace para crear una contraseña nueva. Si no te llega en unos minutos, pídele el enlace al administrador.'),
+      error: () => this.error.set('Revisa que el correo esté bien escrito e inténtalo de nuevo.'),
+    });
   }
   avisoGoogle(): void {
     this.info.set('Inicio con Google: próximamente.');
@@ -81,6 +92,7 @@ export class Login {
     const status = err?.status;
     const m = err?.error?.message;
     if (status === 401) return 'Correo o contraseña incorrectos.';
+    if (status === 0 || status === 502 || status === 503 || status === 504) return 'No pudimos conectar con el servidor. Inténtalo de nuevo en un momento.';
     if (status === 422) return m ?? 'Ese correo ya está registrado.';
     if (status === 400) return 'Revisa los datos: la contraseña debe tener al menos 8 caracteres.';
     if (modo === 'registro' && (status === 404 || status === 405)) {

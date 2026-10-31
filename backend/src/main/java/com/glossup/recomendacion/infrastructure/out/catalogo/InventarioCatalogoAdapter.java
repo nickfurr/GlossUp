@@ -50,7 +50,7 @@ public class InventarioCatalogoAdapter implements InventarioPort {
     private Producto cargarDisponible(Long productoId) {
         Producto producto = productoRepository.buscarPorId(productoId)
                 .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
-        if (!producto.isActivo()) {
+        if (!producto.isActivo() || producto.isBaneado()) {
             throw new ReglaNegocioException("El producto '" + producto.getNombre() + "' no está disponible");
         }
         return producto;

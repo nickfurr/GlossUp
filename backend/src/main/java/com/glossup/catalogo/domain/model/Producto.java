@@ -32,6 +32,8 @@ public class Producto {
     private String registroInvima;
     private boolean activo;
     private String descripcion;
+    private boolean baneado;
+    private String motivoBaneo;
     private final List<ImagenProducto> imagenes;
     private final List<ComposicionProducto> composicion;
     private final OffsetDateTime creadoEn;
@@ -117,8 +119,11 @@ public class Producto {
 
     // ---- Publicación (RNF-04) ----
 
-    /** Publica el producto. Regla: no se puede publicar sin ficha INCI. */
+    /** Publica el producto. Reglas: no se puede publicar sin ficha INCI ni mientras esté bloqueado. */
     public void publicar() {
+        if (baneado) {
+            throw new ReglaNegocioException("Este producto está bloqueado por administración: " + motivoBaneo);
+        }
         if (composicion.isEmpty()) {
             throw new ReglaNegocioException(
                     "No se puede publicar un producto sin ficha de ingredientes (INCI)");
@@ -129,6 +134,27 @@ public class Producto {
     public void despublicar() {
         this.activo = false;
     }
+
+    // ---- Moderación del administrador ----
+
+    /** Motivo de los productos bloqueados por suspender a su vendedor: permite devolver solo esos al reactivarlo. */
+    public static final String MOTIVO_VENDEDOR_SUSPENDIDO = "Vendedor suspendido";
+
+    public void banear(String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new ReglaNegocioException("Escribe el motivo del bloqueo");
+        }
+        this.baneado = true;
+        this.motivoBaneo = motivo.trim();
+    }
+
+    public void desbanear() {
+        this.baneado = false;
+        this.motivoBaneo = null;
+    }
+
+    public boolean isBaneado() { return baneado; }
+    public String getMotivoBaneo() { return motivoBaneo; }
 
     // ---- Inventario (HU9) ----
 
@@ -248,7 +274,7 @@ public class Producto {
     }
 
     /** Regla de negocio: el cliente solo ve en el catálogo lo que puede comprar (activo y con stock). */
-    public boolean estaEnCatalogo() { return activo && stock > 0; }
+    public boolean estaEnCatalogo() { return activo && !baneado && stock > 0; }
     public List<ImagenProducto> getImagenes() { return List.copyOf(imagenes); }
     public List<ComposicionProducto> getComposicion() { return List.copyOf(composicion); }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
