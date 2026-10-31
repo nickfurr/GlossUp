@@ -42,6 +42,8 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         entity.setNombre(usuario.getNombre());
         entity.setActivo(usuario.isActivo());
         entity.setCreadoEn(usuario.getCreadoEn());
+        entity.setMotivoSuspension(usuario.getMotivoSuspension());
+        entity.setSesionesDesde(usuario.getSesionesDesde());
         entity.setRoles(usuario.getRoles().stream()
                 .map(rol -> rol.name())
                 .map(nombre -> rolRepository.findByNombre(nombre)
@@ -54,6 +56,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         EnumSet<Rol> roles = EnumSet.noneOf(Rol.class);
         entity.getRoles().forEach(rol -> roles.add(Rol.valueOf(rol.getNombre())));
         return new Usuario(entity.getId(), entity.getEmail(), entity.getNombre(),
-                entity.getPasswordHash(), entity.isActivo(), roles, entity.getCreadoEn());
+                entity.getPasswordHash(), entity.isActivo(), roles, entity.getCreadoEn())
+                .conModeracion(entity.getMotivoSuspension(), entity.getSesionesDesde());
     }
 }

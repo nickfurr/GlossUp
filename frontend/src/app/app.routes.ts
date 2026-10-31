@@ -14,9 +14,11 @@ import { PagoResultado } from './pages/pago/pago-resultado';
 import { Pedidos } from './pages/pedidos/pedidos';
 import { Checkout } from './pages/checkout/checkout';
 import { Direcciones } from './pages/direcciones/direcciones';
+import { Restablecer } from './pages/restablecer/restablecer';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
+  { path: 'restablecer', component: Restablecer },
   { path: '', component: Inicio },
 
   // Panel por rol: cada guard deja pasar solo a su tipo de usuario.

@@ -139,7 +139,7 @@ public class ProductoController {
         );
 
         Producto actualizado = gestionarProductoUseCase.actualizar(command);
-        return ResponseEntity.ok(ProductoResponse.fromDomain(actualizado));
+        return ResponseEntity.ok(ProductoResponse.conModeracion(actualizado));
     }
 
     @DeleteMapping("/{id}")
@@ -161,7 +161,7 @@ public class ProductoController {
     @Operation(summary = "Volver a publicar un producto dado de baja",
                security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ProductoResponse> publicar(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ProductoResponse.fromDomain(gestionarProductoUseCase.publicar(id, extraerVendedorId(authentication))));
+        return ResponseEntity.ok(ProductoResponse.conModeracion(gestionarProductoUseCase.publicar(id, extraerVendedorId(authentication))));
     }
 
     @GetMapping
@@ -205,7 +205,7 @@ public class ProductoController {
     public ResponseEntity<List<ProductoResponse>> listarMisProductos(Authentication authentication) {
         Long vendedorId = extraerVendedorId(authentication);
         List<ProductoResponse> productos = productoRepository.buscarPorVendedor(vendedorId).stream()
-                .map(ProductoResponse::fromDomain)
+                .map(ProductoResponse::conModeracion)
                 .toList();
         return ResponseEntity.ok(productos);
     }

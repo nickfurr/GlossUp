@@ -33,6 +33,10 @@ export interface ProductoVendedor {
   /** Descripción comercial que redacta el vendedor. */
   descripcion?: string | null;
   activo: boolean;
+  /** Bloqueado por el administrador: no se vende y el vendedor no puede volver a publicarlo. */
+  baneado: boolean;
+  /** Solo llega al dueño y al administrador. */
+  motivoBaneo?: string | null;
   imagenes: string[];
   ingredientes: IngredienteFicha[];
   creadoEn?: string;

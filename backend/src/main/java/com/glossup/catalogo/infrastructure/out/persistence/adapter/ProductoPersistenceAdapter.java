@@ -90,6 +90,8 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
         entity.setRegistroInvima(dominio.getRegistroInvima());
         entity.setDescripcion(dominio.getDescripcion());
         entity.setActivo(dominio.isActivo());
+        entity.setBaneado(dominio.isBaneado());
+        entity.setMotivoBaneo(dominio.getMotivoBaneo());
         entity.setCreadoEn(dominio.getCreadoEn());
 
         // Sincronizar lista de imágenes
@@ -151,6 +153,9 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
                 entity.getCreadoEn()
         );
         producto.describir(entity.getDescripcion());
+        if (entity.isBaneado()) {
+            producto.banear(entity.getMotivoBaneo());
+        }
         return producto;
     }
 }

@@ -140,7 +140,9 @@
         <button type="button" class="btn-sec" (click)="irA('productos')">← Volver</button>
       </div>
 
-      @if (!edEsNuevo() && !edActivo()) {
+      @if (edBloqueo()) {
+        <p class="aviso-bloqueo" role="status">🚫 <strong>Bloqueado por administración:</strong> {{ edBloqueo() }}. Los clientes no lo ven y no puedes publicarlo hasta que lo revisen.</p>
+      } @else if (!edEsNuevo() && !edActivo()) {
         <p class="nota-amber aviso-baja">Este producto está dado de baja: los clientes no lo ven. Vuelve a publicarlo cuando quieras.</p>
       }
 
@@ -251,7 +253,9 @@
       @if (edError()) { <p class="error" role="alert">{{ edError() }}</p> }
 
       <div class="editor-acciones">
-        @if (!edEsNuevo() && !edActivo()) {
+        @if (edBloqueo()) {
+          <!-- Bloqueado: publicarlo o darlo de baja no aplica hasta que administración lo revise. -->
+        } @else if (!edEsNuevo() && !edActivo()) {
           <button type="button" class="btn-sec" [disabled]="edOcupado()" (click)="volverAPublicar()">Volver a publicar</button>
         } @else if (!edEsNuevo() && confirmandoBaja()) {
           <span class="confirma">¿Dar de baja? Los clientes dejarán de verlo.</span>

@@ -30,6 +30,9 @@ public interface PedidoRepositoryPort {
 
     Optional<Pedido> buscarPorGuia(String guia);
 
+    /** Todos los pedidos, del más reciente al más antiguo. */
+    List<Pedido> listarTodos();
+
     /** Pedidos pagados (o ya enviados) que contienen alguno de estos productos, del más reciente al más antiguo. */
     List<Pedido> buscarPagadosConProductos(Set<Long> productoIds);
 }

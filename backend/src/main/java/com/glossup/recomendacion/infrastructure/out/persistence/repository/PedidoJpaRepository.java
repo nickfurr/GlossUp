@@ -24,6 +24,8 @@ public interface PedidoJpaRepository extends JpaRepository<PedidoEntity, Long> {
 
     Optional<PedidoEntity> findByEnvioGuia(String guia);
 
+    List<PedidoEntity> findAllByOrderByCreadoEnDesc();
+
     @Query("""
             select distinct p from PedidoEntity p join p.items i
             where i.productoId in :productoIds and p.estado in ('PAGADO', 'ENVIADO')

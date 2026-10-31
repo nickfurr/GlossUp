@@ -24,6 +24,12 @@ public class UsuarioEntity {
     @Column(name = "creado_en")
     private OffsetDateTime creadoEn;
 
+    @Column(name = "motivo_suspension", length = 300)
+    private String motivoSuspension;
+
+    @Column(name = "sesiones_desde")
+    private OffsetDateTime sesionesDesde;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "usuario_rol",
             joinColumns = @JoinColumn(name = "usuario_id"),
@@ -53,6 +59,11 @@ public class UsuarioEntity {
     public boolean isActivo() { return activo; }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
     public Set<RolEntity> getRoles() { return roles; }
+
+    public String getMotivoSuspension() { return motivoSuspension; }
+    public void setMotivoSuspension(String motivoSuspension) { this.motivoSuspension = motivoSuspension; }
+    public OffsetDateTime getSesionesDesde() { return sesionesDesde; }
+    public void setSesionesDesde(OffsetDateTime sesionesDesde) { this.sesionesDesde = sesionesDesde; }
 
     public void setEmail(String email) { this.email = email; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }

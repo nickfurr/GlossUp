@@ -75,7 +75,7 @@ const MAX_CANTIDAD = 10;
             }
 
             @if (!disponible()) {
-              <p class="stock stock-agotado">{{ p.activo ? 'Agotado' : 'Este producto ya no está a la venta' }}</p>
+              <p class="stock stock-agotado">{{ p.activo && !p.baneado ? 'Agotado' : 'Este producto ya no está a la venta' }}</p>
             } @else {
               <p class="stock" [class.stock-pocas]="p.stock <= 5">
                 {{ p.stock <= 5 ? '¡Últimas ' + p.stock + ' unidades!' : 'Disponible · ' + p.stock + ' unidades' }}
@@ -269,7 +269,7 @@ export class Producto {
   readonly perfilVacio = computed(() => this.evaluacion()?.perfilVacio ?? false);
   readonly disponible = computed(() => {
     const p = this.producto();
-    return !!p && p.activo && p.stock > 0;
+    return !!p && p.activo && !p.baneado && p.stock > 0;
   });
   readonly opcionesCantidad = computed(() =>
     Array.from({ length: Math.min(this.producto()?.stock ?? 0, MAX_CANTIDAD) }, (_, i) => i + 1));

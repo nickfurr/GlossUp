@@ -42,6 +42,12 @@ public class ProductoEntity {
     @Column(name = "activo", nullable = false)
     private boolean activo;
 
+    @Column(name = "baneado", nullable = false)
+    private boolean baneado;
+
+    @Column(name = "motivo_baneo", length = 300)
+    private String motivoBaneo;
+
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
@@ -88,6 +94,10 @@ public class ProductoEntity {
 
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
+    public boolean isBaneado() { return baneado; }
+    public void setBaneado(boolean baneado) { this.baneado = baneado; }
+    public String getMotivoBaneo() { return motivoBaneo; }
+    public void setMotivoBaneo(String motivoBaneo) { this.motivoBaneo = motivoBaneo; }
 
     public OffsetDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(OffsetDateTime creadoEn) { this.creadoEn = creadoEn; }

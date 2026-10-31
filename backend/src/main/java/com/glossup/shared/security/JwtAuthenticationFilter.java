@@ -9,6 +9,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,8 +24,10 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final ObjectProvider<SesionVigentePort> sesiones;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, ObjectProvider<SesionVigentePort> sesiones) {
+        this.sesiones = sesiones;
         this.jwtService = jwtService;
     }
 
@@ -37,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            if (jwtService.esValido(token)) {
+            if (jwtService.esValido(token) && sesionVigente(token)) {
                 String usuario = jwtService.extraerSubject(token);
                 List<SimpleGrantedAuthority> authorities = jwtService.extraerRoles(token).stream()
                         .map(rol -> new SimpleGrantedAuthority("ROLE_" + rol))
@@ -48,5 +51,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean sesionVigente(String token) {
+        SesionVigentePort puerto = sesiones.getIfAvailable();
+        return puerto == null || puerto.vigente(jwtService.extraerSubject(token), jwtService.extraerEmision(token));
     }
 }
