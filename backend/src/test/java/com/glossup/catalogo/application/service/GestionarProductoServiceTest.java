@@ -147,4 +147,26 @@ class GestionarProductoServiceTest {
         assertThrows(AccessDeniedException.class, () -> service.eliminar(100L, 99L));
         verify(productoRepository, never()).guardar(any());
     }
+
+    @Test
+    void publicar_propietario_vuelveAlCatalogo() {
+        Producto existente = crearProductoExistente(100L, 5L);
+        existente.despublicar();
+        when(productoRepository.buscarPorId(100L)).thenReturn(Optional.of(existente));
+        when(productoRepository.guardar(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        org.junit.jupiter.api.Assertions.assertTrue(service.publicar(100L, 5L).isActivo());
+    }
+
+    @Test
+    void publicar_deOtroVendedor_seRechazaSinGuardar() {
+        Producto existente = crearProductoExistente(100L, 5L);
+        existente.despublicar();
+        when(productoRepository.buscarPorId(100L)).thenReturn(Optional.of(existente));
+
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> service.publicar(100L, 6L));
+        org.junit.jupiter.api.Assertions.assertFalse(existente.isActivo());
+        org.mockito.Mockito.verify(productoRepository, org.mockito.Mockito.never()).guardar(any());
+    }
 }

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import type { Panel, RolUsuario, SesionUsuario } from './models';
 
 interface LoginResponse {
@@ -46,7 +46,7 @@ export class AuthService {
 
   login(email: string, password: string): Observable<SesionUsuario> {
     return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
-      map((data) => this.guardarSesion(data.token, data.usuarioId, data.email, data.roles ?? [])),
+      map((data) => this.guardarSesion(data.token, data.usuarioId, data.email, data.roles ?? [], data.nombre)),
       catchError((err) => {
         if (err?.status === 0 || err?.status === 502 || err?.status === 504) {
           const correo = email.trim().toLowerCase();
@@ -62,10 +62,10 @@ export class AuthService {
     );
   }
 
-  private guardarSesion(token: string, usuarioId: number, email: string, roles: RolUsuario[]): SesionUsuario {
+  private guardarSesion(token: string, usuarioId: number, email: string, roles: RolUsuario[], nombre?: string): SesionUsuario {
     const sesion: SesionUsuario = {
       usuarioId,
-      nombre: email.split('@')[0] || email,
+      nombre: nombre || email.split('@')[0] || email,
       email,
       roles,
       panel: panelDeRoles(roles),
@@ -83,6 +83,26 @@ export class AuthService {
   /** Registro: el backend aún no lo expone (404/405); el componente avisa amablemente. */
   registrar(input: { email: string; nombre: string; password: string; rol?: RolUsuario }): Observable<void> {
     return this.http.post<void>('/api/auth/register', input);
+  }
+
+  cambiarNombre(nombre: string): Observable<void> {
+    return this.http.put<void>('/api/cuenta/nombre', { nombre }).pipe(
+      tap(() => {
+        const actual = this.sesion();
+        if (!actual) return;
+        const sesion = { ...actual, nombre: nombre.trim() };
+        try {
+          localStorage.setItem(USER_KEY, JSON.stringify(sesion));
+        } catch {
+          /* almacenamiento no disponible */
+        }
+        this.sesion.set(sesion);
+      }),
+    );
+  }
+
+  cambiarClave(actual: string, nueva: string): Observable<void> {
+    return this.http.put<void>('/api/cuenta/clave', { actual, nueva });
   }
 
   salir(): void {

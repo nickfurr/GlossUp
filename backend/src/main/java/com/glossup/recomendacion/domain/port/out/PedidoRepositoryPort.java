@@ -5,6 +5,7 @@ import com.glossup.recomendacion.domain.model.Pedido;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Puerto de salida: persistencia y recuperación del agregado {@link Pedido}.
@@ -28,4 +29,7 @@ public interface PedidoRepositoryPort {
     List<Pedido> buscarEnviosEnCurso();
 
     Optional<Pedido> buscarPorGuia(String guia);
+
+    /** Pedidos pagados (o ya enviados) que contienen alguno de estos productos, del más reciente al más antiguo. */
+    List<Pedido> buscarPagadosConProductos(Set<Long> productoIds);
 }

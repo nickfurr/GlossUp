@@ -62,6 +62,11 @@ shipped, delivered, not_delivered).
 | `GLOSSUP_ENVIOS_SECRETO_EVENTOS` | Secreto del webhook. Sin él se rechazan todos los eventos. |
 | `GLOSSUP_ENVIOS_MINUTOS_POR_ETAPA` | Minutos por etapa de la demostración (3 por defecto). |
 
+## Panel del vendedor
+`GET /api/vendedor/ventas` (`VentasVendedorService`) devuelve los pedidos `PAGADO`/`ENVIADO` con productos del vendedor y las
+cifras de `ResumenVentas` (mes en hora de Colombia, 8 semanas, más vendidos). Cada pedido trae solo sus líneas e ingresos, sin
+envío ni datos de otros vendedores. Los pedidos sin pagar no se muestran: el vendedor no ve datos del cliente sin una venta real.
+
 ## Tablas (ver V1__init.sql)
 `pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12; + `envio_*`, V14), `pedido_item` (+ `nombre` al comprar, V13),
 `comprobante` (V13), `direccion` (V14)

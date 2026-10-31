@@ -97,7 +97,14 @@ public class ProductoController {
 
         String mimeType = imagen.getContentType() != null ? imagen.getContentType() : "image/jpeg";
         List<String> ingredientes = extraerIngredientesImagenUseCase.extraer(imagen.getBytes(), mimeType);
-        return ResponseEntity.ok(new IngredientesImagenResponse(ingredientes));
+        List<IngredientesImagenResponse.Reconocido> enCatalogo = ingredientes.stream()
+                .flatMap(nombre -> gestionarProductoUseCase.buscarIngredientes(nombre).stream()
+                        .filter(i -> i.getInci().nombre().equalsIgnoreCase(nombre))
+                        .limit(1))
+                .map(i -> new IngredientesImagenResponse.Reconocido(i.getId(), i.getInci().nombre(), i.getDescripcion()))
+                .distinct()
+                .toList();
+        return ResponseEntity.ok(new IngredientesImagenResponse(ingredientes, enCatalogo));
     }
 
     @PutMapping("/{id}")
@@ -147,6 +154,14 @@ public class ProductoController {
         Long vendedorId = extraerVendedorId(authentication);
         gestionarProductoUseCase.eliminar(id, vendedorId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/publicar")
+    @PreAuthorize("hasRole('VENDEDOR')")
+    @Operation(summary = "Volver a publicar un producto dado de baja",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ProductoResponse> publicar(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(ProductoResponse.fromDomain(gestionarProductoUseCase.publicar(id, extraerVendedorId(authentication))));
     }
 
     @GetMapping

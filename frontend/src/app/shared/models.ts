@@ -132,6 +132,36 @@ export interface EnvioPedido {
   noEntregadoEn?: string | null;
 }
 
+/** Pedido pagado visto por el vendedor: solo sus líneas e ingresos, sin el envío (GET /api/vendedor/ventas). */
+export interface VentaVendedor {
+  id: number;
+  estado: string;
+  cliente: string;
+  pagadoEn: string;
+  items: LineaCompra[];
+  ingresos: number;
+  envio?: EnvioPedido | null;
+}
+
+export interface ResumenVentas {
+  ingresosMes: number;
+  pedidosMes: number;
+  unidadesMes: number;
+  semanas: { inicio: string; ingresos: number }[];
+  masVendidos: { productoId: number; nombre: string; unidades: number; ingresos: number }[];
+}
+
+export interface VentasVendedor {
+  resumen: ResumenVentas;
+  ventas: VentaVendedor[];
+}
+
+/** Lo que devuelve leer una etiqueta: todo lo detectado y lo que se puede agregar a la ficha (HU5). */
+export interface LecturaEtiqueta {
+  ingredientes: string[];
+  enCatalogo: IngredienteCatalogo[];
+}
+
 /** Pedido consolidado con inventario reservado (POST /api/pedidos). */
 export interface Pedido {
   id: number;

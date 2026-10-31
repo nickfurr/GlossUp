@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
@@ -68,6 +69,12 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
     @Override
     public Optional<Pedido> buscarPorGuia(String guia) {
         return pedidoJpaRepository.findByEnvioGuia(guia).map(this::aDominio);
+    }
+
+    @Override
+    public List<Pedido> buscarPagadosConProductos(Set<Long> productoIds) {
+        return productoIds.isEmpty() ? List.of()
+                : pedidoJpaRepository.buscarPagadosConProductos(productoIds).stream().map(this::aDominio).toList();
     }
 
     private PedidoEntity aEntity(Pedido dominio) {
