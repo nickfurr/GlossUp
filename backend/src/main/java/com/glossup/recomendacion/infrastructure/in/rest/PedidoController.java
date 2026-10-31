@@ -1,5 +1,6 @@
 package com.glossup.recomendacion.infrastructure.in.rest;
 
+import com.glossup.recomendacion.domain.model.MetodoEnvio;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.port.in.ConsolidarCarritoCommand;
 import com.glossup.recomendacion.domain.port.in.ConsolidarCarritoUseCase;
@@ -41,8 +42,8 @@ public class PedidoController {
 
     @PostMapping
     @Operation(summary = "Consolidar el carrito y reservar inventario (HU9)",
-               description = "Suma las cantidades por producto, descuenta el stock de forma atómica y "
-                       + "crea el pedido en estado CREADO. Falla sin reservar nada si algún producto no tiene stock.")
+               description = "Suma las cantidades por producto, descuenta el stock de forma atómica y crea el pedido "
+                       + "en estado CREADO, con el envío elegido (HU14). Falla sin reservar nada si algún producto no tiene stock.")
     public ResponseEntity<PedidoResponse> consolidar(
             @Valid @RequestBody CarritoRequest request,
             Authentication authentication) {
@@ -53,7 +54,7 @@ public class PedidoController {
                 .toList();
 
         Pedido pedido = consolidarCarritoUseCase.consolidar(
-                new ConsolidarCarritoCommand(usuarioId, lineas));
+                new ConsolidarCarritoCommand(usuarioId, lineas, request.direccionId(), MetodoEnvio.valueOf(request.metodoEnvio())));
         return ResponseEntity.status(HttpStatus.CREATED).body(PedidoResponse.fromDomain(pedido));
     }
 

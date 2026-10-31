@@ -1,6 +1,7 @@
 package com.glossup.recomendacion.infrastructure.out.correo;
 
 import com.glossup.recomendacion.domain.model.Comprobante;
+import com.glossup.recomendacion.domain.model.Envio;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.port.out.ClientePort;
 import com.glossup.recomendacion.domain.port.out.NotificacionPort;
@@ -11,15 +12,17 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.MailSendException;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Envía el comprobante por correo (HU11) con el SMTP de las variables SPRING_MAIL_HOST, _PORT,
+ * Envía el comprobante (HU11) y los avisos de envío (HU14) por correo con el SMTP de las variables SPRING_MAIL_HOST, _PORT,
  * _USERNAME y _PASSWORD. Sin ellas no envía nada: el comprobante igual se descarga en "Mis pedidos".
  */
 @Component
@@ -71,5 +74,38 @@ public class CorreoNotificacionAdapter implements NotificacionPort {
         } catch (MessagingException | java.io.UnsupportedEncodingException e) {
             throw new MailSendException("No se pudo armar el correo del comprobante", e);
         }
+    }
+
+    @Override
+    public void avisarEnvio(ClientePort.Cliente cliente, Pedido pedido) {
+        JavaMailSender servidor = correo.getIfAvailable();
+        if (servidor == null || remitente.isBlank()) {
+            return;
+        }
+        Envio envio = pedido.getEnvio();
+        String asunto = switch (envio.getEstado()) {
+            case ENTREGADO -> "Tu pedido #%d fue entregado";
+            case NO_ENTREGADO -> "No pudimos entregar tu pedido #%d";
+            default -> "Tu pedido #%d va en camino";
+        };
+        String detalle = switch (envio.getEstado()) {
+            case ENTREGADO -> "Tu pedido llegó a " + envio.getDestino().direccion() + ", " + envio.getDestino().ciudad() + ". ¡Que lo disfrutes!";
+            case NO_ENTREGADO -> "La transportadora no pudo entregarlo. Escríbenos con tu número de guía para coordinar una nueva entrega.";
+            default -> "Lo lleva " + envio.getTransportadora() + " y debería llegar el "
+                    + envio.getFechaEstimada().format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale.forLanguageTag("es-CO"))) + ".";
+        };
+        var mensaje = new SimpleMailMessage();
+        mensaje.setFrom(remitente);
+        mensaje.setTo(cliente.email());
+        mensaje.setSubject(asunto.formatted(pedido.getId()) + " · GlossUP");
+        mensaje.setText("""
+                Hola %s:
+
+                %s
+
+                Guía: %s
+                Sigue tu pedido en Mis pedidos: %s/pedidos?pedido=%d
+                """.formatted(cliente.nombre(), detalle, envio.getGuia(), urlPublica, pedido.getId()));
+        servidor.send(mensaje);
     }
 }

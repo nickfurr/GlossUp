@@ -24,7 +24,8 @@ Recomendación con IA, carrito de compras, checkout y orquestación con sistemas
   transacciones y verificación del checksum de eventos. Llaves por variables de entorno `WOMPI_*`.
 - `infrastructure/in/tarea` → `PedidosVencidosTarea`: cada minuto cancela pedidos sin pagar vencidos
   (30 min + 5 de margen) y devuelve su inventario.
-- Pendientes: `IARecomendacionClient` (motor de IA) y `EnvioApiClient` (API de envíos, HU14).
+- `infrastructure/out/envio` → `EnvioApiAdapter` (API de envíos real, HU14) o `TransportadoraSimuladaAdapter` (demostración).
+- Pendiente: `IARecomendacionClient` (motor de IA).
 
 ## Flujo de pago (HU10)
 1. `POST /api/pedidos` reserva inventario (HU9) → pedido `CREADO`, vence a los 30 min.
@@ -42,6 +43,25 @@ Recomendación con IA, carrito de compras, checkout y orquestación con sistemas
 3. `GET /api/pedidos/{id}/comprobante` entrega siempre el mismo PDF; si la emisión automática falló, lo emite ahí.
 4. El front muestra el historial en `/pedidos` (detalle, estado, pago y descarga).
 
+## Checkout y envío (HU14)
+El checkout sigue el de Mercado Libre: una sola página (`/checkout`) con la dirección principal ya elegida, formas de
+envío con fecha y costo, resumen y "Pagar y finalizar". Los estados del envío siguen su modelo (handling, ready_to_ship,
+shipped, delivered, not_delivered).
+1. `/api/direcciones`: libreta del cliente (hasta 10, una principal). `GET /api/envios/opciones` cotiza por departamento.
+2. `POST /api/pedidos` recibe `direccionId` y `metodoEnvio`: copia la dirección al pedido y suma el costo calculado en el
+   servidor (`TarifaEnvio`) al total que cobra Wompi. Editar o borrar la libreta no cambia los pedidos hechos.
+3. Al pasar a `PAGADO`, `EnvioListener` avisa a la API de envíos después del commit y en otro hilo (fire and forget). Si falla,
+   el pago sigue intacto y `EnviosPendientesTarea` reintenta cada minuto, hasta 30 veces (RNF-19, RNF-22).
+4. La transportadora reporta etapas en `POST /api/envios/eventos` con el secreto `X-Envios-Secreto`: `EN_CAMINO` pasa el
+   pedido a `ENVIADO`; `ENTREGADO` y `NO_ENTREGADO` son finales. Los eventos repetidos no cambian nada. Cada cambio avisa por correo.
+
+| Variable | Para qué |
+|---|---|
+| `GLOSSUP_ENVIOS_URL` | API de la transportadora: `POST {url}/envios` responde `{transportadora, guia}`. Sin ella se usa la transportadora de demostración, que avanza sola. |
+| `GLOSSUP_ENVIOS_API_KEY` | Se envía como `Authorization: Bearer`. |
+| `GLOSSUP_ENVIOS_SECRETO_EVENTOS` | Secreto del webhook. Sin él se rechazan todos los eventos. |
+| `GLOSSUP_ENVIOS_MINUTOS_POR_ETAPA` | Minutos por etapa de la demostración (3 por defecto). |
+
 ## Tablas (ver V1__init.sql)
-`pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12), `pedido_item` (+ `nombre` al comprar, V13),
-`comprobante` (V13)
+`pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12; + `envio_*`, V14), `pedido_item` (+ `nombre` al comprar, V13),
+`comprobante` (V13), `direccion` (V14)

@@ -13,7 +13,7 @@ import java.util.Objects;
  * <p>Reglas de negocio:</p>
  * <ul>
  *   <li>Un pedido nace en estado {@link EstadoPedido#CREADO} con al menos una línea.</li>
- *   <li>El total se calcula a partir de sus líneas (no se acepta de fuera).</li>
+ *   <li>El total se calcula a partir de sus líneas y del costo de envío (no se acepta de fuera).</li>
  *   <li>Los cambios de estado respetan las transiciones válidas de {@link EstadoPedido}.</li>
  *   <li>Un pedido CREADO reserva inventario durante {@link #MINUTOS_PARA_PAGAR} minutos; después vence (HU10).</li>
  * </ul>
@@ -27,6 +27,8 @@ public class Pedido {
     private final Long usuarioId;
     private EstadoPedido estado;
     private final List<PedidoItem> items;
+    private final Dinero subtotal;
+    private final Envio envio;
     private final Dinero total;
     private final OffsetDateTime creadoEn;
     private String transaccionId;
@@ -35,6 +37,12 @@ public class Pedido {
 
     public Pedido(Long id, Long usuarioId, EstadoPedido estado, List<PedidoItem> items,
                   OffsetDateTime creadoEn) {
+        this(id, usuarioId, estado, items, creadoEn, null);
+    }
+
+    /** {@code envio} es null solo en pedidos anteriores a HU14. */
+    public Pedido(Long id, Long usuarioId, EstadoPedido estado, List<PedidoItem> items,
+                  OffsetDateTime creadoEn, Envio envio) {
         this.id = id;
         this.usuarioId = Objects.requireNonNull(usuarioId, "usuarioId requerido");
         if (items == null || items.isEmpty()) {
@@ -42,13 +50,19 @@ public class Pedido {
         }
         this.items = List.copyOf(items);
         this.estado = estado != null ? estado : EstadoPedido.CREADO;
-        this.total = items.stream().map(PedidoItem::subtotal).reduce(Dinero.cero(), Dinero::mas);
+        this.subtotal = subtotalDe(items);
+        this.envio = envio;
+        this.total = envio != null ? subtotal.mas(envio.getCosto()) : subtotal;
         this.creadoEn = creadoEn != null ? creadoEn : OffsetDateTime.now();
     }
 
-    /** Crea un pedido nuevo (CREADO) a partir de las líneas de un carrito validado. */
-    public static Pedido crear(Long usuarioId, List<PedidoItem> items) {
-        return new Pedido(null, usuarioId, EstadoPedido.CREADO, items, OffsetDateTime.now());
+    /** Crea un pedido nuevo (CREADO) a partir de las líneas de un carrito validado y su envío. */
+    public static Pedido crear(Long usuarioId, List<PedidoItem> items, Envio envio) {
+        return new Pedido(null, usuarioId, EstadoPedido.CREADO, items, OffsetDateTime.now(), envio);
+    }
+
+    public static Dinero subtotalDe(List<PedidoItem> items) {
+        return items.stream().map(PedidoItem::subtotal).reduce(Dinero.cero(), Dinero::mas);
     }
 
     // ---- Transiciones de estado ----
@@ -85,6 +99,17 @@ public class Pedido {
 
     public void cancelar() { transicionarA(EstadoPedido.CANCELADO); }
 
+    /** Aplica una etapa del envío; cuando el paquete sale, el pedido pasa a ENVIADO. False si no cambió nada. */
+    public boolean actualizarEnvio(EstadoEnvio etapa, OffsetDateTime ahora) {
+        if (!envio.avanzarA(etapa, ahora)) {
+            return false;
+        }
+        if (estado == EstadoPedido.PAGADO) {
+            marcarEnviado();
+        }
+        return true;
+    }
+
     private void transicionarA(EstadoPedido destino) {
         if (!estado.puedeTransicionarA(destino)) {
             throw new ReglaNegocioException(
@@ -97,6 +122,8 @@ public class Pedido {
     public Long getUsuarioId() { return usuarioId; }
     public EstadoPedido getEstado() { return estado; }
     public List<PedidoItem> getItems() { return items; }
+    public Dinero getSubtotal() { return subtotal; }
+    public Envio getEnvio() { return envio; }
     public Dinero getTotal() { return total; }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
     public String getTransaccionId() { return transaccionId; }

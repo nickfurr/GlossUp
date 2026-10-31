@@ -36,6 +36,9 @@ public class PedidoEntity {
     @Column(name = "pagado_en")
     private OffsetDateTime pagadoEn;
 
+    @Embedded
+    private EnvioEmbeddable envio;
+
     /** Bloqueo optimista: dos escrituras simultáneas del mismo pedido no pueden ganar ambas. */
     @Version
     @Column(name = "version", nullable = false)
@@ -69,6 +72,9 @@ public class PedidoEntity {
 
     public OffsetDateTime getPagadoEn() { return pagadoEn; }
     public void setPagadoEn(OffsetDateTime pagadoEn) { this.pagadoEn = pagadoEn; }
+
+    public EnvioEmbeddable getEnvio() { return envio; }
+    public void setEnvio(EnvioEmbeddable envio) { this.envio = envio; }
 
     public List<PedidoItemEntity> getItems() { return items; }
     public void setItems(List<PedidoItemEntity> items) { this.items = items; }

@@ -2,13 +2,14 @@ import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { EMPTY, catchError, forkJoin, switchMap, tap } from 'rxjs';
+import { EMPTY, catchError, forkJoin, of, switchMap, tap } from 'rxjs';
 import { ProductosService, mensajeDeError } from '../../shared/productos';
 import { CompatibilidadService, EvaluacionPerfil } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { Cargando } from '../../shared/cargando';
 import { AgregarCarrito } from '../../shared/agregar-carrito';
-import type { ProductoVendedor } from '../../shared/models';
+import { DireccionesService, fechaLlegada } from '../../shared/direcciones';
+import type { OpcionEnvio, ProductoVendedor } from '../../shared/models';
 
 const MAX_CANTIDAD = 10;
 
@@ -34,7 +35,7 @@ const MAX_CANTIDAD = 10;
         <p class="error">{{ error() }}</p>
         <a routerLink="/catalogo" class="perfil-callout">← Volver al catálogo</a>
       } @else if (producto(); as p) {
-        <div class="ficha-principal">
+        <div class="ficha-principal panel">
           <div class="galeria">
             @if (p.imagenes.length > 1) {
               <div class="miniaturas" role="list" aria-label="Imágenes del producto">
@@ -47,16 +48,31 @@ const MAX_CANTIDAD = 10;
                 }
               </div>
             }
-            <div class="imagen-grande">
-              @if (p.imagenes.length) { <img [src]="p.imagenes[imagen()]" [alt]="p.nombre" /> } @else { <span>✦</span> }
+            <div class="imagen-grande" (mousemove)="enfocar($event)">
+              @if (p.imagenes.length) {
+                <img [src]="p.imagenes[imagen()]" [alt]="p.nombre" [style.transform-origin]="foco()" />
+              } @else { <span>✦</span> }
             </div>
           </div>
 
-          <aside class="compra panel" aria-label="Comprar">
+          <div class="info">
             <p class="compra-marca">{{ p.marca || 'GlossUP' }}@if (p.categoria) { · {{ p.categoria }} }</p>
             <h1>{{ p.nombre }}</h1>
-            <app-compat-info [resultado]="compat()" />
             <p class="compra-precio">{{ formatearCop(p.precio) }}</p>
+            <app-compat-info [resultado]="compat()" />
+            @if (p.ph) { <p class="dato">pH {{ p.ph }}</p> }
+            @if (p.registroInvima) { <p class="dato">Registro INVIMA {{ p.registroInvima }}</p> }
+          </div>
+
+          <aside class="compra" aria-label="Comprar">
+            @if (disponible()) {
+              @if (entrega(); as e) {
+                <p class="llega"><strong>Llega el {{ llegada(e.fechaEstimada) }}</strong>
+                  <span>a {{ destino() }} · {{ e.costo === 0 ? 'Envío gratis' : 'Envío ' + formatearCop(e.costo) }}</span></p>
+              } @else if (sinDireccion()) {
+                <p class="llega"><a routerLink="/direcciones">Agrega tu dirección</a> para ver cuándo llega y cuánto cuesta el envío.</p>
+              }
+            }
 
             @if (!disponible()) {
               <p class="stock stock-agotado">{{ p.activo ? 'Agotado' : 'Este producto ya no está a la venta' }}</p>
@@ -66,7 +82,7 @@ const MAX_CANTIDAD = 10;
               </p>
               <label class="cantidad">
                 Cantidad
-                <select [(ngModel)]="cantidad" name="cantidad">
+                <select [ngModel]="cantidad" (ngModelChange)="cantidad = $event; cotizarEntrega(p)" name="cantidad">
                   @for (n of opcionesCantidad(); track n) { <option [ngValue]="n">{{ n }} {{ n === 1 ? 'unidad' : 'unidades' }}</option> }
                 </select>
               </label>
@@ -81,7 +97,6 @@ const MAX_CANTIDAD = 10;
 
             <ul class="garantias">
               <li>🧪 Ficha de ingredientes INCI cruzada con tu perfil</li>
-              @if (p.registroInvima) { <li>✓ Registro sanitario INVIMA {{ p.registroInvima }}</li> }
               <li>🔒 Reservamos tu inventario al confirmar el pedido</li>
             </ul>
           </aside>
@@ -162,19 +177,29 @@ const MAX_CANTIDAD = 10;
     .migas { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .85rem; color: #6b5a61; margin-bottom: 1rem; }
     .migas a { color: var(--vino); font-weight: 700; }
     .migas-actual { color: var(--tinta); }
-    .ficha-principal { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-    .galeria { display: flex; gap: .75rem; }
-    .miniaturas { display: flex; flex-direction: column; gap: .5rem; }
-    .miniatura { width: 4rem; height: 4rem; padding: 0; border: 2px solid var(--borde); border-radius: 10px; background: #fff; cursor: pointer; overflow: hidden; }
-    .miniatura.activa, .miniatura:hover { border-color: var(--vino); }
-    .miniatura img { width: 100%; height: 100%; object-fit: cover; }
-    .imagen-grande { flex: 1; aspect-ratio: 1; display: grid; place-items: center; background: #fff; border: 1px solid var(--borde);
-                     border-radius: 16px; overflow: hidden; font-size: 3rem; color: #c7839e; }
-    .imagen-grande img { width: 100%; height: 100%; object-fit: cover; }
-    .compra { position: sticky; top: 1rem; display: grid; gap: .75rem; }
-    .compra h1 { font-size: 1.5rem; margin: 0; line-height: 1.25; }
+    .ficha-principal { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 19rem; gap: 1.5rem; align-items: start; padding: 1.25rem; }
+    .galeria { display: flex; gap: .6rem; }
+    .miniaturas { display: flex; flex-direction: column; gap: .5rem; flex: none; }
+    .miniatura { width: 3.5rem; height: 3.5rem; padding: 2px; border: 1px solid var(--borde); border-radius: 6px; background: #fff; cursor: pointer; overflow: hidden; }
+    .miniatura:hover { border-color: #c99aae; }
+    .miniatura.activa { border: 2px solid var(--vino); padding: 1px; }
+    .miniatura:focus-visible { outline: 3px solid var(--vino); outline-offset: 1px; }
+    .miniatura img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .imagen-grande { flex: 1; min-width: 0; aspect-ratio: 1; display: grid; place-items: center; background: #fff; overflow: hidden; font-size: 3rem; color: #c7839e; }
+    .imagen-grande img { width: 100%; height: 100%; object-fit: contain; }
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      .imagen-grande:hover img { transform: scale(1.8); cursor: zoom-in; }
+    }
+    .info { display: grid; gap: .6rem; min-width: 0; }
+    .info h1 { font-size: 1.4rem; font-weight: 600; margin: 0; line-height: 1.25; overflow-wrap: anywhere; }
     .compra-marca { margin: 0; color: #6b5a61; font-size: .85rem; }
-    .compra-precio { margin: .25rem 0 0; font-size: 2rem; font-weight: 800; color: var(--tinta); }
+    .compra-precio { margin: .25rem 0; font-size: 2.1rem; font-weight: 500; color: var(--tinta); }
+    .dato { margin: 0; color: #6b5a61; font-size: .85rem; }
+    .compra { position: sticky; top: 1rem; display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--borde); border-radius: 10px; }
+    .llega { display: grid; gap: .1rem; margin: 0; }
+    .llega strong { color: var(--verde-ok); font-weight: 700; }
+    .llega span { color: #6b5a61; font-size: .85rem; }
+    .llega a { color: var(--vino); font-weight: 700; }
     .stock { margin: 0; font-weight: 700; color: #1f6b3a; }
     .stock-pocas { color: #8a5d00; }
     .stock-agotado { color: #9b1c36; }
@@ -203,17 +228,23 @@ const MAX_CANTIDAD = 10;
     .marca-alerta { color: #9b1c36; }
     .marca-bueno { color: #1f6b3a; }
     .leyenda { margin-left: .5rem; }
+    @media (max-width: 1060px) {
+      .ficha-principal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .galeria { grid-row: span 2; }
+    }
     @media (max-width: 800px) {
-      .ficha-principal { grid-template-columns: 1fr; }
+      .ficha-principal { grid-template-columns: minmax(0, 1fr); padding: 1rem; }
+      .galeria { grid-row: auto; flex-direction: column-reverse; }
       .compra { position: static; }
-      .galeria { flex-direction: column-reverse; }
-      .miniaturas { flex-direction: row; overflow-x: auto; }
+      .miniaturas { flex-direction: row; overflow-x: auto; padding-bottom: 2px; }
+      .miniatura { flex: none; }
     }
   `],
 })
 export class Producto {
   private productos = inject(ProductosService);
   private compatibilidad = inject(CompatibilidadService);
+  private direcciones = inject(DireccionesService);
   private router = inject(Router);
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
   private readonly agregador = viewChild.required(AgregarCarrito);
@@ -223,6 +254,11 @@ export class Producto {
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
   readonly imagen = signal(0);
+  readonly foco = signal('center');
+  readonly entrega = signal<OpcionEnvio | null>(null);
+  readonly destino = signal('');
+  readonly sinDireccion = signal(false);
+  readonly llegada = fechaLlegada;
   cantidad = 1;
   readonly severidad = { ALTA: 'Riesgo alto', MEDIA: 'Precaución', BAJA: 'Aviso' };
 
@@ -278,7 +314,26 @@ export class Producto {
       this.producto.set(producto);
       this.evaluacion.set(evaluacion);
       this.cargando.set(false);
+      this.cotizarEntrega(producto);
     });
+  }
+
+  /** La lupa sigue al puntero sobre la imagen. */
+  enfocar(e: MouseEvent): void {
+    const zona = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    this.foco.set(`${((e.clientX - zona.left) / zona.width) * 100}% ${((e.clientY - zona.top) / zona.height) * 100}%`);
+  }
+
+  /** Promesa de entrega a la dirección principal. Si no se puede calcular, la ficha sigue sin ella. */
+  cotizarEntrega(p: ProductoVendedor): void {
+    this.direcciones.listar().pipe(
+      switchMap(([principal]) => {
+        this.sinDireccion.set(!principal);
+        this.destino.set(principal?.ciudad ?? '');
+        return principal ? this.direcciones.opciones(principal.departamento, p.precio * this.cantidad) : of([]);
+      }),
+      catchError(() => of([])),
+    ).subscribe((opciones) => this.entrega.set(opciones[0] ?? null));
   }
 
   formatearCop(n: number): string {
@@ -290,6 +345,6 @@ export class Producto {
   }
 
   comprarAhora(p: ProductoVendedor): void {
-    this.agregador().intentar(p, this.compat(), this.cantidad, () => this.router.navigate(['/carrito']));
+    this.agregador().intentar(p, this.compat(), this.cantidad, () => this.router.navigate(['/checkout']));
   }
 }

@@ -64,7 +64,7 @@ class PedidoControllerTest {
 
     @Test
     void sinToken_retorna401Unauthorized() throws Exception {
-        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 2)));
+        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 2)), 9L, "ESTANDAR");
         mockMvc.perform(post("/api/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -74,7 +74,7 @@ class PedidoControllerTest {
     @Test
     @WithMockUser(username = "7", roles = "VENDEDOR")
     void conRolVendedor_retorna403Forbidden() throws Exception {
-        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 2)));
+        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 2)), 9L, "ESTANDAR");
         mockMvc.perform(post("/api/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -86,7 +86,7 @@ class PedidoControllerTest {
     void consolidar_conRolCliente_retorna201ConPedido() throws Exception {
         when(consolidarCarritoUseCase.consolidar(any())).thenReturn(pedidoEjemplo());
 
-        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 2)));
+        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 2)), 9L, "ESTANDAR");
         mockMvc.perform(post("/api/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -102,7 +102,7 @@ class PedidoControllerTest {
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
     void consolidar_carritoVacio_retorna400() throws Exception {
-        CarritoRequest body = new CarritoRequest(List.of());
+        CarritoRequest body = new CarritoRequest(List.of(), 9L, "ESTANDAR");
         mockMvc.perform(post("/api/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -115,10 +115,30 @@ class PedidoControllerTest {
         when(consolidarCarritoUseCase.consolidar(any()))
                 .thenThrow(new ReglaNegocioException("Stock insuficiente"));
 
-        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 99)));
+        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 99)), 9L, "ESTANDAR");
         mockMvc.perform(post("/api/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void consolidar_sinDireccion_retorna400() throws Exception {
+        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 1)), null, "ESTANDAR");
+        mockMvc.perform(post("/api/pedidos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void consolidar_conMetodoDesconocido_retorna400() throws Exception {
+        CarritoRequest body = new CarritoRequest(List.of(new LineaCarritoRequest(100L, 1)), 9L, "VOLADOR");
+        mockMvc.perform(post("/api/pedidos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
     }
 }

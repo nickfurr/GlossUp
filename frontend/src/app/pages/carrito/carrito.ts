@@ -1,25 +1,16 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
 import { CarritoService } from '../../shared/carrito';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { Cargando } from '../../shared/cargando';
 import { PagoPendiente } from '../../shared/pago-pendiente';
-import { ProductosService, mensajeDeError } from '../../shared/productos';
-import type { Carrito as CarritoDto, Cruce, LineaCompra, Pedido, ResultadoCompatibilidad } from '../../shared/models';
-
-/** Línea del carrito enriquecida con nombre/imagen (el backend solo devuelve ids y montos). */
-interface ItemVista extends LineaCompra {
-  nombre: string;
-  imagen?: string;
-}
+import { mensajeDeError } from '../../shared/productos';
+import type { Carrito as CarritoDto, Cruce, LineaVista, Pedido, ResultadoCompatibilidad } from '../../shared/models';
 
 /**
- * Carrito del cliente (HU9 - SCRUM-36): CRUD de ítems + checkout que consolida y reserva
- * inventario, y luego lleva a pagar con Wompi (HU10). Muestra los pedidos que quedaron sin pagar.
- * Los nombres se completan consultando cada producto (el carrito solo guarda ids).
+ * Carrito del cliente (HU9 - SCRUM-36): CRUD de ítems y paso al checkout (HU14). Muestra los
+ * pedidos que quedaron sin pagar. Los nombres se completan consultando cada producto.
  */
 @Component({
   selector: 'app-carrito',
@@ -30,7 +21,7 @@ interface ItemVista extends LineaCompra {
         <div>
           <span class="eyebrow">Tu carrito</span>
           <h1>Revisa antes de pagar.</h1>
-          <p>Al confirmar reservamos tu inventario {{ minutosParaPagar }} minutos mientras pagas con Wompi.</p>
+          <p>Luego eliges a dónde te lo enviamos y pagas con Wompi.</p>
         </div>
       </div>
 
@@ -43,9 +34,7 @@ interface ItemVista extends LineaCompra {
       }
       @if (aviso()) { <p class="success-message" style="margin-bottom:1rem">{{ aviso() }}</p> }
 
-      @if (redirigiendo()) {
-        <app-cargando texto="Reservamos tu inventario. Te llevamos a Wompi para pagar…" forma="filas" [cantidad]="2" />
-      } @else if (cargando()) {
+      @if (cargando()) {
         <app-cargando texto="Cargando tu carrito…" forma="filas" [cantidad]="3" />
       } @else if (items().length === 0) {
         <p class="nota">Tu carrito está vacío. Ve al <a routerLink="/catalogo" class="perfil-callout">catálogo</a> para agregar productos.</p>
@@ -110,9 +99,7 @@ interface ItemVista extends LineaCompra {
         }
 
         <div class="editor-acciones">
-          <button type="button" class="btn-primario" [disabled]="ocupado()" (click)="confirmar()">
-            Confirmar pedido e ir a pagar
-          </button>
+          <a routerLink="/checkout" class="btn-primario">Continuar compra</a>
         </div>
       }
     </section>
@@ -130,19 +117,16 @@ interface ItemVista extends LineaCompra {
 })
 export class Carrito {
   private carrito = inject(CarritoService);
-  private productos = inject(ProductosService);
   private compatibilidad = inject(CompatibilidadService);
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
-  readonly items = signal<ItemVista[]>([]);
+  readonly items = signal<LineaVista[]>([]);
   readonly total = signal(0);
   readonly cargando = signal(true);
   readonly ocupado = signal(false);
   readonly error = signal<string | null>(null);
   readonly pendientes = signal<Pedido[]>([]);
-  readonly redirigiendo = signal(false);
   readonly aviso = signal<string | null>(null);
-  readonly minutosParaPagar = 30;
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
   readonly cruces = signal<Cruce[]>([]);
@@ -174,7 +158,6 @@ export class Carrito {
     return this.cop.format(n);
   }
 
-  /** Completa cada línea con nombre e imagen del producto; si una consulta falla, usa "Producto #id". */
   private enriquecer(c: CarritoDto): void {
     this.total.set(c.total);
     if (c.items.length === 0) {
@@ -182,14 +165,7 @@ export class Carrito {
       this.cargando.set(false);
       return;
     }
-    forkJoin(
-      c.items.map((it) =>
-        this.productos.obtener(it.productoId).pipe(
-          map((p): ItemVista => ({ ...it, nombre: p.nombre, imagen: p.imagenes?.[0] })),
-          catchError(() => of({ ...it, nombre: `Producto #${it.productoId}` } as ItemVista)),
-        ),
-      ),
-    ).subscribe((lineas) => {
+    this.carrito.detallar(c).subscribe((lineas) => {
       this.items.set(lineas);
       this.cargando.set(false);
     });
@@ -232,7 +208,7 @@ export class Carrito {
     });
   }
 
-  cambiar(it: ItemVista, cantidad: number): void {
+  cambiar(it: LineaVista, cantidad: number): void {
     if (cantidad < 1) {
       this.quitar(it);
       return;
@@ -240,40 +216,12 @@ export class Carrito {
     this.operar(this.carrito.cambiarCantidad(it.productoId, cantidad));
   }
 
-  quitar(it: ItemVista): void {
+  quitar(it: LineaVista): void {
     this.operar(this.carrito.quitar(it.productoId));
   }
 
   vaciar(): void {
     this.operar(this.carrito.vaciar());
-  }
-
-  /** Reserva el inventario (HU9) y lleva directo al checkout de Wompi (HU10). */
-  confirmar(): void {
-    this.ocupado.set(true);
-    this.error.set(null);
-    const lineas = this.items().map((i) => ({ productoId: i.productoId, cantidad: i.cantidad }));
-    this.carrito.consolidar(lineas).subscribe({
-      next: (ped) => {
-        this.carrito.vaciar().subscribe(); // el pedido ya reservó stock; dejamos el carrito limpio
-        this.items.set([]);
-        this.redirigiendo.set(true);
-        this.carrito.iniciarPago(ped.id).subscribe({
-          next: ({ url }) => window.location.assign(url),
-          // El pedido ya existe: queda pendiente con su botón de pagar para reintentar.
-          error: (e) => {
-            this.redirigiendo.set(false);
-            this.ocupado.set(false);
-            this.pendientes.update((ps) => [ped, ...ps]);
-            this.error.set(mensajeDeError(e));
-          },
-        });
-      },
-      error: (e) => {
-        this.error.set(mensajeDeError(e));
-        this.ocupado.set(false);
-      },
-    });
   }
 
   alCancelar(p: Pedido): void {

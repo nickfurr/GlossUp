@@ -77,12 +77,70 @@ export interface Carrito {
   total: number;
 }
 
+/** Línea del carrito con nombre e imagen del producto, para mostrarla. */
+export interface LineaVista extends LineaCompra {
+  nombre: string;
+  imagen?: string;
+}
+
+/** Dirección de la libreta del cliente (HU14). */
+export interface Direccion {
+  id: number;
+  nombreRecibe: string;
+  telefono: string;
+  departamento: string;
+  ciudad: string;
+  barrio: string;
+  direccion: string;
+  complemento?: string | null;
+  indicaciones?: string | null;
+  principal: boolean;
+}
+
+export type DatosDireccion = Omit<Direccion, 'id'>;
+
+/** Forma de envío disponible para un destino (GET /api/envios/opciones). */
+export interface OpcionEnvio {
+  metodo: string;
+  etiqueta: string;
+  costo: number;
+  fechaEstimada: string;
+}
+
+export type EstadoEnvio = 'PREPARANDO' | 'LISTO_PARA_ENVIO' | 'EN_CAMINO' | 'ENTREGADO' | 'NO_ENTREGADO';
+
+/** Envío de un pedido: copia de la dirección al comprar y seguimiento (HU14). */
+export interface EnvioPedido {
+  nombreRecibe: string;
+  telefono: string;
+  departamento: string;
+  ciudad: string;
+  barrio: string;
+  direccion: string;
+  complemento?: string | null;
+  indicaciones?: string | null;
+  metodo: string;
+  metodoEtiqueta: string;
+  costo: number;
+  fechaEstimada: string;
+  estado: EstadoEnvio;
+  transportadora?: string | null;
+  guia?: string | null;
+  notificadoEn?: string | null;
+  enviadoEn?: string | null;
+  entregadoEn?: string | null;
+  noEntregadoEn?: string | null;
+}
+
 /** Pedido consolidado con inventario reservado (POST /api/pedidos). */
 export interface Pedido {
   id: number;
   usuarioId: number;
   estado: string;
   items: LineaCompra[];
+  subtotal: number;
+  /** Null solo en pedidos anteriores a HU14. */
+  envio?: EnvioPedido | null;
   total: number;
   creadoEn?: string;
   /** Solo en pedidos CREADO: hasta cuándo se puede pagar antes de que se libere el inventario. */

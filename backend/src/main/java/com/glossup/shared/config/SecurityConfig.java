@@ -39,6 +39,8 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 // Webhook de Wompi: lo autentica el checksum del evento, no un JWT.
                                 "/api/pagos/wompi/eventos",
+                                // Webhook de la transportadora: lo autentica su secreto compartido (HU14).
+                                "/api/envios/eventos",
                                 "/ping",
                                 "/actuator/health/**",
                                 "/v3/api-docs/**",
