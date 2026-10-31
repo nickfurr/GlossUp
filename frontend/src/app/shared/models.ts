@@ -141,6 +141,8 @@ export interface VentaVendedor {
   items: LineaCompra[];
   ingresos: number;
   envio?: EnvioPedido | null;
+  /** Este vendedor ya confirmó que entregó su parte a la transportadora. */
+  enviadaPorMi: boolean;
 }
 
 export interface ResumenVentas {

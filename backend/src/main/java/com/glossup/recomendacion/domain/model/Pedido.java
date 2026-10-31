@@ -99,6 +99,19 @@ public class Pedido {
 
     public void cancelar() { transicionarA(EstadoPedido.CANCELADO); }
 
+    /**
+     * Todos los vendedores entregaron el paquete: sale hacia el cliente. False si no cambió nada, por
+     * ejemplo porque la transportadora ya lo había reportado en camino.
+     */
+    public boolean despachar(OffsetDateTime ahora) {
+        if (envio == null) { // pedido anterior a HU14: no tiene envío que seguir
+            if (estado != EstadoPedido.PAGADO) return false;
+            marcarEnviado();
+            return true;
+        }
+        return actualizarEnvio(EstadoEnvio.EN_CAMINO, ahora);
+    }
+
     /** Aplica una etapa del envío; cuando el paquete sale, el pedido pasa a ENVIADO. False si no cambió nada. */
     public boolean actualizarEnvio(EstadoEnvio etapa, OffsetDateTime ahora) {
         if (!envio.avanzarA(etapa, ahora)) {

@@ -89,7 +89,7 @@ glossup:
       api-url: ${WOMPI_API_URL:https://sandbox.wompi.co/v1}
   envios:
     # API de la transportadora (HU14). Sin URL se usa la transportadora de demostración, que asigna la guía
-    # y avanza el envío sola cada minutos-por-etapa.
+    # y entrega el pedido minutos-por-etapa después de que el vendedor confirma el envío.
     url: ${GLOSSUP_ENVIOS_URL:}
     api-key: ${GLOSSUP_ENVIOS_API_KEY:}
     # Secreto que la transportadora manda en X-Envios-Secreto al reportar etapas. Sin él, el webhook rechaza todo.

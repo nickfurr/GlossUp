@@ -18,5 +18,8 @@ public interface EnvioUseCase {
     /** Aplica una etapa reportada por la transportadora. Idempotente. */
     void actualizar(String guia, EstadoEnvio etapa);
 
+    /** El vendedor confirma que entregó su parte a la transportadora. Idempotente. */
+    void marcarEnviado(Long vendedorId, Long pedidoId);
+
     void avisarCliente(Long pedidoId);
 }

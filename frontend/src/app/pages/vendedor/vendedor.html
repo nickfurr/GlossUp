@@ -294,6 +294,25 @@
                 <span [class]="'pill ' + estadoVenta(v).cls">{{ estadoVenta(v).txt }}</span>
                 <strong class="precio-fila">{{ formatearCop(v.ingresos) }}</strong>
               </button>
+              @if (grupoDe(v) === 'porEnviar') {
+                <div class="venta-envio">
+                  @if (esperandoGuia(v)) {
+                    <span class="suave">La transportadora todavía no asigna la guía. Podrás confirmar el envío cuando llegue.</span>
+                  } @else if (confirmandoEnvio() === v.id) {
+                    <span>¿Ya entregaste este paquete a la transportadora?</span>
+                    <span class="venta-envio-botones">
+                      <button type="button" class="btn-sec" [disabled]="marcandoEnvio() === v.id" (click)="confirmandoEnvio.set(null)">No, todavía no</button>
+                      <button type="button" class="btn-primario" [disabled]="marcandoEnvio() === v.id" (click)="marcarEnviado(v)">
+                        {{ marcandoEnvio() === v.id ? 'Guardando…' : 'Sí, ya lo envié' }}
+                      </button>
+                    </span>
+                  } @else {
+                    <span class="suave">@if (v.envio?.guia; as guia) { Guía {{ guia }} } @else { Entrégalo a la transportadora }</span>
+                    <button type="button" class="btn-primario" (click)="errorEnvio.set(null); confirmandoEnvio.set(v.id)">Marcar como enviado</button>
+                  }
+                  @if (errorEnvio()?.pedido === v.id) { <p class="error" role="alert">{{ errorEnvio()?.texto }}</p> }
+                </div>
+              }
               @if (ventaAbierta() === v.id) {
                 <div [id]="'venta-' + v.id" class="venta-detalle">
                   @if (v.envio) { <app-seguimiento-envio [pedido]="v" /> }

@@ -9,10 +9,13 @@ import com.glossup.recomendacion.domain.model.MetodoEnvio;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
 import com.glossup.recomendacion.domain.port.out.ClientePort;
+import com.glossup.recomendacion.domain.port.out.DespachoRepositoryPort;
 import com.glossup.recomendacion.domain.port.out.NotificacionPort;
 import com.glossup.recomendacion.domain.port.out.PedidoRepositoryPort;
+import com.glossup.recomendacion.domain.port.out.ProductosVendedorPort;
 import com.glossup.recomendacion.domain.port.out.TransportadoraPort;
 import com.glossup.shared.domain.Dinero;
+import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,12 +43,14 @@ class EnvioServiceTest {
     @Mock private NotificacionPort notificacion;
     @Mock private ClientePort clientes;
     @Mock private ApplicationEventPublisher eventos;
+    @Mock private ProductosVendedorPort productos;
+    @Mock private DespachoRepositoryPort despachos;
 
     private EnvioService service;
 
     @BeforeEach
     void setUp() {
-        service = new EnvioService(pedidos, transportadora, notificacion, clientes, eventos);
+        service = new EnvioService(pedidos, transportadora, notificacion, clientes, eventos, productos, despachos);
     }
 
     private static Pedido pagado(Envio envio) {
@@ -142,5 +148,106 @@ class EnvioServiceTest {
     void actualizar_guiaDesconocida_falla() {
         when(pedidos.buscarPorGuia("X")).thenReturn(Optional.empty());
         assertThrows(NotFoundException.class, () -> service.actualizar("X", EstadoEnvio.EN_CAMINO));
+    }
+
+    private Pedido listoParaEnviar() {
+        Envio envio = envio();
+        envio.aceptado("Demo", "G-5", OffsetDateTime.now());
+        Pedido pedido = pagado(envio);
+        when(pedidos.buscarPorId(5L)).thenReturn(Optional.of(pedido));
+        return pedido;
+    }
+
+    @Test
+    void marcarEnviado_unicoVendedor_pasaAEnCaminoYAvisa() {
+        Pedido pedido = listoParaEnviar();
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L));
+        when(despachos.vendedoresQueDespacharon(5L)).thenReturn(Set.of(3L));
+
+        service.marcarEnviado(3L, 5L);
+
+        assertEquals(EstadoEnvio.EN_CAMINO, pedido.getEnvio().getEstado());
+        assertEquals(EstadoPedido.ENVIADO, pedido.getEstado());
+        verify(despachos).registrar(5L, 3L);
+        verify(pedidos).guardar(pedido);
+        verify(eventos).publishEvent(new EnvioActualizado(5L));
+    }
+
+    @Test
+    void marcarEnviado_faltaOtroVendedor_registraPeroNoAvanza() {
+        Pedido pedido = listoParaEnviar();
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L, 4L));
+        when(despachos.vendedoresQueDespacharon(5L)).thenReturn(Set.of(3L));
+
+        service.marcarEnviado(3L, 5L);
+
+        verify(despachos).registrar(5L, 3L);
+        assertEquals(EstadoEnvio.LISTO_PARA_ENVIO, pedido.getEnvio().getEstado());
+        verify(pedidos, never()).guardar(any());
+        verifyNoInteractions(eventos);
+    }
+
+    @Test
+    void marcarEnviado_elUltimoVendedorHaceAvanzarElPedido() {
+        Pedido pedido = listoParaEnviar();
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L, 4L));
+        when(despachos.vendedoresQueDespacharon(5L)).thenReturn(Set.of(3L, 4L));
+
+        service.marcarEnviado(4L, 5L);
+
+        assertEquals(EstadoEnvio.EN_CAMINO, pedido.getEnvio().getEstado());
+    }
+
+    @Test
+    void marcarEnviado_repetido_noGuardaNiAvisaDeNuevo() {
+        Pedido pedido = listoParaEnviar();
+        pedido.actualizarEnvio(EstadoEnvio.EN_CAMINO, OffsetDateTime.now());
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L));
+        when(despachos.vendedoresQueDespacharon(5L)).thenReturn(Set.of(3L));
+
+        service.marcarEnviado(3L, 5L);
+
+        verify(pedidos, never()).guardar(any());
+        verifyNoInteractions(eventos);
+    }
+
+    @Test
+    void marcarEnviado_pedidoDeOtroVendedor_noExisteParaEl() {
+        listoParaEnviar();
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L));
+
+        assertThrows(NotFoundException.class, () -> service.marcarEnviado(9L, 5L));
+        verifyNoInteractions(despachos);
+    }
+
+    @Test
+    void marcarEnviado_sinGuia_seRechazaParaNoPerderLaNotificacion() {
+        when(pedidos.buscarPorId(5L)).thenReturn(Optional.of(pagado(envio())));
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L));
+
+        assertThrows(ReglaNegocioException.class, () -> service.marcarEnviado(3L, 5L));
+        verifyNoInteractions(despachos);
+    }
+
+    @Test
+    void marcarEnviado_pedidoSinEnvioAnteriorAHu14_quedaEnviado() {
+        Pedido pedido = pagado(null);
+        when(pedidos.buscarPorId(5L)).thenReturn(Optional.of(pedido));
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L));
+        when(despachos.vendedoresQueDespacharon(5L)).thenReturn(Set.of(3L));
+
+        service.marcarEnviado(3L, 5L);
+
+        assertEquals(EstadoPedido.ENVIADO, pedido.getEstado());
+    }
+
+    @Test
+    void marcarEnviado_pedidoSinPagar_seRechaza() {
+        when(pedidos.buscarPorId(5L)).thenReturn(Optional.of(new Pedido(5L, 7L, EstadoPedido.CREADO,
+                List.of(new PedidoItem(100L, 1, Dinero.de(10000))), OffsetDateTime.now(), envio())));
+        when(productos.vendedoresDe(Set.of(100L))).thenReturn(Set.of(3L));
+
+        assertThrows(ReglaNegocioException.class, () -> service.marcarEnviado(3L, 5L));
+        verifyNoInteractions(despachos);
     }
 }

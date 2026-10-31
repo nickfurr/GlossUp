@@ -57,6 +57,11 @@ export class ProductosService {
     return this.http.post<LecturaEtiqueta>(`${BASE}/extraer-ingredientes`, datos);
   }
 
+  /** El vendedor confirma que entregó el pedido a la transportadora. */
+  marcarEnviado(pedidoId: number): Observable<void> {
+    return this.http.post<void>(`/api/vendedor/ventas/${pedidoId}/enviado`, {});
+  }
+
   /** Pedidos pagados con productos de este vendedor y sus cifras. */
   ventas(): Observable<VentasVendedor> {
     return this.http.get<VentasVendedor>('/api/vendedor/ventas');

@@ -2,14 +2,19 @@ package com.glossup.recomendacion.infrastructure.in.rest;
 
 import com.glossup.recomendacion.domain.model.ResumenVentas;
 import com.glossup.recomendacion.domain.model.VentaVendedor;
+import com.glossup.recomendacion.domain.port.in.EnvioUseCase;
 import com.glossup.recomendacion.domain.port.in.VentasVendedorUseCase;
 import com.glossup.recomendacion.infrastructure.in.rest.dto.PedidoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -25,9 +30,11 @@ import java.util.List;
 public class VentasVendedorController {
 
     private final VentasVendedorUseCase ventas;
+    private final EnvioUseCase envios;
 
-    public VentasVendedorController(VentasVendedorUseCase ventas) {
+    public VentasVendedorController(VentasVendedorUseCase ventas, EnvioUseCase envios) {
         this.ventas = ventas;
+        this.envios = envios;
     }
 
     public record SemanaResponse(LocalDate inicio, BigDecimal ingresos) {}
@@ -38,7 +45,8 @@ public class VentasVendedorController {
                                   List<SemanaResponse> semanas, List<MasVendidoResponse> masVendidos) {}
 
     public record VentaResponse(Long id, String estado, String cliente, OffsetDateTime pagadoEn,
-                                List<PedidoResponse.Item> items, BigDecimal ingresos, PedidoResponse.EnvioResponse envio) {}
+                                List<PedidoResponse.Item> items, BigDecimal ingresos, PedidoResponse.EnvioResponse envio,
+                                boolean enviadaPorMi) {}
 
     public record VentasResponse(ResumenResponse resumen, List<VentaResponse> ventas) {}
 
@@ -50,6 +58,14 @@ public class VentasVendedorController {
         return new VentasResponse(resumen(v.resumen()), v.ventas().stream().map(VentasVendedorController::venta).toList());
     }
 
+    @PostMapping("/api/vendedor/ventas/{id}/enviado")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Confirmar que entregué este pedido a la transportadora",
+               description = "Cuando todos los vendedores del pedido confirman, pasa a En camino y el resto lo reporta la transportadora.")
+    public void marcarEnviado(@PathVariable Long id, Authentication authentication) {
+        envios.marcarEnviado(Long.parseLong(authentication.getName()), id);
+    }
+
     private static ResumenResponse resumen(ResumenVentas r) {
         return new ResumenResponse(r.ingresosMes().monto(), r.pedidosMes(), r.unidadesMes(),
                 r.semanas().stream().map(s -> new SemanaResponse(s.inicio(), s.ingresos().monto())).toList(),
@@ -58,6 +74,6 @@ public class VentasVendedorController {
 
     private static VentaResponse venta(VentaVendedor v) {
         return new VentaResponse(v.pedido().getId(), v.pedido().getEstado().name(), v.cliente(), v.pedido().getPagadoEn(),
-                v.lineas().stream().map(PedidoResponse::itemDe).toList(), v.ingresos().monto(), PedidoResponse.envioDe(v.pedido()));
+                v.lineas().stream().map(PedidoResponse::itemDe).toList(), v.ingresos().monto(), PedidoResponse.envioDe(v.pedido()), v.enviadaPorMi());
     }
 }

@@ -347,6 +347,9 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .venta-resumen:focus-visible { outline: 3px solid var(--vino); outline-offset: -3px; }
 .venta-titulo { display: grid; gap: .1rem; min-width: 0; overflow-wrap: anywhere; }
 .suave { color: #7c6870; font-size: .84rem; }
+.venta-envio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; padding: .7rem 1.1rem; border-top: 1px solid var(--borde); background: #fffaf0; }
+.venta-envio-botones { display: flex; flex-wrap: wrap; gap: .5rem; }
+.venta-envio .error { flex-basis: 100%; }
 .venta-detalle { display: grid; gap: .9rem; padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--borde); }
 .venta-detalle .nota { margin: 0; }
 .precio-fila { font-weight: 700; color: var(--vino-osc); white-space: nowrap; }

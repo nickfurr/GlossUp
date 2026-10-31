@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 
 /**
- * Hace de transportadora de demostración (sin GLOSSUP_ENVIOS_URL): avanza cada envío una etapa cada
- * pocos minutos por el mismo camino que usaría el webhook de una transportadora real.
+ * Hace de transportadora de demostración (sin GLOSSUP_ENVIOS_URL): unos minutos después de que el
+ * vendedor confirma el envío, lo entrega por el mismo camino que usaría el webhook de una real.
  */
 @Component
 @ConditionalOnExpression("'${glossup.envios.url:}'.isBlank()")
@@ -33,9 +33,7 @@ public class EnvioSimuladoTarea {
         OffsetDateTime limite = OffsetDateTime.now().minusMinutes(minutosPorEtapa);
         for (Pedido pedido : envios.enCurso()) {
             Envio envio = pedido.getEnvio();
-            if (envio.getEstado() == EstadoEnvio.LISTO_PARA_ENVIO && envio.getNotificadoEn().isBefore(limite)) {
-                envios.actualizar(envio.getGuia(), EstadoEnvio.EN_CAMINO);
-            } else if (envio.getEstado() == EstadoEnvio.EN_CAMINO && envio.getEnviadoEn().isBefore(limite)) {
+            if (envio.getEstado() == EstadoEnvio.EN_CAMINO && envio.getEnviadoEn().isBefore(limite)) {
                 envios.actualizar(envio.getGuia(), EstadoEnvio.ENTREGADO);
             }
         }

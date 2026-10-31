@@ -52,12 +52,14 @@ shipped, delivered, not_delivered).
    servidor (`TarifaEnvio`) al total que cobra Wompi. Editar o borrar la libreta no cambia los pedidos hechos.
 3. Al pasar a `PAGADO`, `EnvioListener` avisa a la API de envíos después del commit y en otro hilo (fire and forget). Si falla,
    el pago sigue intacto y `EnviosPendientesTarea` reintenta cada minuto, hasta 30 veces (RNF-19, RNF-22).
-4. La transportadora reporta etapas en `POST /api/envios/eventos` con el secreto `X-Envios-Secreto`: `EN_CAMINO` pasa el
+4. El vendedor confirma en su panel que entregó el paquete (`POST /api/vendedor/ventas/{id}/enviado`). Con todos los vendedores
+   del pedido confirmados pasa a `EN_CAMINO`. No se puede confirmar hasta que la transportadora asigne la guía.
+5. La transportadora reporta etapas en `POST /api/envios/eventos` con el secreto `X-Envios-Secreto`: `EN_CAMINO` pasa el
    pedido a `ENVIADO`; `ENTREGADO` y `NO_ENTREGADO` son finales. Los eventos repetidos no cambian nada. Cada cambio avisa por correo.
 
 | Variable | Para qué |
 |---|---|
-| `GLOSSUP_ENVIOS_URL` | API de la transportadora: `POST {url}/envios` responde `{transportadora, guia}`. Sin ella se usa la transportadora de demostración, que avanza sola. |
+| `GLOSSUP_ENVIOS_URL` | API de la transportadora: `POST {url}/envios` responde `{transportadora, guia}`. Sin ella se usa la transportadora de demostración, que entrega sola tras la confirmación del vendedor. |
 | `GLOSSUP_ENVIOS_API_KEY` | Se envía como `Authorization: Bearer`. |
 | `GLOSSUP_ENVIOS_SECRETO_EVENTOS` | Secreto del webhook. Sin él se rechazan todos los eventos. |
 | `GLOSSUP_ENVIOS_MINUTOS_POR_ETAPA` | Minutos por etapa de la demostración (3 por defecto). |
@@ -69,4 +71,4 @@ envío ni datos de otros vendedores. Los pedidos sin pagar no se muestran: el ve
 
 ## Tablas (ver V1__init.sql)
 `pedido` (+ `pago_transaccion_id`, `pago_metodo`, `pagado_en`, V12; + `envio_*`, V14), `pedido_item` (+ `nombre` al comprar, V13),
-`comprobante` (V13), `direccion` (V14)
+`comprobante` (V13), `direccion` (V14), `despacho_vendedor` (V15)
