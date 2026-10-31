@@ -81,6 +81,15 @@ glossup:
       secreto-integridad: ${WOMPI_SECRETO_INTEGRIDAD:}
       secreto-eventos: ${WOMPI_SECRETO_EVENTOS:}
       api-url: ${WOMPI_API_URL:https://sandbox.wompi.co/v1}
+  envios:
+    # API de la transportadora (HU14). Sin URL se usa la transportadora de demostración, que asigna la guía
+    # y avanza el envío sola cada minutos-por-etapa.
+    url: ${GLOSSUP_ENVIOS_URL:}
+    api-key: ${GLOSSUP_ENVIOS_API_KEY:}
+    # Secreto que la transportadora manda en X-Envios-Secreto al reportar etapas. Sin él, el webhook rechaza todo.
+    secreto-eventos: ${GLOSSUP_ENVIOS_SECRETO_EVENTOS:}
+    simulador:
+      minutos-por-etapa: ${GLOSSUP_ENVIOS_MINUTOS_POR_ETAPA:3}
   ai:
     gemini:
       api-key: ${GEMINI_API_KEY:REEMPLAZAR-CON-TU-KEY}

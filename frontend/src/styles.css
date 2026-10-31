@@ -154,7 +154,7 @@ button.link:hover { text-decoration: underline; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; margin-top: 2.5rem; margin-bottom: 1rem; }
 .section-heading h2 { margin: .25rem 0 0; color: var(--vino-osc); }
 .catalog-note { color: #9d8d95; font-size: .82rem; }
-.product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr)); gap: 1rem; }
 .product-placeholder { position: relative; min-height: 270px; padding: .8rem; background: #fff; border: 1px solid var(--borde); border-radius: 16px; }
 .product-image { height: 155px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(145deg, #f8e9ef, #fdf8f5); color: #c7839e; font-size: 2rem; }
 .skeleton-line { height: 10px; width: 58%; margin-top: 1rem; border-radius: 8px; background: #f0e5e9; }
@@ -163,12 +163,15 @@ button.link:hover { text-decoration: underline; }
 .placeholder-label { position: absolute; top: 1.2rem; left: 1.2rem; padding: .25rem .55rem; border-radius: 999px; background: #fff; color: var(--vino); font-size: .7rem; font-weight: 800; }
 
 /* Tarjeta de producto real del catálogo (HU12) */
-.cat-card { display: flex; flex-direction: column; padding: .8rem; background: #fff; border: 1px solid var(--borde); border-radius: 16px; }
-.cat-card .product-image { overflow: hidden; }
-.cat-card .product-image img { width: 100%; height: 100%; object-fit: cover; }
-.cat-nombre { margin: .8rem 0 .2rem; font-size: 1rem; color: var(--vino-osc); }
-.cat-marca { margin: 0; color: #8a7681; font-size: .82rem; }
-.cat-pie { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: .9rem; }
+.cat-card { display: flex; flex-direction: column; overflow: hidden; background: #fff; border-radius: 8px; box-shadow: 0 1px 2px #5e1a3324; transition: box-shadow .15s ease; }
+.cat-card:hover { box-shadow: 0 6px 18px #5e1a3326; }
+.cat-card .product-image { height: auto; aspect-ratio: 1; overflow: hidden; border-radius: 0; background: #fff; border-bottom: 1px solid #f3ecef; }
+.cat-card .product-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cat-nombre { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.5em; margin: .8rem .9rem .2rem; font-size: .9rem; font-weight: 400; line-height: 1.25; color: var(--tinta); }
+.cat-marca { margin: 0 .9rem; color: #7c6870; font-size: .78rem; }
+.cat-card app-compat-info { display: block; margin: .35rem .9rem 0; }
+.cat-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; margin-top: auto; padding: .7rem .9rem .9rem; }
+.cat-pie .precio { font-size: 1.2rem; font-weight: 500; color: var(--tinta); }
 
 .profile-page { max-width: 1050px; margin: auto; padding-bottom: 3rem; }
 .back-link { color: var(--vino); text-decoration: none; font-weight: 700; font-size: .88rem; }
@@ -214,7 +217,8 @@ button.link:hover { text-decoration: underline; }
 @media (max-width: 720px) {
   .home-intro, .profile-header { display: block; }
   .perfil-callout, .profile-status { display: inline-block; margin-top: 1rem; }
-  .product-grid, .profile-layout, .profile-lists { grid-template-columns: 1fr; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .profile-layout, .profile-lists { grid-template-columns: 1fr; }
   .home-search button { padding-inline: 1rem; }
   .topbar { gap: .8rem; padding-inline: 1rem; }
   .topbar nav { width: 100%; justify-content: space-between; }
@@ -336,7 +340,7 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .fila-click { cursor: pointer; }
 .fila-click:hover td { background: #fcf5f8; }
 .celda-prod { display: flex; align-items: center; gap: 0.7rem; font-weight: 600; }
-.thumb { width: 34px; height: 34px; border-radius: 50%; background: var(--rosa-pal); overflow: hidden; flex-shrink: 0; display: inline-block; }
+.thumb { width: 52px; height: 52px; border: 1px solid var(--borde); border-radius: 6px; background: #fff; overflow: hidden; flex-shrink: 0; display: inline-block; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .tabla .precio { color: var(--vino); font-weight: 700; }
 .rojo-txt { color: #c0392b; font-weight: 700; }

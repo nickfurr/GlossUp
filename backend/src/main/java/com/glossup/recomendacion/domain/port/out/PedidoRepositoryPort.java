@@ -20,4 +20,12 @@ public interface PedidoRepositoryPort {
 
     /** Pedidos todavía CREADO (sin pagar) creados antes de {@code limite}: candidatos a vencer. */
     List<Pedido> buscarSinPagarCreadosAntesDe(OffsetDateTime limite);
+
+    /** Pedidos pagados antes de {@code limite} cuyo envío la transportadora aún no acepta, con menos de {@code maxIntentos}. */
+    List<Pedido> buscarEnviosSinNotificar(OffsetDateTime limite, int maxIntentos);
+
+    /** Pedidos con el paquete en manos de la transportadora, sin etapa final. */
+    List<Pedido> buscarEnviosEnCurso();
+
+    Optional<Pedido> buscarPorGuia(String guia);
 }

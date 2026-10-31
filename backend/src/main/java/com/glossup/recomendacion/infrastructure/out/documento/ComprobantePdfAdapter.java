@@ -1,5 +1,6 @@
 package com.glossup.recomendacion.infrastructure.out.documento;
 
+import com.glossup.recomendacion.domain.model.Envio;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
 import com.glossup.recomendacion.domain.port.out.ClientePort;
@@ -33,6 +34,7 @@ public class ComprobantePdfAdapter implements DocumentoComprobantePort {
     private static final Locale COLOMBIA = Locale.forLanguageTag("es-CO");
     private static final ZoneId HORA_COLOMBIA = ZoneId.of("America/Bogota");
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy, HH:mm", COLOMBIA);
+    private static final DateTimeFormatter FECHA_ENTREGA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", COLOMBIA);
     private static final Map<String, String> METODOS = Map.of("CARD", "Tarjeta", "PSE", "PSE", "NEQUI", "Nequi",
             "BANCOLOMBIA_TRANSFER", "Botón Bancolombia", "BANCOLOMBIA_QR", "QR Bancolombia", "DAVIPLATA", "Daviplata");
 
@@ -79,8 +81,14 @@ public class ComprobantePdfAdapter implements DocumentoComprobantePort {
         datos.addCell(dato("Correo", cliente.email()));
         datos.addCell(dato("Pedido", "#" + pedido.getId()));
         datos.addCell(dato("Fecha de pago", pedido.getPagadoEn() != null ? fecha(pedido.getPagadoEn()) : "—"));
-        datos.addCell(dato("Medio de pago", METODOS.getOrDefault(pedido.getMetodoPago(), valor(pedido.getMetodoPago()))));
+        datos.addCell(dato("Medio de pago", METODOS.getOrDefault(valor(pedido.getMetodoPago()), valor(pedido.getMetodoPago()))));
         datos.addCell(dato("Transacción Wompi", valor(pedido.getTransaccionId())));
+        Envio envio = pedido.getEnvio();
+        if (envio != null) {
+            var d = envio.getDestino();
+            datos.addCell(dato("Enviar a", d.nombreRecibe() + " · " + d.direccion() + ", " + d.barrio() + ", " + d.ciudad() + ", " + d.departamento()));
+            datos.addCell(dato("Envío", envio.getMetodo().etiqueta() + " · llegada estimada " + FECHA_ENTREGA.format(envio.getFechaEstimada())));
+        }
         doc.add(datos);
 
         PdfPTable detalle = new PdfPTable(new float[]{5, 1.2f, 2.2f, 2.2f});
@@ -102,6 +110,12 @@ public class ComprobantePdfAdapter implements DocumentoComprobantePort {
             detalle.addCell(linea(String.valueOf(item.cantidad()), fondo, Element.ALIGN_RIGHT));
             detalle.addCell(linea(pesos(item.precioUnitario().monto()), fondo, Element.ALIGN_RIGHT));
             detalle.addCell(linea(pesos(item.subtotal().monto()), fondo, Element.ALIGN_RIGHT));
+        }
+        if (envio != null) {
+            PdfPCell etiquetaEnvio = linea("Envío " + envio.getMetodo().etiqueta(), Color.WHITE, Element.ALIGN_RIGHT);
+            etiquetaEnvio.setColspan(3);
+            detalle.addCell(etiquetaEnvio);
+            detalle.addCell(linea(envio.getCosto().monto().signum() == 0 ? "Gratis" : pesos(envio.getCosto().monto()), Color.WHITE, Element.ALIGN_RIGHT));
         }
         PdfPCell etiquetaTotal = new PdfPCell(new Phrase("Total pagado", TOTAL));
         etiquetaTotal.setColspan(3);

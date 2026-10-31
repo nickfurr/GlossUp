@@ -4,6 +4,7 @@ import { CarritoService } from '../../shared/carrito';
 import { Cargando } from '../../shared/cargando';
 import { PagoPendiente } from '../../shared/pago-pendiente';
 import { DescargarComprobante } from '../../shared/descargar-comprobante';
+import { fechaLlegada } from '../../shared/direcciones';
 import { mensajeDeError } from '../../shared/productos';
 import type { EstadoTransaccion, Pedido } from '../../shared/models';
 
@@ -44,6 +45,10 @@ const MAX_CONSULTAS = 20;
                 @if (p.metodoPago) { <dt>Medio de pago</dt><dd>{{ metodo(p.metodoPago) }}</dd> }
                 @if (p.transaccionId) { <dt>Transacción Wompi</dt><dd>{{ p.transaccionId }}</dd> }
                 @if (p.pagadoEn) { <dt>Fecha</dt><dd>{{ fecha(p.pagadoEn) }}</dd> }
+                @if (p.envio; as e) {
+                  <dt>Enviamos a</dt><dd>{{ e.direccion }}, {{ e.ciudad }}</dd>
+                  <dt>Llegada estimada</dt><dd>{{ llegada(e.fechaEstimada) }}</dd>
+                }
               </dl>
               <p class="nota">Te enviamos el comprobante a tu correo. También lo tienes siempre en Mis pedidos.</p>
               <div class="acciones">
@@ -110,6 +115,7 @@ const MAX_CONSULTAS = 20;
 })
 export class PagoResultado {
   private carrito = inject(CarritoService);
+  readonly llegada = fechaLlegada;
   private readonly pedidoId: number;
   readonly transaccionId: string | null;
   private consultas = 0;

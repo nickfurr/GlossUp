@@ -1,29 +1,38 @@
 import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { CarritoService } from '../../shared/carrito';
 import { Cargando } from '../../shared/cargando';
 import { PagoPendiente } from '../../shared/pago-pendiente';
 import { DescargarComprobante } from '../../shared/descargar-comprobante';
+import { SeguimientoEnvio } from '../../shared/seguimiento-envio';
 import { mensajeDeError } from '../../shared/productos';
 import type { Pedido } from '../../shared/models';
 
 const ESTADOS: Record<string, { texto: string; clase: string }> = {
   CREADO: { texto: 'Pendiente de pago', clase: 'e-pendiente' },
   PAGADO: { texto: 'Pagado · en preparación', clase: 'e-pagado' },
-  ENVIADO: { texto: 'Enviado', clase: 'e-enviado' },
+  ENVIADO: { texto: 'En camino', clase: 'e-enviado' },
   CANCELADO: { texto: 'Cancelado', clase: 'e-cancelado' },
+};
+
+/** Etapas del envío que dicen más que el estado del pedido. */
+const ETAPAS: Partial<Record<string, { texto: string; clase: string }>> = {
+  LISTO_PARA_ENVIO: { texto: 'Listo para envío', clase: 'e-pagado' },
+  ENTREGADO: { texto: 'Entregado', clase: 'e-pagado' },
+  NO_ENTREGADO: { texto: 'No entregado', clase: 'e-cancelado' },
 };
 
 const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'Nequi', BANCOLOMBIA_TRANSFER: 'Botón Bancolombia',
   BANCOLOMBIA_QR: 'QR Bancolombia', DAVIPLATA: 'Daviplata' };
 
 /**
- * Historial de compras del cliente (HU11): cada pedido con su estado, el detalle de productos, los
- * datos del pago y el comprobante en PDF. /pedidos?pedido={id} abre directamente ese pedido.
+ * Historial de compras del cliente (HU11): cada pedido con su estado, el seguimiento del envío
+ * (HU14), el detalle de productos, los datos del pago y el comprobante en PDF. /pedidos?pedido={id} abre directamente ese pedido.
  */
 @Component({
   selector: 'app-pedidos',
-  imports: [RouterLink, Cargando, PagoPendiente, DescargarComprobante],
+  imports: [RouterLink, Cargando, PagoPendiente, DescargarComprobante, SeguimientoEnvio],
   template: `
     <section class="cliente-home pedidos">
       <div class="home-intro">
@@ -63,6 +72,7 @@ const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'N
 
               @if (abierto() === p.id) {
                 <div class="detalle" [id]="'detalle-' + p.id">
+                  @if (p.envio && p.estado !== 'CANCELADO') { <app-seguimiento-envio [pedido]="p" /> }
                   <table>
                     <caption class="sr-only">Productos del pedido #{{ p.id }}</caption>
                     <thead><tr><th scope="col">Producto</th><th scope="col">Cant.</th><th scope="col">Precio</th><th scope="col">Subtotal</th></tr></thead>
@@ -76,7 +86,12 @@ const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'N
                         </tr>
                       }
                     </tbody>
-                    <tfoot><tr><th scope="row" colspan="3">Total</th><td>{{ cop.format(p.total) }}</td></tr></tfoot>
+                    <tfoot>
+                      @if (p.envio; as e) {
+                        <tr class="envio"><th scope="row" colspan="3">Envío {{ e.metodoEtiqueta }}</th><td>{{ e.costo === 0 ? 'Gratis' : cop.format(e.costo) }}</td></tr>
+                      }
+                      <tr><th scope="row" colspan="3">Total</th><td>{{ cop.format(p.total) }}</td></tr>
+                    </tfoot>
                   </table>
 
                   @if (p.estado === 'PAGADO' || p.estado === 'ENVIADO') {
@@ -86,8 +101,12 @@ const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'N
                         @if (p.metodoPago) { <div><dt>Medio de pago</dt><dd>{{ metodo(p.metodoPago) }}</dd></div> }
                         @if (p.transaccionId) { <div><dt>Transacción Wompi</dt><dd>{{ p.transaccionId }}</dd></div> }
                       </dl>
-                      <app-descargar-comprobante [pedidoId]="p.id" />
+                      <div class="pago-acciones">
+                        <button type="button" class="btn-sec" [disabled]="reagregando()" (click)="volverAComprar(p)">Volver a comprar</button>
+                        <app-descargar-comprobante [pedidoId]="p.id" />
+                      </div>
                     </div>
+                    @if (errorRecompra()) { <p class="error" role="alert">{{ errorRecompra() }}</p> }
                   } @else if (p.estado === 'CREADO') {
                     <app-pago-pendiente [pedido]="p" (cancelado)="reemplazar($event)" />
                   } @else {
@@ -130,6 +149,8 @@ const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'N
     th:first-child, td:first-child { text-align: left; }
     thead th { color: #8a7681; font-size: .78rem; text-transform: uppercase; letter-spacing: .6px; }
     tfoot th, tfoot td { border-bottom: 0; font-weight: 800; color: var(--vino-osc); font-size: 1rem; }
+    tfoot .envio th, tfoot .envio td { font-weight: 500; font-size: .92rem; color: inherit; }
+    .pago-acciones { display: flex; flex-wrap: wrap; gap: .6rem; }
     .pago { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
       padding: .9rem 1rem; border-radius: 12px; background: var(--crema); }
     dl { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; margin: 0; }
@@ -147,6 +168,7 @@ const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'N
 })
 export class Pedidos {
   private carrito = inject(CarritoService);
+  private router = inject(Router);
   private readonly pedidoSolicitado = Number(inject(ActivatedRoute).snapshot.queryParamMap.get('pedido')) || null;
 
   readonly cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
@@ -154,6 +176,8 @@ export class Pedidos {
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
   readonly abierto = signal<number | null>(null);
+  readonly reagregando = signal(false);
+  readonly errorRecompra = signal<string | null>(null);
 
   constructor() {
     this.cargar();
@@ -185,7 +209,21 @@ export class Pedidos {
   }
 
   estado(p: Pedido) {
-    return ESTADOS[p.estado] ?? { texto: p.estado, clase: '' };
+    const etapa = p.estado === 'CANCELADO' ? undefined : ETAPAS[p.envio?.estado ?? ''];
+    return etapa ?? ESTADOS[p.estado] ?? { texto: p.estado, clase: '' };
+  }
+
+  /** Vuelve a poner en el carrito los productos del pedido, al precio y stock de hoy. */
+  volverAComprar(p: Pedido): void {
+    this.reagregando.set(true);
+    this.errorRecompra.set(null);
+    forkJoin(p.items.map((i) => this.carrito.agregar(i.productoId, i.cantidad))).subscribe({
+      next: () => this.router.navigate(['/carrito']),
+      error: (e) => {
+        this.errorRecompra.set(mensajeDeError(e));
+        this.reagregando.set(false);
+      },
+    });
   }
 
   unidades(p: Pedido): number {

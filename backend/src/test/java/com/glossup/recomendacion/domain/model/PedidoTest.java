@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class PedidoTest {
 
     private Pedido pedidoBase() {
-        return Pedido.crear(1L, List.of(new PedidoItem(100L, 2, Dinero.de(30000))));
+        return new Pedido(null, 1L, EstadoPedido.CREADO, List.of(new PedidoItem(100L, 2, Dinero.de(30000))), null);
     }
 
     @Test
@@ -23,7 +23,7 @@ class PedidoTest {
 
     @Test
     void pedido_sin_items_no_es_valido() {
-        assertThrows(ReglaNegocioException.class, () -> Pedido.crear(1L, List.of()));
+        assertThrows(ReglaNegocioException.class, () -> new Pedido(null, 1L, EstadoPedido.CREADO, List.of(), null));
     }
 
     @Test

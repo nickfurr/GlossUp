@@ -1,7 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import type { Carrito, Pedido, ResultadoPago } from './models';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { ProductosService } from './productos';
+import type { Carrito, LineaVista, Pedido, ResultadoPago } from './models';
 
 /**
  * Carrito del cliente (HU9). Agregar/cambiar/quitar/vaciar devuelven el carrito actualizado; el
@@ -10,6 +12,7 @@ import type { Carrito, Pedido, ResultadoPago } from './models';
 @Injectable({ providedIn: 'root' })
 export class CarritoService {
   private http = inject(HttpClient);
+  private productos = inject(ProductosService);
 
   ver(): Observable<Carrito> {
     return this.http.get<Carrito>('/api/carrito');
@@ -31,9 +34,22 @@ export class CarritoService {
     return this.http.delete<Carrito>('/api/carrito');
   }
 
-  /** Consolida el carrito y reserva inventario. Falla sin reservar nada si falta stock. */
-  consolidar(items: { productoId: number; cantidad: number }[]): Observable<Pedido> {
-    return this.http.post<Pedido>('/api/pedidos', { items });
+  /** Completa cada línea con nombre e imagen del producto; si una consulta falla, usa "Producto #id". */
+  detallar(c: Carrito): Observable<LineaVista[]> {
+    if (c.items.length === 0) return of([]);
+    return forkJoin(
+      c.items.map((it) =>
+        this.productos.obtener(it.productoId).pipe(
+          map((p): LineaVista => ({ ...it, nombre: p.nombre, imagen: p.imagenes?.[0] })),
+          catchError(() => of<LineaVista>({ ...it, nombre: `Producto #${it.productoId}` })),
+        ),
+      ),
+    );
+  }
+
+  /** Consolida el carrito, reserva inventario y fija la entrega. Falla sin reservar nada si falta stock. */
+  consolidar(items: { productoId: number; cantidad: number }[], direccionId: number, metodoEnvio: string): Observable<Pedido> {
+    return this.http.post<Pedido>('/api/pedidos', { items, direccionId, metodoEnvio });
   }
 
   misPedidos(): Observable<Pedido[]> {
