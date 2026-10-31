@@ -6,4 +6,7 @@ import java.util.Set;
 public interface ProductosVendedorPort {
 
     Set<Long> idsDe(Long vendedorId);
+
+    /** Los vendedores dueños de estos productos. */
+    Set<Long> vendedoresDe(Set<Long> productoIds);
 }

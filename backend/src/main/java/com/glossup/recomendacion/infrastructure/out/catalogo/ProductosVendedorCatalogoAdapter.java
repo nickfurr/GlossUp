@@ -5,6 +5,8 @@ import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.recomendacion.domain.port.out.ProductosVendedorPort;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -20,5 +22,15 @@ public class ProductosVendedorCatalogoAdapter implements ProductosVendedorPort {
     @Override
     public Set<Long> idsDe(Long vendedorId) {
         return productos.buscarPorVendedor(vendedorId).stream().map(Producto::getId).collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<Long> vendedoresDe(Set<Long> productoIds) {
+        return productoIds.stream()
+                .map(productos::buscarPorId)
+                .flatMap(Optional::stream)
+                .map(Producto::getVendedorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 }

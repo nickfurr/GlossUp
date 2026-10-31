@@ -50,6 +50,9 @@ export class Vendedor {
   readonly errorVentas = signal<string | null>(null);
   readonly filtroPedidos = signal<FiltroPedidos>('todos');
   readonly ventaAbierta = signal<number | null>(null);
+  readonly confirmandoEnvio = signal<number | null>(null);
+  readonly marcandoEnvio = signal<number | null>(null);
+  readonly errorEnvio = signal<{ pedido: number; texto: string } | null>(null);
 
   // Mis productos: buscador y filtros
   readonly q = signal('');
@@ -226,11 +229,32 @@ export class Vendedor {
     return [...(p.imagenes?.length ? [] : ['imagen']), ...(p.registroInvima ? [] : ['registro INVIMA'])];
   }
 
-  private grupoDe(v: VentaVendedor): FiltroPedidos {
+  grupoDe(v: VentaVendedor): FiltroPedidos {
     const etapa = v.envio?.estado;
     if (etapa === 'ENTREGADO' || etapa === 'NO_ENTREGADO') return 'finalizados';
-    if (etapa === 'EN_CAMINO' || v.estado === 'ENVIADO') return 'enCamino';
+    if (etapa === 'EN_CAMINO' || v.estado === 'ENVIADO' || v.enviadaPorMi) return 'enCamino';
     return 'porEnviar';
+  }
+
+  /** La transportadora aún no asigna la guía: sin ella el vendedor no tiene cómo despachar. */
+  esperandoGuia(v: VentaVendedor): boolean {
+    return v.envio?.estado === 'PREPARANDO';
+  }
+
+  marcarEnviado(v: VentaVendedor): void {
+    this.marcandoEnvio.set(v.id);
+    this.errorEnvio.set(null);
+    this.api.marcarEnviado(v.id).subscribe({
+      next: () => {
+        this.confirmandoEnvio.set(null);
+        this.marcandoEnvio.set(null);
+        this.recargar();
+      },
+      error: (e) => {
+        this.errorEnvio.set({ pedido: v.id, texto: mensajeDeError(e) });
+        this.marcandoEnvio.set(null);
+      },
+    });
   }
 
   estadoVenta(v: VentaVendedor): { txt: string; cls: string } {
@@ -238,9 +262,10 @@ export class Vendedor {
       case 'ENTREGADO': return { txt: 'Entregado', cls: 'pill-ok' };
       case 'NO_ENTREGADO': return { txt: 'No entregado', cls: 'pill-rojo' };
       case 'EN_CAMINO': return { txt: 'En camino', cls: 'pill-azul' };
-      case 'LISTO_PARA_ENVIO': return { txt: 'Listo para envío', cls: 'pill-amber' };
-      case 'PREPARANDO': return { txt: 'Preparando', cls: 'pill-amber' };
-      default: return v.estado === 'ENVIADO' ? { txt: 'Enviado', cls: 'pill-azul' } : { txt: 'Pagado', cls: 'pill-amber' };
+      case 'PREPARANDO': return { txt: 'Esperando guía', cls: 'pill-amber' };
+      default:
+        if (v.estado === 'ENVIADO') return { txt: 'Enviado', cls: 'pill-azul' };
+        return v.enviadaPorMi ? { txt: 'Enviado · faltan otros vendedores', cls: 'pill-azul' } : { txt: 'No enviado', cls: 'pill-amber' };
     }
   }
 

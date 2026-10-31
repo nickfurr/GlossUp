@@ -16,7 +16,7 @@ class ResumenVentasTest {
     private static VentaVendedor venta(String pagadoEn, PedidoItem... lineas) {
         Pedido pedido = new Pedido(1L, 1L, EstadoPedido.PAGADO, List.of(lineas), OffsetDateTime.parse(pagadoEn));
         pedido.conPago("t", "CARD", OffsetDateTime.parse(pagadoEn));
-        return new VentaVendedor(pedido, "Ana", List.of(lineas));
+        return new VentaVendedor(pedido, "Ana", List.of(lineas), false);
     }
 
     private static PedidoItem linea(long id, int cantidad, double precio) {
