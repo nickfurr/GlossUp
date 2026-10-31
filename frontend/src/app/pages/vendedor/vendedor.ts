@@ -11,7 +11,7 @@ import type { DatosProducto, IngredienteCatalogo, ProductoVendedor, ResumenVenta
 
 const VISTAS = ['dashboard', 'productos', 'editor', 'pedidos', 'ventas', 'ajustes'] as const;
 type Vista = (typeof VISTAS)[number];
-type FiltroProductos = 'todos' | 'activos' | 'sinstock' | 'pocas' | 'alertas' | 'baja';
+type FiltroProductos = 'todos' | 'activos' | 'sinstock' | 'pocas' | 'alertas' | 'baja' | 'bloqueados';
 type FiltroPedidos = 'todos' | 'porEnviar' | 'enCamino' | 'finalizados';
 const STOCK_BAJO = 5;
 const MAX_FOTO_BYTES = 8 * 1024 * 1024;
@@ -71,6 +71,8 @@ export class Vendedor {
     const hora = new Date().getHours();
     return hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
   });
+  /** La notificación dura lo que dure el problema: se va sola cuando administración levanta la suspensión. */
+  readonly suspendidos = computed(() => this.productos().filter((p) => p.baneado));
   readonly activos = computed(() => this.productos().filter((p) => p.activo && !p.baneado).length);
   readonly porReabastecer = computed(() => this.productos().filter((p) => this.stockBajo(p)).length);
   readonly alertas = computed(() => this.productos().filter((p) => this.faltantes(p).length > 0).length);
@@ -104,6 +106,7 @@ export class Vendedor {
       if (f === 'pocas' && !this.stockBajo(p)) return false;
       if (f === 'alertas' && this.faltantes(p).length === 0) return false;
       if (f === 'baja' && p.activo) return false;
+      if (f === 'bloqueados' && !p.baneado) return false;
       if (!texto) return true;
       return (
         p.nombre.toLowerCase().includes(texto) ||
@@ -119,6 +122,7 @@ export class Vendedor {
     { id: 'pocas', label: 'Por reabastecer' },
     { id: 'alertas', label: 'Por completar' },
     { id: 'baja', label: 'Dados de baja' },
+    { id: 'bloqueados', label: 'Suspendidos' },
   ];
   readonly filtrosPedidos: { id: FiltroPedidos; label: string }[] = [
     { id: 'todos', label: 'Todos' },
@@ -287,7 +291,7 @@ export class Vendedor {
   }
 
   estadoDe(p: ProductoVendedor): { txt: string; cls: string } {
-    if (p.baneado) return { txt: 'Bloqueado', cls: 'rojo' };
+    if (p.baneado) return { txt: 'Suspendido', cls: 'rojo' };
     if (!p.activo) return { txt: 'Dado de baja', cls: 'amber' };
     if (p.stock === 0) return { txt: 'Sin stock', cls: 'rojo' };
     return { txt: 'Publicado', cls: 'ok' };

@@ -122,7 +122,7 @@ public class Producto {
     /** Publica el producto. Reglas: no se puede publicar sin ficha INCI ni mientras esté bloqueado. */
     public void publicar() {
         if (baneado) {
-            throw new ReglaNegocioException("Este producto está bloqueado por administración: " + motivoBaneo);
+            throw new ReglaNegocioException("Este producto está suspendido por administración: " + motivoBaneo);
         }
         if (composicion.isEmpty()) {
             throw new ReglaNegocioException(
@@ -142,7 +142,7 @@ public class Producto {
 
     public void banear(String motivo) {
         if (motivo == null || motivo.isBlank()) {
-            throw new ReglaNegocioException("Escribe el motivo del bloqueo");
+            throw new ReglaNegocioException("Escribe el motivo de la suspensión");
         }
         this.baneado = true;
         this.motivoBaneo = motivo.trim();

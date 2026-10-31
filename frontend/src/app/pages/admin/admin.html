@@ -28,7 +28,7 @@
         <button type="button" class="tile-stat tile-accion" (click)="verUsuarios('todos')"><span class="label">Usuarios</span><span class="val val-vino">{{ usuarios().length }}</span><span class="tile-nota">{{ vendedores() }} vendedores · {{ clientes() }} clientes</span></button>
         <button type="button" class="tile-stat tile-accion" (click)="verUsuarios('suspendidos')"><span class="label">Cuentas suspendidas</span><span class="val val-rosa">{{ suspendidos() }}</span></button>
         <button type="button" class="tile-stat tile-accion" (click)="verProductos('publicados')"><span class="label">Productos publicados</span><span class="val val-ok">{{ publicados() }}</span><span class="tile-nota">de {{ productos().length }} registrados</span></button>
-        <button type="button" class="tile-stat tile-accion" (click)="verProductos('bloqueados')"><span class="label">Productos bloqueados</span><span class="val val-amber">{{ bloqueados() }}</span></button>
+        <button type="button" class="tile-stat tile-accion" (click)="verProductos('bloqueados')"><span class="label">Productos suspendidos</span><span class="val val-amber">{{ bloqueados() }}</span></button>
         <button type="button" class="tile-stat tile-accion" (click)="verPedidos('PAGADO')"><span class="label">Pedidos por enviar</span><span class="val val-rosa">{{ porEnviar() }}</span><span class="tile-nota">{{ porPagar() }} sin pagar</span></button>
         <div class="tile-stat"><span class="label">Ventas pagadas</span><span class="val val-vino">{{ cop.format(ingresos()) }}</span><span class="tile-nota">Incluye el envío</span></div>
       </div>
@@ -258,7 +258,7 @@
         } @else {
           <section class="panel">
             <h3>Reactivar cuenta</h3>
-            <p class="suave">Podrá volver a entrar.@if (u.roles[0] === 'VENDEDOR') { Vuelven los productos bloqueados por esta suspensión. }</p>
+            <p class="suave">Podrá volver a entrar.@if (u.roles[0] === 'VENDEDOR') { Vuelven los productos que salieron por esta suspensión. }</p>
             <div class="gestion-acciones"><button type="button" class="btn-primario" [disabled]="ocupado()" (click)="reactivar(u)">Reactivar cuenta</button></div>
           </section>
         }
@@ -291,17 +291,17 @@
       </section>
       @if (p.baneado) {
         <section class="panel">
-          <h3>Producto bloqueado</h3>
+          <h3>Producto suspendido</h3>
           <p>Motivo: {{ p.motivoBaneo || 'sin indicar' }}</p>
-          <p class="suave">Al quitar el bloqueo vuelve como lo tenía el vendedor.</p>
-          <div class="gestion-acciones"><button type="button" class="btn-primario" [disabled]="ocupado()" (click)="desbloquear(p)">Quitar bloqueo</button></div>
+          <p class="suave">Al levantar la suspensión vuelve como lo tenía el vendedor.</p>
+          <div class="gestion-acciones"><button type="button" class="btn-primario" [disabled]="ocupado()" (click)="desbloquear(p)">Levantar suspensión</button></div>
         </section>
       } @else {
         <section class="panel zona-peligro">
-          <h3>Bloquear producto</h3>
+          <h3>Suspender producto</h3>
           <p class="suave">Sale del catálogo y el vendedor no puede volver a publicarlo. Los pedidos ya creados no cambian.</p>
           <label class="campo">Motivo<textarea name="motivoProducto" rows="2" [(ngModel)]="edMotivo" maxlength="300" placeholder="Se le muestra al vendedor"></textarea></label>
-          <div class="gestion-acciones"><button type="button" class="btn-peligro" [disabled]="ocupado()" (click)="bloquear(p)">Bloquear producto</button></div>
+          <div class="gestion-acciones"><button type="button" class="btn-peligro" [disabled]="ocupado()" (click)="bloquear(p)">Suspender producto</button></div>
         </section>
       }
     </div>

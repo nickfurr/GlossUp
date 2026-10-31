@@ -65,7 +65,7 @@ export class Admin {
   readonly filtrosProducto: { id: FiltroProductos; label: string }[] = [
     { id: 'todos', label: 'Todos' },
     { id: 'publicados', label: 'Publicados' },
-    { id: 'bloqueados', label: 'Bloqueados' },
+    { id: 'bloqueados', label: 'Suspendidos' },
     { id: 'baja', label: 'Dados de baja' },
     { id: 'sinstock', label: 'Sin stock' },
   ];
@@ -232,7 +232,7 @@ export class Admin {
   }
 
   estadoProducto(p: ProductoVendedor): { txt: string; cls: string } {
-    if (p.baneado) return { txt: 'Bloqueado', cls: 'rojo' };
+    if (p.baneado) return { txt: 'Suspendido', cls: 'rojo' };
     if (!p.activo) return { txt: 'Dado de baja', cls: 'amber' };
     return p.stock === 0 ? { txt: 'Sin stock', cls: 'amber' } : { txt: 'Publicado', cls: 'ok' };
   }
@@ -361,15 +361,15 @@ export class Admin {
 
   bloquear(p: ProductoVendedor): void {
     if (!this.edMotivo.trim()) {
-      this.errorGestion.set('Escribe el motivo del bloqueo.');
+      this.errorGestion.set('Escribe el motivo de la suspensión.');
       return;
     }
     this.accionProducto(this.http.post<ProductoVendedor>(`/api/admin/productos/${p.id}/banear`, { motivo: this.edMotivo.trim() }),
-      'Producto bloqueado. Ya no aparece en el catálogo.');
+      'Producto suspendido. Ya no aparece en el catálogo.');
   }
 
   desbloquear(p: ProductoVendedor): void {
-    this.accionProducto(this.http.post<ProductoVendedor>(`/api/admin/productos/${p.id}/desbanear`, {}), 'Bloqueo retirado.');
+    this.accionProducto(this.http.post<ProductoVendedor>(`/api/admin/productos/${p.id}/desbanear`, {}), 'Suspensión levantada.');
   }
 
   // ---- Nuevo vendedor ----
