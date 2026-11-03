@@ -1,765 +1,2025 @@
-openapi: 3.0.3
+openapi: 3.0.1
 info:
   title: GlossUP API
-  description: |
-    API REST del backend GlossUP para autenticación y gestión del catálogo
-    de productos cosméticos e ingredientes INCI.
-  version: 0.0.1
+  description: API del ecommerce de cosmetica con motor de compatibilidad dermatologica
   contact:
-    name: Equipo GlossUP - Universidad del Quindío
+    name: Equipo GlossUP - Universidad del Quindio
   license:
-    name: Uso académico
-
+    name: Uso academico
+  version: v0.0.1
 servers:
-  - url: http://localhost:8080
-    description: Desarrollo local
-
+- url: https://glossup.agreeablehill-726dcf29.eastus.azurecontainerapps.io
+  description: Entorno desplegado en Azure Container Apps
+- url: http://localhost:8080
+  description: Entorno de desarrollo local
 tags:
-  - name: Salud
-    description: Verificación del estado de la aplicación
-  - name: Autenticación
-    description: Inicio de sesión y emisión de tokens JWT
-  - name: Catálogo
-    description: Consulta y registro de productos cosméticos
-  - name: Perfil Dermatológico
-    description: Consulta y gestión dinámica de alergias y afecciones del cliente (HU2)
+- name: Perfil Dermatológico
+  description: Consulta y gestión dinámica de alergias y afecciones del cliente (HU2)
+- name: Autenticación
+  description: Recuperación de contraseña
+- name: Carrito
+  description: Gestión del carrito de compras del cliente (HU9)
+- name: Pedidos
+  description: Consolidación de carrito, reserva de inventario y consulta de pedidos
+    (HU9)
+- name: Envíos
+  description: Cotización y seguimiento de envíos (HU14)
+- name: Comprobantes
+  description: Comprobante de compra en PDF (HU11)
+- name: Pagos
+  description: Pago de pedidos con pasarela externa (HU10)
+- name: Catálogo
+  description: Gestión de catálogo de productos cosméticos e ingredientes INCI
+- name: Ventas del vendedor
+  description: Pedidos pagados con productos del vendedor y sus cifras
+- name: Cuenta
+  description: Datos de la cuenta propia
+- name: Catálogo
+  description: Catálogo cerrado de ingredientes INCI
+- name: Administración
+  description: Usuarios, vendedores y moderación del catálogo
+- name: Direcciones
+  description: Libreta de direcciones de entrega (HU14)
+- name: Compatibilidad
+  description: 'Motor de compatibilidad: producto–perfil (HU6, HU7) y producto–producto
+    (HU8)'
 
+# ==============================================================================
+# RUTAS Y ENDPOINTS ORGANIZADOS POR MÓDULO DEL PROYECTO
+# ==============================================================================
 paths:
-  /ping:
-    get:
-      tags:
-        - Salud
-      summary: Verificar que la aplicación está activa
-      operationId: ping
-      security: []
-      responses:
-        '200':
-          description: Aplicación disponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PingResponse'
-              example:
-                service: glossup-backend
-                status: UP
-                timestamp: '2026-10-15T19:00:00-05:00'
 
-  /api/auth/login:
-    post:
-      tags:
-        - Autenticación
-      summary: Iniciar sesión (Cliente, Vendedor o Admin)
-      description: |
-        Valida el correo y la contraseña de un usuario activo y devuelve un JWT
-        con sus roles para consumir los endpoints protegidos de la plataforma.
-      operationId: login
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-            example:
-              email: vendedor@glossup.com
-              password: mi-password
-      responses:
-        '200':
-          description: Credenciales válidas y token emitido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-              example:
-                token: eyJhbGciOiJIUzI1NiJ9...
-                usuarioId: 1
-                email: vendedor@glossup.com
-                roles:
-                  - VENDEDOR
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          description: Credenciales inválidas o usuario inactivo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+  # ============================================================================
+  # MÓDULO 1: IDENTIDAD, AUTENTICACIÓN Y CUENTAS (com.glossup.usuarios)
+  # ============================================================================
 
+  # --------------------------------------------------------------------------
+  # Ruta: /api/auth/register
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
   /api/auth/register:
     post:
       tags:
-        - Autenticación
-      summary: Registrar un usuario
-      description: Crea una cuenta activa de cliente o vendedor. El rol ADMIN no puede asignarse mediante este endpoint público.
-      operationId: registrarUsuario
-      security: []
+      - auth-controller
+      operationId: register
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RegistrarUsuarioRequest'
-            example:
-              email: cliente@glossup.com
-              nombre: Cliente GlossUP
-              password: mi-password-seguro
-              rol: CLIENTE
+        required: true
       responses:
-        '201':
-          description: Usuario creado correctamente
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/BusinessRuleError'
+        '200':
+          description: OK
+      x-historia-usuario: por definir
 
-  /api/catalogo/productos:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/auth/login
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/auth/login:
     post:
       tags:
-        - Catálogo
-      summary: Registrar un producto
-      description: |
-        Registra un producto con imágenes y ficha técnica INCI. El vendedor
-        se obtiene del subject del JWT y no se envía en el body.
-      operationId: registrarProducto
-      security:
-        - bearerAuth: []
+      - auth-controller
+      operationId: login
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegistrarProductoRequest'
-            example:
-              nombre: Serum Hidratante
-              marca: GlossLab
-              categoria: Cuidado facial
-              precio: 85000.00
-              stock: 50
-              ph: 5.5
-              registroInvima: NSOC12345-23CO
-              imagenes:
-                - https://ejemplo.com/serum.jpg
-              ingredientes:
-                - inci: Hyaluronic Acid
-                  descripcion: Ingrediente hidratante
-                  concentracion: 2.0
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
       responses:
-        '201':
-          description: Producto registrado correctamente
+        '200':
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/ProductoResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/BusinessRuleError'
+                $ref: '#/components/schemas/LoginResponse'
+      x-historia-usuario: por definir
 
-  /api/catalogo/productos/{id}:
-    get:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/auth/recuperar
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/auth/recuperar:
+    post:
       tags:
-        - Catálogo
-      summary: Consultar un producto por ID
-      operationId: buscarProductoPorId
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/ProductId'
-      responses:
-        '200':
-          description: Producto encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductoResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      tags:
-        - Catálogo
-      summary: Modificar un producto existente (HU4)
-      description: |
-        Actualiza los datos generales, stock, hipervínculos de imágenes y ficha INCI
-        de un producto perteneciente al vendedor autenticado.
-      operationId: actualizarProducto
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/ProductId'
+      - Autenticación
+      summary: Pedir el enlace de recuperación
+      description: Responde igual exista o no el correo.
+      operationId: solicitar
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegistrarProductoRequest'
+              $ref: '#/components/schemas/SolicitudRequest'
+        required: true
       responses:
-        '200':
-          description: Producto modificado correctamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductoResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/BusinessRuleError'
-    delete:
+        '202':
+          description: Accepted
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/auth/restablecer
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/auth/restablecer:
+    post:
       tags:
-        - Catálogo
-      summary: Eliminar lógicamente un producto (HU4)
-      description: |
-        Despublica (activo = false) un producto perteneciente al vendedor autenticado,
-        protegiendo el historial de pedidos.
-      operationId: eliminarProducto
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/ProductId'
+      - Autenticación
+      summary: Crear la contraseña nueva con el enlace
+      operationId: restablecer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestablecerRequest'
+        required: true
       responses:
         '204':
-          description: Producto eliminado lógicamente (despublicado)
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: No Content
+      x-historia-usuario: por definir
 
-  /api/catalogo/productos/mis-productos:
-    get:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/cuenta/nombre
+  #   PUT: [por definir]
+  # --------------------------------------------------------------------------
+  /api/cuenta/nombre:
+    put:
       tags:
-        - Catálogo
-      summary: Listar productos del vendedor autenticado
-      description: Devuelve los productos asociados al vendedor identificado por el JWT.
-      operationId: listarMisProductos
-      security:
-        - bearerAuth: []
+      - Cuenta
+      summary: Cambiar mi nombre
+      operationId: cambiarNombre
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NombreRequest'
+        required: true
       responses:
-        '200':
-          description: Lista de productos del vendedor
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductoResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        '204':
+          description: No Content
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
 
-  /api/catalogo/productos/extraer-ingredientes:
-    post:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/cuenta/clave
+  #   PUT: [por definir]
+  # --------------------------------------------------------------------------
+  /api/cuenta/clave:
+    put:
       tags:
-        - Catálogo
-      summary: Extraer ingredientes INCI desde foto de etiqueta (HU5)
-      description: |
-        Recibe una imagen (JPG o PNG) de la etiqueta de un producto cosmético.
-        Usa Gemini Vision para detectar y extraer la lista de nombres INCI normalizados.
-        Requiere rol VENDEDOR.
-      operationId: extraerIngredientes
+      - Cuenta
+      summary: Cambiar mi contraseña
+      description: Exige la contraseña actual; si no coincide responde 422.
+      operationId: cambiarClave
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaveRequest'
+        required: true
+      responses:
+        '204':
+          description: No Content
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # ============================================================================
+  # MÓDULO 2: PERFIL DERMATOLÓGICO Y CAPILAR (com.glossup.perfil - HU1, HU2)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me
+  #   GET: [HU1 - Registro y consulta del perfil dermatológico]
+  #   PUT: [HU1 - Registro y consulta del perfil dermatológico]
+  # --------------------------------------------------------------------------
   /api/perfil/me:
     get:
       tags:
-        - Perfil Dermatológico
+      - Perfil Dermatológico
       summary: Obtener mi perfil dermatológico
-      description: |
-        Retorna el perfil dermatológico del cliente autenticado. Si aún no existe,
-        crea y persiste automáticamente un perfil inicial vacío.
+      description: Retorna el perfil dermatológico del cliente autenticado. Si aún no
+        existe, crea uno inicial vacío.
       operationId: obtenerMiPerfil
-      security:
-        - bearerAuth: []
       responses:
         '200':
-          description: Perfil dermatológico del cliente
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/PerfilResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU1 - Registro y consulta del perfil dermatológico
     put:
       tags:
-        - Perfil Dermatológico
-      summary: Actualizar mi biotipo dermatológico
-      description: Actualiza pH, tipo de piel y tipo de cabello del cliente autenticado.
-      operationId: actualizarMiPerfil
-      security:
-        - bearerAuth: []
+      - Perfil Dermatológico
+      summary: Actualizar mi perfil dermatológico
+      operationId: actualizarPerfil
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ActualizarPerfilRequest'
+        required: true
       responses:
         '200':
-          description: Perfil actualizado correctamente
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/PerfilResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/BusinessRuleError'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU1 - Registro y consulta del perfil dermatológico
 
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me/alergias
+  #   POST: [HU2 - Gestión dinámica de alergias y condiciones (Agregar)]
+  #   DELETE: [HU2 - Gestión dinámica de alergias y condiciones (Quitar por body)]
+  # --------------------------------------------------------------------------
   /api/perfil/me/alergias:
     post:
       tags:
-        - Perfil Dermatológico
+      - Perfil Dermatológico
       summary: Agregar una alergia (INCI) al perfil (HU2)
-      description: Agrega dinámicamente un ingrediente cosmético (INCI) a la lista de alergias del cliente sin duplicados.
+      description: Agrega dinámicamente un ingrediente cosmético (INCI) a la lista de
+        alergias del cliente sin duplicados.
       operationId: agregarAlergia
-      security:
-        - bearerAuth: []
       requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlergiaRequest'
         required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Gestión dinámica de alergias y condiciones (Agregar)
+    delete:
+      tags:
+      - Perfil Dermatológico
+      summary: Quitar una alergia (INCI) del perfil mediante body (HU2)
+      description: Elimina dinámicamente un ingrediente (INCI) de la lista de alergias
+        del cliente.
+      operationId: quitarAlergiaPorBody
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlergiaRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Gestión dinámica de alergias y condiciones (Quitar por
+        body)
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me/alergias/{alergia}
+  #   DELETE: [HU2 - Gestión dinámica de alergias y condiciones (Quitar por ruta)]
+  # --------------------------------------------------------------------------
+  /api/perfil/me/alergias/{alergia}:
+    delete:
+      tags:
+      - Perfil Dermatológico
+      summary: Quitar una alergia (INCI) del perfil por parámetro de ruta (HU2)
+      description: Elimina dinámicamente un ingrediente (INCI) de la lista de alergias
+        del cliente.
+      operationId: quitarAlergiaPorRuta
+      parameters:
+      - name: alergia
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Gestión dinámica de alergias y condiciones (Quitar por
+        ruta)
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me/afecciones
+  #   POST: [HU2 - Gestión dinámica de alergias y condiciones (Agregar)]
+  #   DELETE: [HU2 - Gestión dinámica de alergias y condiciones (Quitar por body)]
+  # --------------------------------------------------------------------------
+  /api/perfil/me/afecciones:
+    post:
+      tags:
+      - Perfil Dermatológico
+      summary: Agregar una afección o condición dermatológica al perfil (HU2)
+      description: Agrega dinámicamente una condición dermatológica (ej. acné, rosácea,
+        dermatitis) al perfil del cliente.
+      operationId: agregarAfeccion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AfeccionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Gestión dinámica de alergias y condiciones (Agregar)
+    delete:
+      tags:
+      - Perfil Dermatológico
+      summary: Quitar una afección o condición del perfil mediante body (HU2)
+      description: Elimina dinámicamente una condición dermatológica del perfil del
+        cliente.
+      operationId: quitarAfeccionPorBody
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AfeccionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Gestión dinámica de alergias y condiciones (Quitar por
+        body)
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me/afecciones/{afeccion}
+  #   DELETE: [HU2 - Gestión dinámica de alergias y condiciones (Quitar por ruta)]
+  # --------------------------------------------------------------------------
+  /api/perfil/me/afecciones/{afeccion}:
+    delete:
+      tags:
+      - Perfil Dermatológico
+      summary: Quitar una afección o condición del perfil por parámetro de ruta (HU2)
+      description: Elimina dinámicamente una condición dermatológica del perfil del
+        cliente.
+      operationId: quitarAfeccionPorRuta
+      parameters:
+      - name: afeccion
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Gestión dinámica de alergias y condiciones (Quitar por
+        ruta)
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me/opciones
+  #   GET: [HU2 - Catálogo clínico normalizado de opciones de perfil]
+  # --------------------------------------------------------------------------
+  /api/perfil/me/opciones:
+    get:
+      tags:
+      - Perfil Dermatológico
+      summary: Catálogos del perfil
+      description: Tipos de piel y cabello, alergias y afecciones válidas para las listas
+        desplegables.
+      operationId: opciones
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OpcionesPerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU2 - Catálogo clínico normalizado de opciones de perfil
+
+  # ============================================================================
+  # MÓDULO 3: CATÁLOGO DE PRODUCTOS E INGREDIENTES INCI (com.glossup.catalogo - HU3, HU4, HU5, HU12, HU13)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/productos
+  #   GET: [HU3 / HU4 - Listar catálogo publicado con stock]
+  #   POST: [HU3 - Registro manual de producto, ficha INCI e imágenes]
+  # --------------------------------------------------------------------------
+  /api/catalogo/productos:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar el catálogo publicado
+      description: Productos activos y con stock (los agotados no se muestran al cliente).
+      operationId: listarCatalogo
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU3 / HU4 - Listar catálogo publicado con stock
+    post:
+      tags:
+      - Catálogo
+      summary: Registrar un nuevo producto en el catálogo (HU3)
+      description: Registra un producto con sus hipervínculos de imágenes y ficha INCI
+        completa obligatoria. Requiere rol VENDEDOR.
+      operationId: registrar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarProductoRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU3 - Registro manual de producto, ficha INCI e imágenes
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/productos/{id}
+  #   GET: [HU3 / HU4 - Consultar producto por ID]
+  #   PUT: [HU4 - Modificación integral de catálogo y ficha INCI]
+  #   DELETE: [HU4 - Eliminación lógica (despublicar: activo=false)]
+  # --------------------------------------------------------------------------
+  /api/catalogo/productos/{id}:
+    get:
+      tags:
+      - Catálogo
+      summary: Consultar producto por ID
+      operationId: buscarPorId
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+      x-historia-usuario: HU3 / HU4 - Consultar producto por ID
+    put:
+      tags:
+      - Catálogo
+      summary: Modificar un producto existente del catálogo (HU4)
+      description: Actualiza los datos generales, stock, imágenes y ficha INCI de un
+        producto perteneciente al vendedor autenticado.
+      operationId: actualizar_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizarProductoRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU4 - Modificación integral de catálogo y ficha INCI
+    delete:
+      tags:
+      - Catálogo
+      summary: Eliminar lógicamente un producto del catálogo (HU4)
+      description: Despublica (activo = false) un producto perteneciente al vendedor
+        autenticado, preservando la integridad de pedidos históricos.
+      operationId: eliminar_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+      security:
+      - bearerAuth: []
+      x-historia-usuario: 'HU4 - Eliminación lógica (despublicar: activo=false)'
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/productos/{id}/publicar
+  #   POST: [HU4 - Reactivación y publicación de producto]
+  # --------------------------------------------------------------------------
+  /api/catalogo/productos/{id}/publicar:
+    post:
+      tags:
+      - Catálogo
+      summary: Volver a publicar un producto dado de baja
+      operationId: publicar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU4 - Reactivación y publicación de producto
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/productos/extraer-ingredientes
+  #   POST: [HU5 - Lectura OCR asistida de ingredientes desde imagen (Gemini Vision)]
+  # --------------------------------------------------------------------------
+  /api/catalogo/productos/extraer-ingredientes:
+    post:
+      tags:
+      - Catálogo
+      summary: Extraer ingredientes INCI desde foto de etiqueta (HU5)
+      description: Gemini Vision analiza la imagen y devuelve la lista de ingredientes
+        INCI. Requiere rol VENDEDOR.
+      operationId: extraerIngredientes
+      requestBody:
         content:
           multipart/form-data:
             schema:
-              type: object
               required:
-                - imagen
+              - imagen
+              type: object
               properties:
                 imagen:
                   type: string
                   format: binary
-                  description: Archivo de imagen de la etiqueta del producto (JPG/PNG)
       responses:
         '200':
-          description: Lista de ingredientes INCI detectados exitosamente
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/IngredientesImagenResponse'
-              example:
-                ingredientes:
-                  - aqua
-                  - glycerin
-                  - niacinamide
-                  - sodium hyaluronate
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AlergiaRequest'
-      responses:
-        '200':
-          description: Alergia agregada y perfil actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PerfilResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/BusinessRuleError'
-    delete:
-      tags:
-        - Perfil Dermatológico
-      summary: Quitar una alergia (INCI) del perfil mediante body (HU2)
-      description: Elimina dinámicamente un ingrediente (INCI) de la lista de alergias del cliente.
-      operationId: quitarAlergiaPorBody
       security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AlergiaRequest'
-      responses:
-        '200':
-          description: Alergia eliminada y perfil actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PerfilResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+      - bearerAuth: []
+      x-historia-usuario: HU5 - Lectura OCR asistida de ingredientes desde imagen (Gemini
+        Vision)
 
-  /api/perfil/me/alergias/{alergia}:
-    delete:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/productos/buscar
+  #   GET: [HU12 - Búsqueda básica de productos por palabra clave]
+  # --------------------------------------------------------------------------
+  /api/catalogo/productos/buscar:
+    get:
       tags:
-        - Perfil Dermatológico
-      summary: Quitar una alergia (INCI) del perfil por ruta (HU2)
-      operationId: quitarAlergiaPorRuta
-      security:
-        - bearerAuth: []
+      - Catálogo
+      summary: Buscar productos por palabra clave (HU12)
+      description: Busqueda basica de productos publicados y con stock cuyo nombre,
+        marca o categoria contengan la palabra clave.
+      operationId: buscar
       parameters:
-        - name: alergia
-          in: path
-          required: true
-          description: Nombre INCI del ingrediente a eliminar de las alergias
-          schema:
-            type: string
-          example: parfum
-      responses:
-        '200':
-          description: Alergia eliminada y perfil actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PerfilResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-  /api/perfil/me/afecciones:
-    post:
-      tags:
-        - Perfil Dermatológico
-      summary: Agregar una afección o condición dermatológica al perfil (HU2)
-      description: Agrega dinámicamente una condición dermatológica (ej. acné, rosácea, dermatitis) al perfil del cliente.
-      operationId: agregarAfeccion
-      security:
-        - bearerAuth: []
-      requestBody:
+      - name: q
+        in: query
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AfeccionRequest'
+        schema:
+          type: string
       responses:
         '200':
-          description: Afección agregada y perfil actualizado
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/PerfilResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/BusinessRuleError'
-    delete:
-      tags:
-        - Perfil Dermatológico
-      summary: Quitar una afección o condición del perfil mediante body (HU2)
-      operationId: quitarAfeccionPorBody
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductoResponse'
       security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AfeccionRequest'
-      responses:
-        '200':
-          description: Afección eliminada y perfil actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PerfilResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+      - bearerAuth: []
+      x-historia-usuario: HU12 - Búsqueda básica de productos por palabra clave
 
-  /api/perfil/me/afecciones/{afeccion}:
-    delete:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/productos/mis-productos
+  #   GET: [HU4 / HU13 - Listar productos del vendedor autenticado]
+  # --------------------------------------------------------------------------
+  /api/catalogo/productos/mis-productos:
+    get:
       tags:
-        - Perfil Dermatológico
-      summary: Quitar una afección o condición del perfil por ruta (HU2)
-      operationId: quitarAfeccionPorRuta
+      - Catálogo
+      summary: Listar productos del vendedor autenticado
+      operationId: listarMisProductos
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductoResponse'
       security:
-        - bearerAuth: []
+      - bearerAuth: []
+      x-historia-usuario: HU4 / HU13 - Listar productos del vendedor autenticado
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/catalogo/ingredientes
+  #   GET: [HU3 - Consulta del catálogo cerrado de ingredientes INCI]
+  # --------------------------------------------------------------------------
+  /api/catalogo/ingredientes:
+    get:
+      tags:
+      - Catálogo
+      summary: Buscar en el catálogo de ingredientes
+      description: Busca por nombre INCI o por nombre en español (ej. 'glicerina').
+        Máximo 20 resultados.
+      operationId: buscar_1
       parameters:
-        - name: afeccion
-          in: path
-          required: true
-          description: Nombre de la afección o condición a eliminar
-          schema:
-            type: string
-          example: rosacea
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '200':
-          description: Afección eliminada y perfil actualizado
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/PerfilResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                type: array
+                items:
+                  $ref: '#/components/schemas/IngredienteCatalogoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU3 - Consulta del catálogo cerrado de ingredientes INCI
 
-components:
+  # ============================================================================
+  # MÓDULO 4: MOTOR DE COMPATIBILIDAD Y CRUCE DERMATOLÓGICO (com.glossup.compatibilidad - HU6, HU7, HU8)
+  # ============================================================================
 
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Token obtenido mediante POST /api/auth/login
-
-  parameters:
-    ProductId:
-      name: id
-      in: path
-      required: true
-      description: Identificador del producto
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-      example: 1
-
-  schemas:
-    PingResponse:
-      type: object
-      required:
-        - service
-        - status
-        - timestamp
-      properties:
-        service:
-          type: string
-          example: glossup-backend
-        status:
-          type: string
-          example: UP
-        timestamp:
-          type: string
-          format: date-time
-
-    LoginRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          description: Correo electrónico del vendedor
-          example: vendedor@glossup.com
-        password:
-          type: string
-          format: password
-          minLength: 1
-          description: Contraseña del vendedor
-          example: mi-password
-
-    LoginResponse:
-      type: object
-      required:
-        - token
-        - usuarioId
-        - email
-        - nombre
-        - roles
-      properties:
-        token:
-          type: string
-          description: JWT firmado para autenticar las siguientes solicitudes
-        usuarioId:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/compatibilidad/producto/{productoId}
+  #   GET: [HU6 - Validación compatibilidad producto–perfil (alergias e irritantes)]
+  # --------------------------------------------------------------------------
+  /api/compatibilidad/producto/{productoId}:
+    get:
+      tags:
+      - Compatibilidad
+      summary: Evaluar un producto contra mi perfil (HU6)
+      description: Cruza la ficha INCI del producto con las alergias e irritantes de
+        mi perfil. Devuelve si es compatible y las alertas con su causa (RNF-05).
+      operationId: evaluar
+      parameters:
+      - name: productoId
+        in: path
+        required: true
+        schema:
           type: integer
           format: int64
-          example: 1
-        email:
-          type: string
-          format: email
-          example: vendedor@glossup.com
-        nombre:
-          type: string
-          example: Vendedor GlossUP
-        roles:
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResultadoCompatibilidadResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU6 - Validación compatibilidad producto–perfil (alergias
+        e irritantes)
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/compatibilidad/productos
+  #   GET: [HU7 - Validación compatibilidad producto–perfil (tipo de piel y comedogenia)]
+  # --------------------------------------------------------------------------
+  /api/compatibilidad/productos:
+    get:
+      tags:
+      - Compatibilidad
+      summary: Evaluar varios productos contra mi perfil (HU6)
+      description: 'Evaluación por lote para el catálogo y el carrito: carga el perfil
+        y las reglas una sola vez. Los ids inexistentes se omiten. Máximo 200 productos
+        por petición.'
+      operationId: evaluarLote
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        schema:
           type: array
-          uniqueItems: true
           items:
-            type: string
-            enum:
-              - CLIENTE
-              - VENDEDOR
-              - ADMIN
-          example:
-            - VENDEDOR
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResultadoCompatibilidadResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU7 - Validación compatibilidad producto–perfil (tipo de piel
+        y comedogenia)
 
-    RegistrarUsuarioRequest:
-      type: object
-      required:
-        - email
-        - nombre
-        - password
-        - rol
-      properties:
-        email:
-          type: string
-          format: email
-        nombre:
-          type: string
-          maxLength: 150
-        password:
-          type: string
-          format: password
-          minLength: 8
-          maxLength: 120
-        rol:
-          type: string
-          enum:
-            - CLIENTE
-            - VENDEDOR
+  # --------------------------------------------------------------------------
+  # Ruta: /api/compatibilidad/cruces
+  #   GET: [HU8 - Validación compatibilidad producto–producto (cruces en carrito)]
+  # --------------------------------------------------------------------------
+  /api/compatibilidad/cruces:
+    get:
+      tags:
+      - Compatibilidad
+      summary: Cruces entre productos del carrito (HU8)
+      description: Devuelve cada par de productos con ingredientes que no conviene combinar,
+        con la causa. No depende del perfil. Máximo 200 productos por petición.
+      operationId: cruces
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CruceResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU8 - Validación compatibilidad producto–producto (cruces
+        en carrito)
 
-    RegistrarProductoRequest:
-      type: object
-      required:
-        - nombre
-        - precio
-        - ingredientes
-      properties:
-        nombre:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/compatibilidad/catalogo
+  #   GET: [HU6 / HU7 - Semáforo de compatibilidad sobre catálogo]
+  # --------------------------------------------------------------------------
+  /api/compatibilidad/catalogo:
+    get:
+      tags:
+      - Compatibilidad
+      summary: Filtros dermatológicos del catálogo (HU13)
+      description: Ids de los productos del catálogo aptos para el tipo de piel elegido
+        (oculta los comedogénicos, irritantes o con pH inadecuado para esa piel) y,
+        con excluirAlergenos=true, sin ingredientes de los alérgenos guardados en mi
+        perfil. Sin filtros devuelve todo el catálogo.
+      operationId: filtrarCatalogo
+      parameters:
+      - name: tipoPiel
+        in: query
+        required: false
+        schema:
           type: string
-          minLength: 1
-          description: Nombre comercial del producto
-          example: Serum Hidratante
-        marca:
-          type: string
-          nullable: true
-          example: GlossLab
-        categoria:
-          type: string
-          nullable: true
-          example: Cuidado facial
-        precio:
-          type: number
-          format: double
-          minimum: 0
-          example: 85000.00
-        stock:
+      - name: excluirAlergenos
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  type: integer
+                  format: int64
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU6 / HU7 - Semáforo de compatibilidad sobre catálogo
+
+  # ============================================================================
+  # MÓDULO 5: CARRITO, PEDIDOS, PAGOS Y ENVÍOS (com.glossup.recomendacion - HU9, HU10, HU11, HU13, HU14)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/carrito
+  #   GET: [HU9 - Consultar carrito de compras e inventario]
+  #   DELETE: [HU9 - Vaciar carrito de compras]
+  # --------------------------------------------------------------------------
+  /api/carrito:
+    get:
+      tags:
+      - Carrito
+      summary: Ver mi carrito
+      operationId: ver
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarritoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Consultar carrito de compras e inventario
+    delete:
+      tags:
+      - Carrito
+      summary: Vaciar el carrito
+      operationId: vaciar
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarritoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Vaciar carrito de compras
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/carrito/items
+  #   POST: [HU9 - Agregar producto al carrito con validación de stock]
+  # --------------------------------------------------------------------------
+  /api/carrito/items:
+    post:
+      tags:
+      - Carrito
+      summary: Agregar un producto al carrito (acumula si ya está)
+      operationId: agregar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LineaCarritoRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarritoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Agregar producto al carrito con validación de stock
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/carrito/items/{productoId}
+  #   PUT: [HU9 - Actualizar cantidad en carrito]
+  #   DELETE: [HU9 - Quitar producto del carrito]
+  # --------------------------------------------------------------------------
+  /api/carrito/items/{productoId}:
+    put:
+      tags:
+      - Carrito
+      summary: Cambiar la cantidad de un producto del carrito
+      operationId: cambiarCantidad
+      parameters:
+      - name: productoId
+        in: path
+        required: true
+        schema:
           type: integer
-          minimum: 0
-          default: 0
-          example: 50
-        ph:
-          type: number
-          format: double
-          nullable: true
-          example: 5.5
-        registroInvima:
-          type: string
-          nullable: true
-          example: NSOC12345-23CO
-        imagenes:
-          type: array
-          nullable: true
-          items:
-            type: string
-            minLength: 1
-            description: URL de una imagen del producto
-        ingredientes:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/IngredienteRequest'
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CantidadRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarritoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Actualizar cantidad en carrito
+    delete:
+      tags:
+      - Carrito
+      summary: Quitar un producto del carrito
+      operationId: quitar
+      parameters:
+      - name: productoId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarritoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Quitar producto del carrito
 
-    IngredienteRequest:
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pedidos
+  #   GET: [HU9 - Listar historial de pedidos del cliente]
+  #   POST: [HU9 - Consolidación de pedido y reserva de inventario]
+  # --------------------------------------------------------------------------
+  /api/pedidos:
+    get:
+      tags:
+      - Pagos
+      summary: Mis pedidos, del más reciente al más antiguo
+      operationId: misPedidos
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PedidoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Listar historial de pedidos del cliente
+    post:
+      tags:
+      - Pedidos
+      summary: Consolidar el carrito y reservar inventario (HU9)
+      description: Suma las cantidades por producto, descuenta el stock de forma atómica
+        y crea el pedido en estado CREADO, con el envío elegido (HU14). Falla sin reservar
+        nada si algún producto no tiene stock.
+      operationId: consolidar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarritoRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Consolidación de pedido y reserva de inventario
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pedidos/{id}
+  #   GET: [HU9 - Consultar detalle de pedido]
+  # --------------------------------------------------------------------------
+  /api/pedidos/{id}:
+    get:
+      tags:
+      - Pedidos
+      summary: Consultar un pedido propio por ID
+      operationId: obtener
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Consultar detalle de pedido
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pedidos/{id}/cancelar
+  #   POST: [HU9 - Cancelación de pedido no pagado y liberación de stock]
+  # --------------------------------------------------------------------------
+  /api/pedidos/{id}/cancelar:
+    post:
+      tags:
+      - Pagos
+      summary: Cancelar un pedido sin pagar y liberar su inventario
+      operationId: cancelar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU9 - Cancelación de pedido no pagado y liberación de stock
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pedidos/{id}/pago
+  #   POST: [HU10 - Procesamiento de pago seguro mediante pasarela externa (Wompi)]
+  # --------------------------------------------------------------------------
+  /api/pedidos/{id}/pago:
+    post:
+      tags:
+      - Pagos
+      summary: Iniciar el pago de un pedido (HU10)
+      description: Devuelve la URL del checkout de Wompi. El pedido debe estar CREADO
+        y dentro de su plazo de pago.
+      operationId: iniciarPago
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UrlPagoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU10 - Procesamiento de pago seguro mediante pasarela externa
+        (Wompi)
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pedidos/{id}/pago/{transaccionId}
+  #   GET: [HU10 - Consulta y verificación de transacción de pago]
+  # --------------------------------------------------------------------------
+  /api/pedidos/{id}/pago/{transaccionId}:
+    get:
+      tags:
+      - Pagos
+      summary: Confirmar el pago al volver de Wompi (HU10)
+      description: Consulta la transacción directamente a Wompi (no se confía en la
+        redirección) y la aplica al pedido.
+      operationId: confirmarPago
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: transaccionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResultadoPagoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU10 - Consulta y verificación de transacción de pago
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pagos/wompi/eventos
+  #   POST: [HU10 - Webhook asíncrono de eventos de pago Wompi]
+  # --------------------------------------------------------------------------
+  /api/pagos/wompi/eventos:
+    post:
+      tags:
+      - Pagos
+      summary: Eventos de Wompi (webhook)
+      description: Wompi reintenta si no recibe 200. Firma inválida → 401 y el evento
+        se ignora.
+      operationId: recibir
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-historia-usuario: HU10 - Webhook asíncrono de eventos de pago Wompi
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/pedidos/{id}/comprobante
+  #   GET: [HU11 - Generación de comprobante de compra en PDF]
+  # --------------------------------------------------------------------------
+  /api/pedidos/{id}/comprobante:
+    get:
+      tags:
+      - Comprobantes
+      summary: Descargar el comprobante en PDF de un pedido propio pagado (HU11)
+      operationId: descargar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU11 - Generación de comprobante de compra en PDF
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/direcciones
+  #   GET: [HU14 - Listar libreta de direcciones de entrega]
+  #   POST: [HU14 - Registrar nueva dirección de entrega]
+  # --------------------------------------------------------------------------
+  /api/direcciones:
+    get:
+      tags:
+      - Direcciones
+      summary: Mis direcciones, la principal primero
+      operationId: listar
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Direccion'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Listar libreta de direcciones de entrega
+    post:
+      tags:
+      - Direcciones
+      summary: Agregar una dirección
+      operationId: crear
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DireccionRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Direccion'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Registrar nueva dirección de entrega
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/direcciones/{id}
+  #   PUT: [HU14 - Actualizar dirección de entrega]
+  #   DELETE: [HU14 - Eliminar dirección de entrega]
+  # --------------------------------------------------------------------------
+  /api/direcciones/{id}:
+    put:
+      tags:
+      - Direcciones
+      summary: Editar una dirección propia
+      operationId: actualizar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DireccionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Direccion'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Actualizar dirección de entrega
+    delete:
+      tags:
+      - Direcciones
+      summary: Borrar una dirección propia
+      description: Los pedidos ya hechos conservan su copia de la dirección.
+      operationId: eliminar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '204':
+          description: No Content
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Eliminar dirección de entrega
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/envios/departamentos
+  #   GET: [HU14 - Consulta de departamentos para envío]
+  # --------------------------------------------------------------------------
+  /api/envios/departamentos:
+    get:
+      tags:
+      - Envíos
+      summary: Departamentos de Colombia a los que se envía
+      operationId: departamentos
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  type: string
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Consulta de departamentos para envío
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/envios/opciones
+  #   GET: [HU14 - Cotización de métodos de envío según destino]
+  # --------------------------------------------------------------------------
+  /api/envios/opciones:
+    get:
+      tags:
+      - Envíos
+      summary: Formas de envío disponibles, con costo y fecha estimada
+      operationId: opciones_1
+      parameters:
+      - name: departamento
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: subtotal
+        in: query
+        required: true
+        schema:
+          type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OpcionResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Cotización de métodos de envío según destino
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/envios/eventos
+  #   POST: [HU14 - Webhook asíncrono de eventos de la transportadora]
+  # --------------------------------------------------------------------------
+  /api/envios/eventos:
+    post:
+      tags:
+      - Envíos
+      summary: Etapas del envío reportadas por la transportadora
+      description: 'estado: EN_CAMINO, ENTREGADO o NO_ENTREGADO. Un evento repetido
+        no cambia nada. Secreto inválido → 401.'
+      operationId: recibir_1
+      parameters:
+      - name: X-Envios-Secreto
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventoEnvio'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-historia-usuario: HU14 - Webhook asíncrono de eventos de la transportadora
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/vendedor/ventas
+  #   GET: [HU13 - Panel de ventas y métricas para vendedores]
+  # --------------------------------------------------------------------------
+  /api/vendedor/ventas:
+    get:
+      tags:
+      - Ventas del vendedor
+      summary: 'Mis ventas: pedidos pagados con mis productos y cifras del mes'
+      description: Cada pedido trae solo las líneas de este vendedor; sus ingresos no
+        incluyen el envío.
+      operationId: ventas
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/VentasResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU13 - Panel de ventas y métricas para vendedores
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/vendedor/ventas/{id}/enviado
+  #   POST: [HU14 - Confirmación de despacho por el vendedor]
+  # --------------------------------------------------------------------------
+  /api/vendedor/ventas/{id}/enviado:
+    post:
+      tags:
+      - Ventas del vendedor
+      summary: Confirmar que entregué este pedido a la transportadora
+      description: Cuando todos los vendedores del pedido confirman, pasa a En camino
+        y el resto lo reporta la transportadora.
+      operationId: marcarEnviado
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '204':
+          description: No Content
+      security:
+      - bearerAuth: []
+      x-historia-usuario: HU14 - Confirmación de despacho por el vendedor
+
+  # ============================================================================
+  # MÓDULO 6: ADMINISTRACIÓN Y MONITOREO (com.glossup.usuarios, catalogo, recomendacion, shared)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/usuarios
+  #   GET: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/usuarios:
+    get:
+      tags:
+      - Administración
+      summary: Listar los usuarios registrados en el sistema
+      operationId: listarUsuarios
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/usuarios/{id}
+  #   PUT: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/usuarios/{id}:
+    put:
+      tags:
+      - Administración
+      summary: Corregir el nombre y el correo de una cuenta
+      operationId: actualizarDatos
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatosUsuarioRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/usuarios/{id}/rol
+  #   PUT: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/usuarios/{id}/rol:
+    put:
+      tags:
+      - Administración
+      summary: Cambiar el rol de una cuenta
+      description: Cierra sus sesiones abiertas. No se aplica a la cuenta propia.
+      operationId: cambiarRol
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/usuarios/{id}/suspender
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/usuarios/{id}/suspender:
+    post:
+      tags:
+      - Administración
+      summary: Suspender una cuenta
+      description: No puede entrar, sus sesiones dejan de valer y, si es vendedor, sus
+        productos salen del catálogo.
+      operationId: suspender
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MotivoRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/usuarios/{id}/reactivar
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/usuarios/{id}/reactivar:
+    post:
+      tags:
+      - Administración
+      summary: Reactivar una cuenta suspendida y los productos bloqueados por esa suspensión
+      operationId: reactivar
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/usuarios/{id}/recuperacion
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/usuarios/{id}/recuperacion:
+    post:
+      tags:
+      - Administración
+      summary: Generar un enlace para que el usuario cree una contraseña nueva
+      description: Un solo uso, 24 horas. El administrador nunca ve ni fija la contraseña.
+      operationId: generarEnlace
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/EnlaceResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/vendedores
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/vendedores:
+    post:
+      tags:
+      - Administración
+      summary: Registrar una nueva cuenta con rol VENDEDOR
+      operationId: crearVendedor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearVendedorRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/productos
+  #   GET: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/productos:
+    get:
+      tags:
+      - Administración
+      summary: Listar todos los productos registrados en el catálogo
+      operationId: listarProductos
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/productos/{id}/banear
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/productos/{id}/banear:
+    post:
+      tags:
+      - Administración
+      summary: Bloquear un producto
+      description: Sale del catálogo y el vendedor no puede volver a publicarlo.
+      operationId: banear
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MotivoRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/productos/{id}/desbanear
+  #   POST: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/productos/{id}/desbanear:
+    post:
+      tags:
+      - Administración
+      summary: Quitar el bloqueo de un producto
+      operationId: desbanear
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/admin/pedidos
+  #   GET: [por definir]
+  # --------------------------------------------------------------------------
+  /api/admin/pedidos:
+    get:
+      tags:
+      - Administración
+      summary: Todos los pedidos, del más reciente al más antiguo
+      operationId: listar_1
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PedidoResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: por definir
+
+  # --------------------------------------------------------------------------
+  # Ruta: /ping
+  #   GET: [por definir]
+  # --------------------------------------------------------------------------
+  /ping:
+    get:
+      tags:
+      - ping-controller
+      operationId: ping
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+      x-historia-usuario: por definir
+
+# ==============================================================================
+# COMPONENTES Y ESQUEMAS DE DATOS (SCHEMAS Y SEGURIDAD)
+# ==============================================================================
+components:
+  schemas:
+    ActualizarPerfilRequest:
       type: object
-      required:
-        - inci
       properties:
-        inci:
-          type: string
-          minLength: 1
-          description: Nombre INCI del ingrediente
-          example: Hyaluronic Acid
-        descripcion:
-          type: string
-          nullable: true
-          example: Ingrediente hidratante
-        concentracion:
+        ph:
+          maximum: 14.0
+          exclusiveMaximum: false
+          minimum: 0.0
+          exclusiveMinimum: false
           type: number
           format: double
-          minimum: 0
-          maximum: 100
-          nullable: true
-          example: 2.0
-
-    ProductoResponse:
+        tipoPiel:
+          type: string
+        tipoCabello:
+          maxLength: 120
+          minLength: 0
+          type: string
+    PerfilResponse:
       type: object
-      required:
-        - id
-        - vendedorId
-        - nombre
-        - precio
-        - stock
-        - activo
-        - imagenes
-        - ingredientes
-        - creadoEn
       properties:
         id:
           type: integer
           format: int64
-          example: 1
-        vendedorId:
+        usuarioId:
           type: integer
           format: int64
-          example: 1
-        nombre:
-          type: string
-          example: Serum Hidratante
-        marca:
-          type: string
-          nullable: true
-          example: GlossLab
-        categoria:
-          type: string
-          nullable: true
-          example: Cuidado facial
-        precio:
-          type: number
-          format: double
-          example: 85000.00
-        stock:
-          type: integer
-          example: 50
         ph:
           type: number
           format: double
-          nullable: true
-          example: 5.5
+        tipoPiel:
+          type: string
+        tipoCabello:
+          type: string
+        afecciones:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        alergias:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        actualizadoEn:
+          type: string
+          format: date-time
+    DireccionRequest:
+      required:
+      - barrio
+      - ciudad
+      - departamento
+      - direccion
+      - nombreRecibe
+      - telefono
+      type: object
+      properties:
+        nombreRecibe:
+          maxLength: 120
+          minLength: 0
+          type: string
+        telefono:
+          pattern: 3\d{9}|60\d{8}
+          type: string
+        departamento:
+          maxLength: 40
+          minLength: 0
+          type: string
+        ciudad:
+          maxLength: 80
+          minLength: 0
+          type: string
+        barrio:
+          maxLength: 80
+          minLength: 0
+          type: string
+        direccion:
+          maxLength: 160
+          minLength: 0
+          type: string
+        complemento:
+          maxLength: 120
+          minLength: 0
+          type: string
+        indicaciones:
+          maxLength: 300
+          minLength: 0
+          type: string
+        principal:
+          type: boolean
+    Direccion:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        usuarioId:
+          type: integer
+          format: int64
+        nombreRecibe:
+          type: string
+        telefono:
+          type: string
+        departamento:
+          type: string
+        ciudad:
+          type: string
+        barrio:
+          type: string
+        direccion:
+          type: string
+        complemento:
+          type: string
+        indicaciones:
+          type: string
+        principal:
+          type: boolean
+    NombreRequest:
+      required:
+      - nombre
+      type: object
+      properties:
+        nombre:
+          maxLength: 150
+          minLength: 0
+          type: string
+    ClaveRequest:
+      required:
+      - actual
+      - nueva
+      type: object
+      properties:
+        actual:
+          type: string
+        nueva:
+          maxLength: 120
+          minLength: 8
+          type: string
+    ActualizarProductoRequest:
+      required:
+      - ingredientes
+      - nombre
+      - precio
+      type: object
+      properties:
+        nombre:
+          type: string
+        marca:
+          type: string
+        categoria:
+          type: string
+        precio:
+          minimum: 0.0
+          exclusiveMinimum: false
+          type: number
+        stock:
+          minimum: 0
+          type: integer
+          format: int32
+        ph:
+          type: number
+          format: double
         registroInvima:
           type: string
-          nullable: true
-          example: NSOC12345-23CO
-        activo:
-          type: boolean
-          example: true
         imagenes:
           type: array
           items:
             type: string
-            format: uri
+        ingredientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredienteRequest'
+        descripcion:
+          maxLength: 2000
+          minLength: 0
+          type: string
+    IngredienteRequest:
+      required:
+      - inci
+      type: object
+      properties:
+        inci:
+          type: string
+        concentracion:
+          maximum: 100.0
+          exclusiveMaximum: false
+          minimum: 0.0
+          exclusiveMinimum: false
+          type: number
+          format: double
+    IngredienteResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        inci:
+          type: string
+        descripcion:
+          type: string
+        concentracion:
+          type: number
+          format: double
+    ProductoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        vendedorId:
+          type: integer
+          format: int64
+        nombre:
+          type: string
+        marca:
+          type: string
+        categoria:
+          type: string
+        precio:
+          type: number
+        stock:
+          type: integer
+          format: int32
+        ph:
+          type: number
+          format: double
+        registroInvima:
+          type: string
+        descripcion:
+          type: string
+        activo:
+          type: boolean
+        baneado:
+          type: boolean
+        motivoBaneo:
+          type: string
+        imagenes:
+          type: array
+          items:
+            type: string
         ingredientes:
           type: array
           items:
@@ -767,205 +2027,550 @@ components:
         creadoEn:
           type: string
           format: date-time
-
-    IngredienteResponse:
+    CantidadRequest:
       type: object
-      required:
-        - inci
       properties:
-        id:
+        cantidad:
           type: integer
-          format: int64
-          nullable: true
-          example: 1
-        inci:
-          type: string
-          example: Hyaluronic Acid
-        descripcion:
-          type: string
-          nullable: true
-          example: Ingrediente hidratante
-        concentracion:
-          type: number
-          format: double
-          nullable: true
-          example: 2.0
-    IngredientesImagenResponse:
+          format: int32
+    CarritoResponse:
       type: object
-      required:
-        - ingredientes
       properties:
-        ingredientes:
-          type: array
-          description: Lista de nombres de ingredientes INCI detectados en minúsculas
-          items:
-            type: string
-          example:
-            - aqua
-            - glycerin
-            - niacinamide
-
-    AlergiaRequest:
-      type: object
-      required:
-        - alergia
-      properties:
-        alergia:
-          type: string
-          minLength: 1
-          maxLength: 120
-          description: Nombre INCI del ingrediente al que el cliente es alérgico
-          example: Parfum
-
-    AfeccionRequest:
-      type: object
-      required:
-        - afeccion
-      properties:
-        afeccion:
-          type: string
-          minLength: 1
-          maxLength: 120
-          description: Nombre de la afección o condición dermatológica
-          example: Rosácea
-
-    PerfilResponse:
-      type: object
-      required:
-        - usuarioId
-        - afecciones
-        - alergias
-        - actualizadoEn
-      properties:
-        id:
-          type: integer
-          format: int64
-          nullable: true
-          example: 10
         usuarioId:
           type: integer
           format: int64
-          example: 7
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        total:
+          type: number
+    Item:
+      type: object
+      properties:
+        productoId:
+          type: integer
+          format: int64
+        cantidad:
+          type: integer
+          format: int32
+        precioUnitario:
+          type: number
+        subtotal:
+          type: number
+    DatosUsuarioRequest:
+      required:
+      - email
+      - nombre
+      type: object
+      properties:
+        nombre:
+          maxLength: 150
+          minLength: 0
+          type: string
+        email:
+          maxLength: 255
+          minLength: 0
+          type: string
+    UsuarioAdminResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nombre:
+          type: string
+        email:
+          type: string
+        activo:
+          type: boolean
+        roles:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        creadoEn:
+          type: string
+          format: date-time
+        motivoSuspension:
+          type: string
+    RolRequest:
+      required:
+      - rol
+      type: object
+      properties:
+        rol:
+          type: string
+    AlergiaRequest:
+      required:
+      - alergia
+      type: object
+      properties:
+        alergia:
+          maxLength: 120
+          minLength: 0
+          type: string
+    AfeccionRequest:
+      required:
+      - afeccion
+      type: object
+      properties:
+        afeccion:
+          maxLength: 120
+          minLength: 0
+          type: string
+    CarritoRequest:
+      required:
+      - direccionId
+      - items
+      - metodoEnvio
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineaCarritoRequest'
+        direccionId:
+          type: integer
+          format: int64
+        metodoEnvio:
+          pattern: ESTANDAR|EXPRESS
+          type: string
+    LineaCarritoRequest:
+      required:
+      - productoId
+      type: object
+      properties:
+        productoId:
+          type: integer
+          format: int64
+        cantidad:
+          type: integer
+          format: int32
+    EnvioResponse:
+      type: object
+      properties:
+        nombreRecibe:
+          type: string
+        telefono:
+          type: string
+        departamento:
+          type: string
+        ciudad:
+          type: string
+        barrio:
+          type: string
+        direccion:
+          type: string
+        complemento:
+          type: string
+        indicaciones:
+          type: string
+        metodo:
+          type: string
+        metodoEtiqueta:
+          type: string
+        costo:
+          type: number
+        fechaEstimada:
+          type: string
+          format: date
+        estado:
+          type: string
+        transportadora:
+          type: string
+        guia:
+          type: string
+        notificadoEn:
+          type: string
+          format: date-time
+        enviadoEn:
+          type: string
+          format: date-time
+        entregadoEn:
+          type: string
+          format: date-time
+        noEntregadoEn:
+          type: string
+          format: date-time
+    PedidoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        usuarioId:
+          type: integer
+          format: int64
+        estado:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        subtotal:
+          type: number
+        envio:
+          $ref: '#/components/schemas/EnvioResponse'
+        total:
+          type: number
+        creadoEn:
+          type: string
+          format: date-time
+        expiraEn:
+          type: string
+          format: date-time
+        transaccionId:
+          type: string
+        metodoPago:
+          type: string
+        pagadoEn:
+          type: string
+          format: date-time
+    UrlPagoResponse:
+      type: object
+      properties:
+        url:
+          type: string
+    EventoEnvio:
+      required:
+      - estado
+      - guia
+      type: object
+      properties:
+        guia:
+          type: string
+        estado:
+          type: string
+    RegistrarProductoRequest:
+      required:
+      - ingredientes
+      - nombre
+      - precio
+      type: object
+      properties:
+        nombre:
+          type: string
+        marca:
+          type: string
+        categoria:
+          type: string
+        precio:
+          minimum: 0.0
+          exclusiveMinimum: false
+          type: number
+        stock:
+          minimum: 0
+          type: integer
+          format: int32
         ph:
           type: number
           format: double
-          nullable: true
-          example: 5.2
-        tipoPiel:
+        registroInvima:
           type: string
-          nullable: true
-          enum:
-            - NORMAL
-            - SECA
-            - GRASA
-            - MIXTA
-            - SENSIBLE
-          example: MIXTA
-        tipoCabello:
-          type: string
-          nullable: true
-          maxLength: 120
-          example: greñudo
-        afecciones:
+        imagenes:
           type: array
-          uniqueItems: true
           items:
             type: string
-          example:
-            - rosácea
+        ingredientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredienteRequest'
+        descripcion:
+          maxLength: 2000
+          minLength: 0
+          type: string
+    IngredientesImagenResponse:
+      type: object
+      properties:
+        ingredientes:
+          type: array
+          items:
+            type: string
+        enCatalogo:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reconocido'
+    Reconocido:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        inci:
+          type: string
+        descripcion:
+          type: string
+    RestablecerRequest:
+      required:
+      - nueva
+      - token
+      type: object
+      properties:
+        token:
+          type: string
+        nueva:
+          maxLength: 120
+          minLength: 8
+          type: string
+    RegistrarUsuarioRequest:
+      required:
+      - email
+      - nombre
+      - password
+      - rol
+      type: object
+      properties:
+        email:
+          type: string
+        nombre:
+          maxLength: 150
+          minLength: 0
+          type: string
+        password:
+          maxLength: 120
+          minLength: 8
+          type: string
+        rol:
+          type: string
+    SolicitudRequest:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+    LoginRequest:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        usuarioId:
+          type: integer
+          format: int64
+        email:
+          type: string
+        nombre:
+          type: string
+        roles:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+    CrearVendedorRequest:
+      required:
+      - email
+      - nombre
+      - password
+      type: object
+      properties:
+        nombre:
+          type: string
+        email:
+          type: string
+        password:
+          maxLength: 2147483647
+          minLength: 8
+          type: string
+    MotivoRequest:
+      required:
+      - motivo
+      type: object
+      properties:
+        motivo:
+          maxLength: 300
+          minLength: 0
+          type: string
+    EnlaceResponse:
+      type: object
+      properties:
+        enlace:
+          type: string
+    MasVendidoResponse:
+      type: object
+      properties:
+        productoId:
+          type: integer
+          format: int64
+        nombre:
+          type: string
+        unidades:
+          type: integer
+          format: int32
+        ingresos:
+          type: number
+    ResumenResponse:
+      type: object
+      properties:
+        ingresosMes:
+          type: number
+        pedidosMes:
+          type: integer
+          format: int32
+        unidadesMes:
+          type: integer
+          format: int32
+        semanas:
+          type: array
+          items:
+            $ref: '#/components/schemas/SemanaResponse'
+        masVendidos:
+          type: array
+          items:
+            $ref: '#/components/schemas/MasVendidoResponse'
+    SemanaResponse:
+      type: object
+      properties:
+        inicio:
+          type: string
+          format: date
+        ingresos:
+          type: number
+    VentaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        estado:
+          type: string
+        cliente:
+          type: string
+        pagadoEn:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        ingresos:
+          type: number
+        envio:
+          $ref: '#/components/schemas/EnvioResponse'
+        enviadaPorMi:
+          type: boolean
+    VentasResponse:
+      type: object
+      properties:
+        resumen:
+          $ref: '#/components/schemas/ResumenResponse'
+        ventas:
+          type: array
+          items:
+            $ref: '#/components/schemas/VentaResponse'
+    Opcion:
+      type: object
+      properties:
+        codigo:
+          type: string
+        etiqueta:
+          type: string
+        detalle:
+          type: string
+    OpcionesPerfilResponse:
+      type: object
+      properties:
+        tiposPiel:
+          type: array
+          items:
+            $ref: '#/components/schemas/Opcion'
+        tiposCabello:
+          type: array
+          items:
+            $ref: '#/components/schemas/Opcion'
         alergias:
           type: array
-          uniqueItems: true
           items:
-            type: string
-          example:
-            - parfum
-        actualizadoEn:
-          type: string
-          format: date-time
-
-    ActualizarPerfilRequest:
+            $ref: '#/components/schemas/Opcion'
+        afecciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Opcion'
+    ResultadoPagoResponse:
       type: object
       properties:
-        ph:
+        pedido:
+          $ref: '#/components/schemas/PedidoResponse'
+        estadoTransaccion:
+          type: string
+    OpcionResponse:
+      type: object
+      properties:
+        metodo:
+          type: string
+        etiqueta:
+          type: string
+        costo:
           type: number
-          format: double
-          minimum: 0
-          maximum: 14
-          nullable: true
-        tipoPiel:
+        fechaEstimada:
           type: string
-          nullable: true
-          enum:
-            - NORMAL
-            - SECA
-            - GRASA
-            - MIXTA
-            - SENSIBLE
-        tipoCabello:
-          type: string
-          maxLength: 120
-          nullable: true
-
-    ApiError:
-
+          format: date
+    AlertaResponse:
       type: object
-      required:
-        - timestamp
-        - status
-        - error
-        - message
-        - path
-        - detalles
       properties:
-        timestamp:
+        severidad:
           type: string
-          format: date-time
-        status:
+        mensaje:
+          type: string
+        causa:
+          type: string
+    ResultadoCompatibilidadResponse:
+      type: object
+      properties:
+        productoId:
           type: integer
-          example: 400
-        error:
-          type: string
-          example: Bad Request
-        message:
-          type: string
-          example: Error de validacion
-        path:
-          type: string
-          example: /api/catalogo/productos
-        detalles:
+          format: int64
+        compatible:
+          type: boolean
+        recomendado:
+          type: boolean
+        alertas:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertaResponse'
+        beneficios:
           type: array
           items:
             type: string
+    CruceResponse:
+      type: object
+      properties:
+        productoA:
+          type: integer
+          format: int64
+        productoB:
+          type: integer
+          format: int64
+        severidad:
+          type: string
+        mensaje:
+          type: string
+        causa:
+          type: string
+    IngredienteCatalogoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        inci:
+          type: string
+        descripcion:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT emitido por /api/auth/login
 
-  responses:
-    BadRequest:
-      description: Solicitud inválida o error de validación
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    Unauthorized:
-      description: Token ausente, inválido o expirado
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    Forbidden:
-      description: El usuario autenticado no tiene permisos suficientes
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    NotFound:
-      description: Recurso no encontrado
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    BusinessRuleError:
-      description: Regla de negocio incumplida
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
