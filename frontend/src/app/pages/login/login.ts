@@ -48,6 +48,11 @@ export class Login {
       this.error.set('Las contraseñas no coinciden.');
       return;
     }
+    // El formulario no usa la validación nativa, así que la casilla se exige aquí (Ley 1581, auditoría NC-T11).
+    if (this.esRegistro() && !this.acepta) {
+      this.error.set('Para crear la cuenta debes aceptar los Términos y la Política de datos.');
+      return;
+    }
     this.cargando.set(true);
 
     const entrar = () =>

@@ -246,6 +246,24 @@ class ProductoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "1", roles = "CLIENTE")
+    void idNoNumerico_retorna400SinDetalleInterno() throws Exception {
+        mockMvc.perform(get("/api/catalogo/productos/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Parametro o cuerpo de la peticion invalido"));
+    }
+
+    @Test
+    @WithMockUser(username = "1", roles = "CLIENTE")
+    void errorInesperado_retorna500ConMensajeGenerico() throws Exception {
+        when(productoRepository.buscarPorId(7L)).thenThrow(new IllegalStateException("SELECT * FROM producto ..."));
+
+        mockMvc.perform(get("/api/catalogo/productos/7"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Error interno del servidor"));
+    }
+
+    @Test
     @WithMockUser(username = "5", roles = "VENDEDOR")
     void extraerIngredientes_conRolVendedor_retornaIngredientes() throws Exception {
         org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(

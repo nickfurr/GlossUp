@@ -11,8 +11,9 @@ spring:
 
   jpa:
     hibernate:
-      # Cambiado a 'update' para que genere o actualice las tablas automaticamente al arrancar
-      ddl-auto: update
+      # El esquema solo lo cambia Flyway (auditoría R-08). shortcut: 'none' y no 'validate' porque hay
+      # columnas con tipo distinto al de la entidad (producto.ph NUMERIC vs Double); pasar a validate al alinearlas.
+      ddl-auto: none
     open-in-view: false
     # Imprimir cada consulta frena el contenedor de producción (0.25 vCPU); actívalo solo para depurar.
     show-sql: ${GLOSSUP_SHOW_SQL:false}
@@ -71,7 +72,8 @@ springdoc:
 glossup:
   security:
     jwt:
-      secret: ${GLOSSUP_JWT_SECRET:cambia-este-secreto-de-desarrollo-min-32-bytes!!}
+      # Sin valor por defecto: si falta GLOSSUP_JWT_SECRET la app no arranca (auditoría R-01).
+      secret: ${GLOSSUP_JWT_SECRET}
       expiration-ms: 3600000
   cors:
     allowed-origins: http://localhost:5173,http://localhost:4200,http://localhost:3000

@@ -2,8 +2,13 @@ package com.glossup.shared.exception;
 
 import com.glossup.shared.domain.ReglaNegocioException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,6 +22,8 @@ import java.util.List;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException ex, HttpServletRequest req) {
@@ -52,9 +59,21 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "Acceso denegado: permisos insuficientes", req, List.of());
     }
 
+    /** Ids no numericos en la ruta, parametros mal tipados o JSON ilegible son errores del cliente. */
+    @ExceptionHandler({TypeMismatchException.class, HttpMessageNotReadableException.class})
+    public ResponseEntity<ApiError> handleBadRequest(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Parametro o cuerpo de la peticion invalido", req, List.of());
+    }
+
+    /** Nunca devuelve el mensaje interno (SQL, clases de Java) al cliente; queda en el log (auditoria R-09). */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest req) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), req, List.of());
+        // 404, 405, 413... de Spring conservan su codigo en vez de volverse 500.
+        if (ex instanceof ErrorResponse er && HttpStatus.resolve(er.getStatusCode().value()) instanceof HttpStatus status) {
+            return build(status, status.getReasonPhrase(), req, List.of());
+        }
+        log.error("Error no controlado en {} {}", req.getMethod(), req.getRequestURI(), ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", req, List.of());
     }
 
     private ResponseEntity<ApiError> build(HttpStatus status, String message,
