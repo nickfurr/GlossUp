@@ -742,7 +742,7 @@ paths:
 
   # --------------------------------------------------------------------------
   # Ruta: /api/compatibilidad/productos
-  #   GET: [HU7 - Validación compatibilidad producto–perfil (tipo de piel y comedogenia)]
+  #   GET: [HU6 / HU7 - Evaluación por lote producto–perfil (alergias, tipo de piel y comedogenia)]
   # --------------------------------------------------------------------------
   /api/compatibilidad/productos:
     get:
@@ -813,7 +813,7 @@ paths:
 
   # --------------------------------------------------------------------------
   # Ruta: /api/compatibilidad/catalogo
-  #   GET: [HU6 / HU7 - Semáforo de compatibilidad sobre catálogo]
+  #   GET: [HU13 - Filtrado avanzado del catálogo por tipo de piel y exclusión de alérgenos]
   # --------------------------------------------------------------------------
   /api/compatibilidad/catalogo:
     get:
@@ -849,7 +849,7 @@ paths:
                   format: int64
       security:
       - bearerAuth: []
-      x-historia-usuario: HU6 / HU7 - Semáforo de compatibilidad sobre catálogo
+      x-historia-usuario: HU13 - Filtrado avanzado del catálogo por tipo de piel y exclusión de alérgenos
 
   # ============================================================================
   # MÓDULO 5: CARRITO, PEDIDOS, PAGOS Y ENVÍOS (com.glossup.recomendacion - HU9, HU10, HU11, HU13, HU14)
