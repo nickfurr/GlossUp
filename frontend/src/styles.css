@@ -589,3 +589,34 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .product-image img { transition: transform .25s ease; }
 .enlace-producto { color: inherit; font-weight: 700; text-decoration: none; }
 .enlace-producto:hover { color: var(--vino); text-decoration: underline; }
+
+/* Consentimiento Ley 1581 (Perfil dermatológico) */
+.consent-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-color: var(--borde);
+  background: #fff;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--tinta);
+  cursor: pointer;
+}
+.consent-card input[type='checkbox'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  accent-color: var(--vino);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.consent-card.consent-disabled {
+  background: #f8f4f6;
+  color: #7c6870;
+  cursor: default;
+}
+.consent-card.consent-disabled input[type='checkbox'] {
+  cursor: default;
+}

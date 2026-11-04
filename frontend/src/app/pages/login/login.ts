@@ -44,6 +44,10 @@ export class Login {
 
   enviar(): void {
     this.error.set(null);
+    if (this.esRegistro() && !this.acepta) {
+      this.error.set('Debes aceptar los Términos y Condiciones y la Política de Privacidad.');
+      return;
+    }
     if (this.esRegistro() && this.password !== this.password2) {
       this.error.set('Las contraseñas no coinciden.');
       return;

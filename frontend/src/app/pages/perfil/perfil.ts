@@ -28,6 +28,17 @@ import { mensajeDeError } from '../../shared/productos';
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       @if (cargando() && !perfil()) { <div class="card loading" aria-live="polite">Cargando tu perfil...</div> }
       @if (perfil(); as p) {
+        <label class="card consent-card" [class.consent-disabled]="perfilLleno()">
+          <input
+            type="checkbox"
+            name="aceptaSensibles"
+            [(ngModel)]="aceptaSensibles"
+            [disabled]="perfilLleno()"
+          />
+          <span>
+            Usamos tus alergias y condiciones de piel únicamente para advertirte si un producto es incompatible contigo. Estos datos son sensibles según la Ley 1581 de 2012; su ingreso es voluntario y puedes modificarlos o eliminarlos en cualquier momento desde tu perfil.
+          </span>
+        </label>
         <div class="profile-layout">
           <div class="card profile-form">
             <div class="section-title"><div><span class="section-kicker">01 · Biotipo</span><h2>Cuéntanos sobre ti</h2></div><span class="section-mark">✦</span></div>
@@ -48,7 +59,7 @@ import { mensajeDeError } from '../../shared/productos';
               }
             </select>
             @if (errorBiotipo()) { <p class="field-error" role="alert">{{ errorBiotipo() }}</p> }
-            <button class="btn-primario profile-save" type="button" [disabled]="cargando()" (click)="guardarBiotipo()">
+            <button class="btn-primario profile-save" type="button" [disabled]="cargando() || !aceptaSensibles" (click)="guardarBiotipo()">
               {{ cargando() ? 'Guardando...' : 'Guardar cambios' }}
             </button>
           </div>
@@ -73,7 +84,7 @@ import { mensajeDeError } from '../../shared/productos';
                 <option [ngValue]="null">Elige un alérgeno</option>
                 @for (o of disponibles('alergias'); track o.codigo) { <option [ngValue]="o.codigo">{{ o.etiqueta }}</option> }
               </select>
-              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAlergia" (click)="agregarAlergia()">Añadir</button>
+              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAlergia || !aceptaSensibles" (click)="agregarAlergia()">Añadir</button>
             </div>
             <p id="detalle-alergia" class="field-hint">{{ detalleAlergia() }}</p>
           </div>
@@ -90,7 +101,7 @@ import { mensajeDeError } from '../../shared/productos';
                   </optgroup>
                 }
               </select>
-              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAfeccion" (click)="agregarAfeccion()">Añadir</button>
+              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAfeccion || !aceptaSensibles" (click)="agregarAfeccion()">Añadir</button>
             </div>
           </div>
         </div>
@@ -111,6 +122,7 @@ export class Perfil {
   tipoCabello: string | null = null;
   nuevaAlergia: string | null = null;
   nuevaAfeccion: string | null = null;
+  aceptaSensibles = false;
   readonly zonas = [
     { codigo: 'PIEL', etiqueta: 'Piel' },
     { codigo: 'CABELLO', etiqueta: 'Cabello y cuero cabelludo' },
@@ -122,6 +134,17 @@ export class Perfil {
     this.cargar();
   }
 
+  perfilLleno(): boolean {
+    const p = this.perfil();
+    if (!p) return false;
+    return (
+      p.ph !== null ||
+      p.tipoPiel !== null ||
+      p.tipoCabello !== null ||
+      (p.alergias && p.alergias.length > 0) ||
+      (p.afecciones && p.afecciones.length > 0)
+    );
+  }
 
   completitud(): number {
     const p = this.perfil();
@@ -137,7 +160,16 @@ export class Perfil {
   cargar(): void {
     this.cargando.set(true);
     this.service.obtener().subscribe({
-      next: (p) => { this.perfil.set(p); this.ph = p.ph; this.tipoPiel = p.tipoPiel; this.tipoCabello = p.tipoCabello; this.cargando.set(false); },
+      next: (p) => {
+        this.perfil.set(p);
+        this.ph = p.ph;
+        this.tipoPiel = p.tipoPiel;
+        this.tipoCabello = p.tipoCabello;
+        if (this.perfilLleno()) {
+          this.aceptaSensibles = true;
+        }
+        this.cargando.set(false);
+      },
       error: (e) => { this.error.set(mensajeDeError(e)); this.cargando.set(false); },
     });
   }
@@ -175,6 +207,19 @@ export class Perfil {
   }
   private ejecutar(request: ReturnType<PerfilService['obtener']>, success: string): void {
     this.error.set(null); this.mensaje.set(null); this.cargando.set(true);
-    request.subscribe({ next: (p) => { this.perfil.set(p); this.ph = p.ph; this.tipoPiel = p.tipoPiel; this.tipoCabello = p.tipoCabello; this.mensaje.set(success); this.cargando.set(false); }, error: (e) => { this.error.set(mensajeDeError(e)); this.cargando.set(false); } });
+    request.subscribe({
+      next: (p) => {
+        this.perfil.set(p);
+        this.ph = p.ph;
+        this.tipoPiel = p.tipoPiel;
+        this.tipoCabello = p.tipoCabello;
+        if (this.perfilLleno()) {
+          this.aceptaSensibles = true;
+        }
+        this.mensaje.set(success);
+        this.cargando.set(false);
+      },
+      error: (e) => { this.error.set(mensajeDeError(e)); this.cargando.set(false); },
+    });
   }
 }
