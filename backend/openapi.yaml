@@ -98,6 +98,22 @@ paths:
       x-historia-usuario: por definir
 
   # --------------------------------------------------------------------------
+  # Ruta: /api/auth/logout
+  #   POST: [Auditoría OBS-T09 - cerrar la sesión de este navegador]
+  # --------------------------------------------------------------------------
+  /api/auth/logout:
+    post:
+      tags:
+      - auth-controller
+      summary: Cerrar la sesión de este navegador
+      description: Borra la cookie de sesión. Para cerrar las de todos los dispositivos usa POST /api/cuenta/cerrar-sesiones.
+      operationId: logout
+      responses:
+        '204':
+          description: Sin contenido
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
+  # --------------------------------------------------------------------------
   # Ruta: /api/auth/recuperar
   #   POST: [por definir]
   # --------------------------------------------------------------------------
@@ -498,18 +514,43 @@ paths:
     get:
       tags:
       - Catálogo
-      summary: Listar el catálogo publicado
-      description: Productos activos y con stock (los agotados no se muestran al cliente).
+      summary: Listar el catálogo publicado por páginas (auditoría R-14)
+      description: Productos activos y con stock (los agotados no se muestran al cliente), por id. Con ids=1,2,3
+        devuelve solo esos (los que sigan publicados), en ese orden. Máximo 100 por página.
       operationId: listarCatalogo
+      parameters:
+      - name: pagina
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: tamano
+        in: query
+        schema:
+          type: integer
+          default: 24
+          maximum: 100
+      - name: categoria
+        in: query
+        schema:
+          type: string
+      - name: ids
+        in: query
+        schema:
+          type: array
+          maxItems: 100
+          items:
+            type: integer
+            format: int64
       responses:
         '200':
           description: OK
           content:
             '*/*':
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductoResponse'
+                $ref: '#/components/schemas/PaginaProductos'
+        '422':
+          description: Página o tamaño fuera de rango
       security:
       - bearerAuth: []
       x-historia-usuario: HU3 / HU4 - Listar catálogo publicado con stock
@@ -1815,6 +1856,153 @@ paths:
       - bearerAuth: []
       x-historia-usuario: por definir
 
+  /api/catalogo/productos/indice:
+    get:
+      tags:
+      - Catálogo
+      summary: Id y categoría de todo el catálogo publicado
+      description: Liviano para contar por categoría y cruzar con los filtros dermatológicos sin bajar las fichas.
+      operationId: indiceCatalogo
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    categoria:
+                      type: string
+      security:
+      - bearerAuth: []
+      - cookieSesion: []
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
+  /api/recomendaciones:
+    get:
+      tags:
+      - Recomendaciones
+      summary: Productos recomendados para mí (auditoría NC-T10)
+      description: Solo productos sin alertas para mi perfil, ordenados por beneficios para mis condiciones, parecido con lo que compré, lo que otros compraron junto con eso y popularidad. Rol CLIENTE.
+      operationId: recomendar
+      parameters:
+      - name: limite
+        in: query
+        schema:
+          type: integer
+          default: 6
+          minimum: 1
+          maximum: 24
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RecomendacionesResponse'
+      security:
+      - bearerAuth: []
+      - cookieSesion: []
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
+  /api/cuenta/cerrar-sesiones:
+    post:
+      tags:
+      - Cuenta
+      summary: Cerrar sesión en todos mis dispositivos (auditoría OBS-T09)
+      description: Revoca todos los tokens emitidos hasta ahora, incluido el de este navegador.
+      operationId: cerrarSesiones
+      responses:
+        '204':
+          description: Sin contenido
+      security:
+      - bearerAuth: []
+      - cookieSesion: []
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
+  /api/admin/usuarios/{id}/aprobar:
+    post:
+      tags:
+      - Administración
+      summary: Aprobar una cuenta de vendedor que se registró sola (auditoría OBS-T08)
+      description: Hasta entonces no puede iniciar sesión.
+      operationId: aprobarVendedor
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      - cookieSesion: []
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
+  /api/admin/usuarios/{id}/cerrar-sesiones:
+    post:
+      tags:
+      - Administración
+      summary: Cerrar todas las sesiones abiertas de una cuenta
+      description: Tendrá que volver a iniciar sesión en cada dispositivo.
+      operationId: cerrarSesionesUsuario
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UsuarioAdminResponse'
+      security:
+      - bearerAuth: []
+      - cookieSesion: []
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
+  /api/admin/pedidos/{id}/reembolso:
+    post:
+      tags:
+      - Administración
+      summary: Marcar como devuelto el pago que llegó a un pedido cancelado (auditoría OBS-T13)
+      description: Después de devolver el dinero desde el panel de Wompi. 422 si el pedido no tiene un reembolso pendiente.
+      operationId: marcarReembolsado
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+      security:
+      - bearerAuth: []
+      - cookieSesion: []
+      x-historia-usuario: Auditoría 2.1 (lote 4)
+
   # --------------------------------------------------------------------------
   # Ruta: /ping
   #   GET: [por definir]
@@ -2156,6 +2344,9 @@ components:
           format: date-time
         motivoSuspension:
           type: string
+        pendienteAprobacion:
+          type: boolean
+          description: Vendedor que se registró solo y aún no puede entrar.
     RolRequest:
       required:
       - rol
@@ -2287,6 +2478,12 @@ components:
         metodoPago:
           type: string
         pagadoEn:
+          type: string
+          format: date-time
+        reembolsoPendiente:
+          type: boolean
+          description: Cancelado con un pago aprobado que llegó tarde y aún no se le devuelve al cliente.
+        reembolsadoEn:
           type: string
           format: date-time
     UrlPagoResponse:
@@ -2427,11 +2624,43 @@ components:
           type: string
         password:
           type: string
-    LoginResponse:
+    PaginaProductos:
       type: object
       properties:
-        token:
-          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductoResponse'
+        pagina:
+          type: integer
+        tamano:
+          type: integer
+        total:
+          type: integer
+          format: int64
+    RecomendacionesResponse:
+      type: object
+      properties:
+        perfilVacio:
+          type: boolean
+        recomendaciones:
+          type: array
+          items:
+            type: object
+            properties:
+              productoId:
+                type: integer
+                format: int64
+              razon:
+                type: string
+              afinidad:
+                type: number
+                minimum: 0
+                maximum: 1
+    LoginResponse:
+      type: object
+      description: El token de sesión no viaja aquí sino en la cookie HttpOnly glossup_sesion (Set-Cookie).
+      properties:
         usuarioId:
           type: integer
           format: int64
@@ -2649,5 +2878,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token JWT emitido por /api/auth/login
+      description: Para clientes de la API. El navegador usa la cookie de sesión.
+    cookieSesion:
+      type: apiKey
+      in: cookie
+      name: glossup_sesion
+      description: Cookie HttpOnly que abre /api/auth/login (auditoría OBS-T09). Las peticiones que cambian algo con
+        ella exigen además el encabezado X-XSRF-TOKEN con el valor de la cookie XSRF-TOKEN.
 

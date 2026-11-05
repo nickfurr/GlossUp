@@ -52,6 +52,15 @@ class CabecerasSeguridadTest {
     }
 
     @Test
+    void elServiceWorkerPuedeTraerFotosDeOtrosDominiosPeroLaPaginaNo() throws Exception {
+        // Sin esto el worker de la PWA respondía 504 a cada foto de producto (vienen de otros dominios).
+        mockMvc.perform(get("/ngsw-worker.js"))
+                .andExpect(header().string("Content-Security-Policy", "default-src 'self'; connect-src 'self' https:"));
+        mockMvc.perform(get("/ping"))
+                .andExpect(header().string("Content-Security-Policy", containsString("connect-src 'self';")));
+    }
+
+    @Test
     void elRechazoSinSesionTambienLasLleva() throws Exception {
         mockMvc.perform(get("/api/perfil/me"))
                 .andExpect(status().isUnauthorized())

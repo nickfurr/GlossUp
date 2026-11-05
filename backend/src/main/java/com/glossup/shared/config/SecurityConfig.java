@@ -24,8 +24,11 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter.CrossOriginOpenerPolicy;
 import org.springframework.security.web.header.writers.CrossOriginResourcePolicyHeaderWriter.CrossOriginResourcePolicy;
+import org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -66,11 +69,21 @@ public class SecurityConfig {
             "form-action 'self'",
             "frame-ancestors 'none'");
 
+    /**
+     * El service worker de Angular (PWA) descarga y guarda en caché las fotos de producto con fetch, y un worker obedece
+     * la CSP de su propio script: sin https: en connect-src respondía 504 y el catálogo quedaba sin imágenes.
+     */
+    static final String CSP_SERVICE_WORKER = "default-src 'self'; connect-src 'self' https:";
+    private static final RequestMatcher SERVICE_WORKER = peticion -> "/ngsw-worker.js".equals(peticion.getRequestURI());
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .headers(h -> h
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(CSP))
+                        .addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(new NegatedRequestMatcher(SERVICE_WORKER),
+                                new StaticHeadersWriter("Content-Security-Policy", CSP)))
+                        .addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(SERVICE_WORKER,
+                                new StaticHeadersWriter("Content-Security-Policy", CSP_SERVICE_WORKER)))
                         .referrerPolicy(r -> r.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                         .crossOriginOpenerPolicy(c -> c.policy(CrossOriginOpenerPolicy.SAME_ORIGIN))
                         .crossOriginResourcePolicy(c -> c.policy(CrossOriginResourcePolicy.SAME_ORIGIN))
