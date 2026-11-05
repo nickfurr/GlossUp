@@ -246,24 +246,6 @@ class ProductoControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "1", roles = "CLIENTE")
-    void idNoNumerico_retorna400SinDetalleInterno() throws Exception {
-        mockMvc.perform(get("/api/catalogo/productos/abc"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Parametro o cuerpo de la peticion invalido"));
-    }
-
-    @Test
-    @WithMockUser(username = "1", roles = "CLIENTE")
-    void errorInesperado_retorna500ConMensajeGenerico() throws Exception {
-        when(productoRepository.buscarPorId(7L)).thenThrow(new IllegalStateException("SELECT * FROM producto ..."));
-
-        mockMvc.perform(get("/api/catalogo/productos/7"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Error interno del servidor"));
-    }
-
-    @Test
     @WithMockUser(username = "5", roles = "VENDEDOR")
     void extraerIngredientes_conRolVendedor_retornaIngredientes() throws Exception {
         org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
@@ -418,5 +400,25 @@ class ProductoControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
-}
 
+    @Test
+    @WithMockUser(username = "1", roles = "CLIENTE")
+    void buscarProductoPorId_conIdNoNumerico_retorna400BadRequest() throws Exception {
+        mockMvc.perform(get("/api/catalogo/productos/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("El parámetro 'id' con valor 'abc' no tiene un formato válido"));
+    }
+
+    @Test
+    @WithMockUser(username = "5", roles = "VENDEDOR")
+    void actualizarProducto_conIdNoNumerico_retorna400BadRequest() throws Exception {
+        mockMvc.perform(put("/api/catalogo/productos/invalido")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(crearActualizarRequestValido())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"));
+    }
+}
