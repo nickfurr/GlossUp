@@ -3,12 +3,15 @@ package com.glossup.usuarios.application.service;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
+import com.glossup.usuarios.domain.port.out.DatosPersonalesPort;
+import com.glossup.usuarios.domain.port.out.ModeracionCatalogoPort;
 import com.glossup.usuarios.domain.port.out.UsuarioRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.EnumSet;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,12 +22,14 @@ class GestionarCuentaServiceTest {
 
     private final PasswordEncoder encoder = new BCryptPasswordEncoder(4);
     private final UsuarioRepositoryPort usuarios = mock(UsuarioRepositoryPort.class);
-    private final GestionarCuentaService service = new GestionarCuentaService(usuarios, encoder);
+    private final ModeracionCatalogoPort catalogo = mock(ModeracionCatalogoPort.class);
+    private final DatosPersonalesPort datosPersonales = mock(DatosPersonalesPort.class);
+    private final GestionarCuentaService service = new GestionarCuentaService(usuarios, encoder, catalogo, datosPersonales);
     private Usuario usuario;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.registrar("vende@glossup.co", encoder.encode("clave-actual"), "Vende", Rol.VENDEDOR);
+        usuario = new Usuario(1L, "vende@glossup.co", "Vende", encoder.encode("clave-actual"), true, EnumSet.of(Rol.VENDEDOR), null);
         when(usuarios.buscarPorId(1L)).thenReturn(Optional.of(usuario));
     }
 
@@ -48,5 +53,34 @@ class GestionarCuentaServiceTest {
         service.cambiarNombre(1L, "  Aurora Cosmetics ");
         assertEquals("Aurora Cosmetics", usuario.getNombre());
         verify(usuarios).guardar(usuario);
+    }
+
+    @Test
+    void eliminarCuenta_deVendedor_borraSusDatosYLaDejaAnonimaEInactiva() {
+        service.eliminarCuenta(1L, "clave-actual");
+
+        verify(catalogo).suspenderVendedor(1L);
+        verify(datosPersonales).suprimir(1L);
+        verify(usuarios).guardar(usuario);
+        assertEquals("eliminado-1@glossup.invalid", usuario.getEmail());
+        assertEquals("Cuenta eliminada", usuario.getNombre());
+        assertFalse(usuario.isActivo());
+        assertFalse(encoder.matches("clave-actual", usuario.getPasswordHash()));
+        assertNotNull(usuario.getSesionesDesde());
+    }
+
+    @Test
+    void eliminarCuenta_conClaveIncorrecta_noBorraNada() {
+        assertThrows(ReglaNegocioException.class, () -> service.eliminarCuenta(1L, "otra"));
+        verifyNoInteractions(catalogo, datosPersonales);
+        verify(usuarios, never()).guardar(any());
+    }
+
+    @Test
+    void eliminarCuenta_deAdministrador_seRechaza() {
+        usuario.cambiarRol(Rol.ADMIN);
+        assertThrows(ReglaNegocioException.class, () -> service.eliminarCuenta(1L, "clave-actual"));
+        verifyNoInteractions(datosPersonales);
+        verify(usuarios, never()).guardar(any());
     }
 }

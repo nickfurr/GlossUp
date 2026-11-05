@@ -67,10 +67,11 @@ export class Vendedor {
     { id: 'ajustes', label: 'Ajustes' },
   ];
 
-  readonly saludo = computed(() => {
+  /** Método y no computed: un computed sin señales se calcula una vez y el saludo quedaba fijo (auditoría OBS-F07). */
+  saludo(): string {
     const hora = new Date().getHours();
     return hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
-  });
+  }
   /** La notificación dura lo que dure el problema: se va sola cuando administración levanta la suspensión. */
   readonly suspendidos = computed(() => this.productos().filter((p) => p.baneado));
   readonly activos = computed(() => this.productos().filter((p) => p.activo && !p.baneado).length);

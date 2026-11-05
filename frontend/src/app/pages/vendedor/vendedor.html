@@ -191,6 +191,7 @@
             <div class="img-fila">
               <input
                 type="url"
+                [attr.aria-label]="'URL de la imagen ' + ($index + 1)"
                 [ngModel]="u"
                 (ngModelChange)="cambiarImagen($index, $event)"
                 [ngModelOptions]="{ standalone: true }"

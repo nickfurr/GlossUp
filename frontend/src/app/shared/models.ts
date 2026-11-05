@@ -223,6 +223,8 @@ export interface PerfilDermatologico {
   /** Códigos de `Alergeno` (ej. PARABENOS). */
   alergias: string[];
   actualizadoEn: string;
+  /** Cuándo autorizó el uso de sus datos de salud (Ley 1581); null si no lo ha hecho. */
+  autorizacionSensiblesEn: string | null;
 }
 
 /** Alerta del motor de compatibilidad (HU6): siempre trae su causa (RNF-05). */

@@ -17,7 +17,8 @@ public record PerfilResponse(
         String tipoCabello,
         Set<String> afecciones,
         Set<String> alergias,
-        OffsetDateTime actualizadoEn
+        OffsetDateTime actualizadoEn,
+        OffsetDateTime autorizacionSensiblesEn
 ) {
     public static PerfilResponse fromDomain(PerfilDermatologico perfil) {
         return new PerfilResponse(
@@ -28,7 +29,8 @@ public record PerfilResponse(
                 perfil.getTipoCabello() != null ? perfil.getTipoCabello().name() : null,
                 codigos(perfil.getAfecciones()),
                 codigos(perfil.getAlergias()),
-                perfil.getActualizadoEn()
+                perfil.getActualizadoEn(),
+                perfil.getAutorizacionSensiblesEn()
         );
     }
 

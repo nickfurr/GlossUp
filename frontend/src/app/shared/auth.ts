@@ -69,7 +69,7 @@ export class AuthService {
   }
 
   /** Registro: el backend aún no lo expone (404/405); el componente avisa amablemente. */
-  registrar(input: { email: string; nombre: string; password: string; rol?: RolUsuario }): Observable<void> {
+  registrar(input: { email: string; nombre: string; password: string; rol?: RolUsuario; aceptaPolitica: boolean; mayorDeEdad: boolean }): Observable<void> {
     return this.http.post<void>('/api/auth/register', input);
   }
 
@@ -100,6 +100,11 @@ export class AuthService {
 
   restablecerClave(token: string, nueva: string): Observable<void> {
     return this.http.post<void>('/api/auth/restablecer', { token, nueva });
+  }
+
+  /** Supresión de la cuenta por su titular (Ley 1581). Exige la contraseña; después cierra la sesión local. */
+  eliminarCuenta(clave: string): Observable<void> {
+    return this.http.post<void>('/api/cuenta/eliminar', { clave }).pipe(tap(() => this.salir()));
   }
 
   salir(): void {

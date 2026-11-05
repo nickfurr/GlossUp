@@ -42,7 +42,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegistrarUsuarioRequest request) {
         registrarUsuarioUseCase.registrar(new RegistrarUsuarioCommand(
-                request.email(), request.nombre(), request.password(), request.rol()));
+                request.email(), request.nombre(), request.password(), request.rol(),
+                request.aceptaPolitica(), request.mayorDeEdad()));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

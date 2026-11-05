@@ -13,10 +13,13 @@ import java.util.List;
 
 public record RegistrarProductoRequest(
         @NotBlank(message = "El nombre del producto es obligatorio")
+        @Size(max = 200, message = "El nombre no puede superar 200 caracteres")
         String nombre,
 
+        @Size(max = 150, message = "La marca no puede superar 150 caracteres")
         String marca,
 
+        @Size(max = 120, message = "La categoría no puede superar 120 caracteres")
         String categoria,
 
         @NotNull(message = "El precio es obligatorio")
@@ -28,11 +31,15 @@ public record RegistrarProductoRequest(
 
         Double ph,
 
+        @Size(max = 100, message = "El registro INVIMA no puede superar 100 caracteres")
         String registroInvima,
 
-        List<@NotBlank(message = "La URL de la imagen no puede estar vacía") String> imagenes,
+        // Topes de tamaño: se rechaza pronto en vez de procesar listas enormes (auditoría R-15).
+        @Size(max = 10, message = "Máximo 10 imágenes por producto")
+        List<@NotBlank(message = "La URL de la imagen no puede estar vacía") @Size(max = 500, message = "La URL de la imagen no puede superar 500 caracteres") String> imagenes,
 
         @NotEmpty(message = "La ficha técnica debe contener al menos un ingrediente INCI")
+        @Size(max = 100, message = "Máximo 100 ingredientes en la ficha técnica")
         List<@Valid IngredienteRequest> ingredientes,
 
         @Size(max = 2000, message = "La descripción no puede superar 2000 caracteres")

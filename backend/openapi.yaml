@@ -187,6 +187,30 @@ paths:
       - bearerAuth: []
       x-historia-usuario: por definir
 
+  # --------------------------------------------------------------------------
+  # Ruta: /api/cuenta/eliminar
+  #   POST: [Ley 1581 - supresión de la cuenta por su titular]
+  # --------------------------------------------------------------------------
+  /api/cuenta/eliminar:
+    post:
+      tags:
+      - Cuenta
+      summary: Eliminar mi cuenta
+      description: Borra el perfil dermatológico y las direcciones, y deja la cuenta anónima e inactiva. Los pedidos se conservan por obligación legal. Exige la contraseña actual; un administrador no puede eliminar su cuenta (422).
+      operationId: eliminarCuenta
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EliminarCuentaRequest'
+        required: true
+      responses:
+        '204':
+          description: No Content
+      security:
+      - bearerAuth: []
+      x-historia-usuario: Ley 1581 - derechos del titular
+
   # ============================================================================
   # MÓDULO 2: PERFIL DERMATOLÓGICO Y CAPILAR (com.glossup.perfil - HU1, HU2)
   # ============================================================================
@@ -235,6 +259,40 @@ paths:
       security:
       - bearerAuth: []
       x-historia-usuario: HU1 - Registro y consulta del perfil dermatológico
+    delete:
+      tags:
+      - Perfil Dermatológico
+      summary: Revocar la autorización y borrar mi perfil
+      description: Borra el biotipo, las alergias y las afecciones (Ley 1581 art. 8 e).
+      operationId: eliminarMiPerfil
+      responses:
+        '204':
+          description: No Content
+      security:
+      - bearerAuth: []
+      x-historia-usuario: Ley 1581 - derechos del titular
+
+  # --------------------------------------------------------------------------
+  # Ruta: /api/perfil/me/autorizacion
+  #   POST: [Ley 1581 - autorización explícita de datos sensibles]
+  # --------------------------------------------------------------------------
+  /api/perfil/me/autorizacion:
+    post:
+      tags:
+      - Perfil Dermatológico
+      summary: Autorizar el uso de mis datos de salud
+      description: Autorización explícita y facultativa (Ley 1581 art. 6). Sin ella no se pueden guardar biotipo, alergias ni afecciones (422).
+      operationId: autorizarDatosSensibles
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+      security:
+      - bearerAuth: []
+      x-historia-usuario: Ley 1581 - autorización de datos sensibles
 
   # --------------------------------------------------------------------------
   # Ruta: /api/perfil/me/alergias
@@ -1827,6 +1885,10 @@ components:
         actualizadoEn:
           type: string
           format: date-time
+        autorizacionSensiblesEn:
+          type: string
+          format: date-time
+          description: Cuándo autorizó el titular el uso de sus datos de salud; null si no lo ha hecho.
     DireccionRequest:
       required:
       - barrio
@@ -2319,6 +2381,8 @@ components:
       - nombre
       - password
       - rol
+      - aceptaPolitica
+      - mayorDeEdad
       type: object
       properties:
         email:
@@ -2332,6 +2396,19 @@ components:
           minLength: 8
           type: string
         rol:
+          type: string
+        aceptaPolitica:
+          type: boolean
+          description: Debe ser true. Autorización del tratamiento según la política publicada en /privacidad (Ley 1581 art. 9).
+        mayorDeEdad:
+          type: boolean
+          description: Debe ser true. Declaración de mayoría de edad (Ley 1581 art. 7).
+    EliminarCuentaRequest:
+      required:
+      - clave
+      type: object
+      properties:
+        clave:
           type: string
     SolicitudRequest:
       required:

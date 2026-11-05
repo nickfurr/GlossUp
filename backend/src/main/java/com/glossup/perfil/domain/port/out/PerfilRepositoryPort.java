@@ -12,4 +12,6 @@ public interface PerfilRepositoryPort {
     Optional<PerfilDermatologico> buscarPorUsuarioId(Long usuarioId);
 
     PerfilDermatologico guardar(PerfilDermatologico perfil);
+
+    void eliminarPorUsuarioId(Long usuarioId);
 }

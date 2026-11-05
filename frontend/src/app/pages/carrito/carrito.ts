@@ -56,9 +56,10 @@ import type { Carrito as CarritoDto, Cruce, LineaVista, Pedido, ResultadoCompati
                   <td class="precio">{{ formatearCop(it.precioUnitario) }}</td>
                   <td>
                     <div class="qty">
-                      <button type="button" class="btn-sec" [disabled]="ocupado()" (click)="cambiar(it, it.cantidad - 1)">−</button>
+                      <!-- En 1 no resta: sacar el producto es solo con ✕, para que un clic de más no lo quite (auditoría OBS-F11). -->
+                      <button type="button" class="btn-sec" [disabled]="ocupado() || it.cantidad <= 1" (click)="cambiar(it, it.cantidad - 1)" aria-label="Restar uno">−</button>
                       <span>{{ it.cantidad }}</span>
-                      <button type="button" class="btn-sec" [disabled]="ocupado()" (click)="cambiar(it, it.cantidad + 1)">+</button>
+                      <button type="button" class="btn-sec" [disabled]="ocupado()" (click)="cambiar(it, it.cantidad + 1)" aria-label="Sumar uno">+</button>
                     </div>
                   </td>
                   <td class="precio">{{ formatearCop(it.subtotal) }}</td>

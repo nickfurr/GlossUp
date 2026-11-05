@@ -102,10 +102,11 @@ export class Admin {
   nuevoEmail = '';
   nuevoClave = '';
 
-  readonly saludo = computed(() => {
+  /** Método y no computed: un computed sin señales se calcula una vez y el saludo quedaba fijo (auditoría OBS-F07). */
+  saludo(): string {
     const hora = new Date().getHours();
     return hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
-  });
+  }
   readonly esMiCuenta = computed(() => this.usuarioActivo()?.id === this.sesion()?.usuarioId);
   readonly suspendidos = computed(() => this.usuarios().filter((u) => !u.activo).length);
   readonly vendedores = computed(() => this.usuarios().filter((u) => u.roles.includes('VENDEDOR')).length);

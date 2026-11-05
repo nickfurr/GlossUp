@@ -191,4 +191,24 @@ class PerfilControllerTest {
                 .andExpect(jsonPath("$.alergias[0].codigo").value("FRAGANCIA"))
                 .andExpect(jsonPath("$.alergias[0].etiqueta").value("Fragancia / perfume"));
     }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void autorizarDatosSensibles_devuelveLaFechaDeAutorizacion() throws Exception {
+        PerfilDermatologico perfil = crearPerfilEjemplo(Set.of(), Set.of())
+                .conAutorizacionSensibles(java.time.OffsetDateTime.parse("2026-11-05T10:00:00-05:00"));
+        when(gestionarPerfilUseCase.autorizarDatosSensibles(7L)).thenReturn(perfil);
+
+        mockMvc.perform(post("/api/perfil/me/autorizacion"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.autorizacionSensiblesEn").exists());
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void eliminarMiPerfil_revocaYBorraLosDatos() throws Exception {
+        mockMvc.perform(delete("/api/perfil/me"))
+                .andExpect(status().isNoContent());
+        org.mockito.Mockito.verify(gestionarPerfilUseCase).eliminarPerfil(7L);
+    }
 }

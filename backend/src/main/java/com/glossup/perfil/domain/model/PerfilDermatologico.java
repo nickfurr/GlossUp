@@ -30,6 +30,7 @@ public class PerfilDermatologico {
     private final Set<Afeccion> afecciones;
     private final Set<Alergeno> alergias;
     private OffsetDateTime actualizadoEn;
+    private OffsetDateTime autorizacionSensiblesEn;
 
     public PerfilDermatologico(Long id, Long usuarioId, Ph ph, TipoPiel tipoPiel,
                                TipoCabello tipoCabello, Set<Afeccion> afecciones, Set<Alergeno> alergias,
@@ -81,6 +82,23 @@ public class PerfilDermatologico {
         tocar();
     }
 
+    /** Autorización explícita del titular para tratar sus datos de salud (Ley 1581 art. 6). Vale la primera. */
+    public void autorizarDatosSensibles(OffsetDateTime cuando) {
+        if (autorizacionSensiblesEn == null) {
+            autorizacionSensiblesEn = cuando;
+        }
+    }
+
+    public boolean tieneAutorizacionSensibles() {
+        return autorizacionSensiblesEn != null;
+    }
+
+    /** Reconstrucción desde persistencia. */
+    public PerfilDermatologico conAutorizacionSensibles(OffsetDateTime autorizadaEn) {
+        this.autorizacionSensiblesEn = autorizadaEn;
+        return this;
+    }
+
     public boolean esAlergicoA(Alergeno alergeno) {
         return alergias.contains(alergeno);
     }
@@ -108,4 +126,5 @@ public class PerfilDermatologico {
     public Set<Afeccion> getAfecciones() { return Set.copyOf(afecciones); }
     public Set<Alergeno> getAlergias() { return Set.copyOf(alergias); }
     public OffsetDateTime getActualizadoEn() { return actualizadoEn; }
+    public OffsetDateTime getAutorizacionSensiblesEn() { return autorizacionSensiblesEn; }
 }

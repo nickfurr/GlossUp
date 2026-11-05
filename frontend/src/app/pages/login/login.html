@@ -65,8 +65,13 @@
 
       @if (esRegistro()) {
         <label class="terminos">
+          <input type="checkbox" name="mayorDeEdad" [(ngModel)]="mayorDeEdad" required />
+          Soy mayor de 18 años.
+        </label>
+        <label class="terminos">
           <input type="checkbox" name="acepta" [(ngModel)]="acepta" required />
-          Acepto los Términos y Condiciones y la Política de Privacidad.
+          <span>Autorizo el tratamiento de mis datos según la
+            <a href="/privacidad" target="_blank" rel="noopener">Política de Tratamiento de Datos</a>.</span>
         </label>
       }
 
