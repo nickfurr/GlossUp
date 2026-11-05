@@ -83,8 +83,8 @@ class RecuperarClaveServiceTest {
     @Test
     void restablecer_cambiaLaClaveYCierraLasSesiones() {
         when(enlaces.consumir(anyString())).thenReturn(Optional.of(7L));
-        service.restablecer("token", "clave-nueva-1");
-        assertTrue(encoder.matches("clave-nueva-1", ana.getPasswordHash()));
+        service.restablecer("token", "Clave-nueva-1!");
+        assertTrue(encoder.matches("Clave-nueva-1!", ana.getPasswordHash()));
         assertNotNull(ana.getSesionesDesde());
         verify(usuarios).guardar(ana);
     }
@@ -92,7 +92,7 @@ class RecuperarClaveServiceTest {
     @Test
     void restablecer_enlaceInvalidoOUsado_falla() {
         when(enlaces.consumir(anyString())).thenReturn(Optional.empty());
-        assertThrows(ReglaNegocioException.class, () -> service.restablecer("token", "clave-nueva-1"));
+        assertThrows(ReglaNegocioException.class, () -> service.restablecer("token", "Clave-nueva-1!"));
         verify(usuarios, never()).guardar(any());
     }
 
@@ -100,7 +100,14 @@ class RecuperarClaveServiceTest {
     void restablecer_cuentaSuspendida_falla() {
         ana.suspender("x");
         when(enlaces.consumir(anyString())).thenReturn(Optional.of(7L));
-        assertThrows(ReglaNegocioException.class, () -> service.restablecer("token", "clave-nueva-1"));
+        assertThrows(ReglaNegocioException.class, () -> service.restablecer("token", "Clave-nueva-1!"));
         assertTrue(encoder.matches("clave-vieja", ana.getPasswordHash()));
+    }
+
+    @Test
+    void restablecer_conClaveInsegura_fallaPorComplejidad() {
+        when(enlaces.consumir(anyString())).thenReturn(Optional.of(7L));
+        assertThrows(ReglaNegocioException.class, () -> service.restablecer("token", "insegura"));
+        verify(usuarios, never()).guardar(any());
     }
 }

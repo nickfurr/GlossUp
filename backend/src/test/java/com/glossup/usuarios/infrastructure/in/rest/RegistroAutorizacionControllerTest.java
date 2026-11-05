@@ -44,7 +44,7 @@ class RegistroAutorizacionControllerTest {
     private RegistrarUsuarioUseCase registrarUsuarioUseCase;
 
     private static String cuerpo(String extra) {
-        return "{\"email\":\"ana@correo.co\",\"nombre\":\"Ana\",\"password\":\"clave-segura-1\",\"rol\":\"CLIENTE\"" + extra + "}";
+        return "{\"email\":\"ana@correo.co\",\"nombre\":\"Ana\",\"password\":\"ClaveSegura#1\",\"rol\":\"CLIENTE\"" + extra + "}";
     }
 
     @Test

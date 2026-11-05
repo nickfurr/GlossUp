@@ -2,6 +2,7 @@ package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.GestionarCuentaUseCase;
@@ -46,8 +47,9 @@ public class GestionarCuentaService implements GestionarCuentaUseCase {
         if (!encoder.matches(claveActual, usuario.getPasswordHash())) {
             throw new ReglaNegocioException("La contraseña actual no es correcta");
         }
+        Clave nueva = new Clave(claveNueva);
         // shortcut: los tokens ya emitidos siguen válidos hasta vencer (1 h); revocarlos requiere una versión de sesión en el JWT.
-        usuario.cambiarPasswordHash(encoder.encode(claveNueva));
+        usuario.cambiarPasswordHash(encoder.encode(nueva.valor()));
         usuarios.guardar(usuario);
     }
 

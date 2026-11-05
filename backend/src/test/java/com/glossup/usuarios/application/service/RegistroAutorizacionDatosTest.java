@@ -20,7 +20,7 @@ class RegistroAutorizacionDatosTest {
     private final RegistrarUsuarioService service = new RegistrarUsuarioService(usuarios, new BCryptPasswordEncoder(4));
 
     private RegistrarUsuarioCommand comando(boolean aceptaPolitica, boolean mayorDeEdad) {
-        return new RegistrarUsuarioCommand("ana@correo.co", "Ana", "clave-segura-1", "CLIENTE", aceptaPolitica, mayorDeEdad);
+        return new RegistrarUsuarioCommand("ana@correo.co", "Ana", "ClaveSegura#1", "CLIENTE", aceptaPolitica, mayorDeEdad);
     }
 
     @Test

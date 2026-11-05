@@ -1,6 +1,7 @@
 package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.domain.ReglaNegocioException;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.RegistrarUsuarioCommand;
@@ -41,9 +42,10 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
         }
 
         Rol rol = parseRolPublico(command.rol());
+        Clave clave = new Clave(command.password());
         Usuario usuario = Usuario.registrar(
                 email,
-                passwordEncoder.encode(command.password()),
+                passwordEncoder.encode(clave.valor()),
                 command.nombre(),
                 rol);
         usuario.aceptarPolitica(POLITICA_VIGENTE, OffsetDateTime.now());

@@ -30,12 +30,19 @@ class JwtAuthenticationFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    @SuppressWarnings("unchecked")
+    private static <T> ObjectProvider<T> proveedorDe(T valor) {
+        return new ObjectProvider<>() {
+            @Override public T getObject() { return valor; }
+            @Override public T getObject(Object... args) { return valor; }
+            @Override public T getIfAvailable() { return valor; }
+            @Override public T getIfUnique() { return valor; }
+        };
+    }
+
     private void pasarConSesion(boolean vigente) throws ServletException, IOException {
         SesionVigentePort sesiones = mock(SesionVigentePort.class);
         when(sesiones.vigente(eq("7"), any())).thenReturn(vigente);
-        ObjectProvider<SesionVigentePort> proveedor = mock(ObjectProvider.class);
-        when(proveedor.getIfAvailable()).thenReturn(sesiones);
+        ObjectProvider<SesionVigentePort> proveedor = proveedorDe(sesiones);
         MockHttpServletRequest peticion = new MockHttpServletRequest();
         peticion.addHeader("Authorization", "Bearer " + jwt.generarToken("7", List.of("CLIENTE")));
         new JwtAuthenticationFilter(jwt, proveedor).doFilter(peticion, new MockHttpServletResponse(), new MockFilterChain());
@@ -54,12 +61,10 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void baseDeDatosCaida_responde503SinSeguirLaCadena() throws Exception {
         SesionVigentePort sesiones = mock(SesionVigentePort.class);
         when(sesiones.vigente(eq("7"), any())).thenThrow(new CannotGetJdbcConnectionException("Failed to obtain JDBC Connection"));
-        ObjectProvider<SesionVigentePort> proveedor = mock(ObjectProvider.class);
-        when(proveedor.getIfAvailable()).thenReturn(sesiones);
+        ObjectProvider<SesionVigentePort> proveedor = proveedorDe(sesiones);
         MockHttpServletRequest peticion = new MockHttpServletRequest();
         peticion.addHeader("Authorization", "Bearer " + jwt.generarToken("7", List.of("CLIENTE")));
         MockHttpServletResponse respuesta = new MockHttpServletResponse();

@@ -7,4 +7,8 @@ public record RegistrarUsuarioCommand(
         String rol,
         boolean aceptaPolitica,
         boolean mayorDeEdad
-) {}
+) {
+    public RegistrarUsuarioCommand(String email, String nombre, String password, String rol) {
+        this(email, nombre, password, rol, true, true);
+    }
+}
