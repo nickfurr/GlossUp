@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 /**
  * Único punto de acoplamiento compatibilidad → perfil. Expone los códigos de alérgenos y las
- * condiciones (afecciones + tipo de piel) en minúsculas; sin perfil, conjuntos vacíos.
+ * condiciones (afecciones + tipo de piel + familia del tipo de cabello) en minúsculas; sin perfil, conjuntos vacíos.
  */
 @Component
 public class PerfilConsultaAdapter implements PerfilConsultaPort {
@@ -40,6 +40,12 @@ public class PerfilConsultaAdapter implements PerfilConsultaPort {
             String piel = p.getTipoPiel().name().toLowerCase();
             condiciones.add(piel);
             etiquetas.put(piel, "Piel " + piel);
+        }
+        if (p.getTipoCabello() != null) {
+            String familia = p.getTipoCabello().familia().toLowerCase();
+            condiciones.add(familia);
+            String tipo = p.getTipoCabello().getEtiqueta().split(" · ")[0]; // "Rizado 3A"
+            etiquetas.put(familia, "cabello " + Character.toLowerCase(tipo.charAt(0)) + tipo.substring(1));
         }
         return new PerfilConsulta(codigos(p.getAlergias()), condiciones, etiquetas,
                 p.getPh() == null ? null : p.getPh().valor());

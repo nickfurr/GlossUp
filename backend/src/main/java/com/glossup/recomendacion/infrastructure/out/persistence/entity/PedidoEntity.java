@@ -36,6 +36,9 @@ public class PedidoEntity {
     @Column(name = "pagado_en")
     private OffsetDateTime pagadoEn;
 
+    @Column(name = "reembolsado_en")
+    private OffsetDateTime reembolsadoEn;
+
     @Embedded
     private EnvioEmbeddable envio;
 
@@ -72,6 +75,8 @@ public class PedidoEntity {
 
     public OffsetDateTime getPagadoEn() { return pagadoEn; }
     public void setPagadoEn(OffsetDateTime pagadoEn) { this.pagadoEn = pagadoEn; }
+    public OffsetDateTime getReembolsadoEn() { return reembolsadoEn; }
+    public void setReembolsadoEn(OffsetDateTime reembolsadoEn) { this.reembolsadoEn = reembolsadoEn; }
 
     public EnvioEmbeddable getEnvio() { return envio; }
     public void setEnvio(EnvioEmbeddable envio) { this.envio = envio; }

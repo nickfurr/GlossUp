@@ -169,6 +169,7 @@ button.link:hover { text-decoration: underline; }
 .cat-card .product-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cat-nombre { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.5em; margin: .8rem .9rem .2rem; font-size: .9rem; font-weight: 400; line-height: 1.25; color: var(--tinta); }
 .cat-marca { margin: 0 .9rem; color: #7c6870; font-size: .78rem; }
+.cat-razon { margin: .2rem .9rem .35rem; color: #6b5a61; font-size: .78rem; line-height: 1.35; }
 .cat-card app-compat-info { display: block; margin: .35rem .9rem 0; }
 .cat-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; margin-top: auto; padding: .7rem .9rem .9rem; }
 .cat-pie .precio { font-size: 1.2rem; font-weight: 500; color: var(--tinta); }
@@ -415,6 +416,7 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .aviso-bloqueo { margin: 0 0 1rem; padding: .7rem .9rem; border: 1px solid #f2b8c4; border-radius: 10px; background: #fdecef; color: #8f1c33; font-size: .88rem; }
 .aviso-ok { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 10px; background: #e3f3ea; color: #1f6b3a; font-weight: 600; }
 .celda-persona { display: grid; gap: .1rem; min-width: 0; overflow-wrap: anywhere; }
+.celda-reembolso { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .35rem; font-size: .85rem; }
 .tabla-admin td { vertical-align: middle; }
 .tabla-admin td:first-child, .tabla-admin th:first-child { width: 100%; } /* el texto largo se queda con el espacio libre */
 .tabla-admin td:not(:first-child) { white-space: nowrap; }

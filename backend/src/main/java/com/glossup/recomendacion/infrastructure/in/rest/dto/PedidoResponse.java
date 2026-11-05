@@ -22,7 +22,9 @@ public record PedidoResponse(
         OffsetDateTime expiraEn,
         String transaccionId,
         String metodoPago,
-        OffsetDateTime pagadoEn
+        OffsetDateTime pagadoEn,
+        boolean reembolsoPendiente,
+        OffsetDateTime reembolsadoEn
 ) {
     public record Item(Long productoId, String nombre, int cantidad, BigDecimal precioUnitario, BigDecimal subtotal) {}
 
@@ -63,6 +65,8 @@ public record PedidoResponse(
                 pedido.getEstado().name().equals("CREADO") ? pedido.expiraEn() : null,
                 pedido.getTransaccionId(),
                 pedido.getMetodoPago(),
-                pedido.getPagadoEn());
+                pedido.getPagadoEn(),
+                pedido.reembolsoPendiente(),
+                pedido.getReembolsadoEn());
     }
 }

@@ -17,10 +17,13 @@ export interface UsuarioAdmin {
   roles: RolUsuario[];
   creadoEn?: string;
   motivoSuspension?: string | null;
+  /** Vendedor que se registró solo y aún no puede entrar (auditoría OBS-T08). */
+  pendienteAprobacion?: boolean;
 }
 
 const VISTAS = ['dashboard', 'usuarios', 'productos', 'pedidos', 'cuenta'] as const;
 type VistaAdmin = (typeof VISTAS)[number];
+type FiltroUsuarios = 'todos' | 'suspendidos' | 'pendientes' | RolUsuario;
 type FiltroProductos = 'todos' | 'publicados' | 'bloqueados' | 'baja' | 'sinstock';
 const POR_PAGINA = 15;
 
@@ -78,12 +81,15 @@ export class Admin {
   readonly error = signal<string | null>(null);
 
   readonly qUsuario = signal('');
-  readonly filtroRol = signal<'todos' | 'suspendidos' | RolUsuario>('todos');
+  readonly filtroRol = signal<FiltroUsuarios>('todos');
   readonly paginaUsuarios = signal(0);
   readonly qProducto = signal('');
   readonly filtroProducto = signal<FiltroProductos>('todos');
   readonly paginaProductos = signal(0);
   readonly filtroPedido = signal<string>('todos');
+  /** Pedido cuyo reembolso se está confirmando (confirmación en línea, como el resto del panel). */
+  readonly confirmandoReembolso = signal<number | null>(null);
+  readonly errorReembolso = signal<string | null>(null);
   readonly paginaPedidos = signal(0);
 
   // ---- Panel "Gestionar" ----
@@ -109,12 +115,14 @@ export class Admin {
   }
   readonly esMiCuenta = computed(() => this.usuarioActivo()?.id === this.sesion()?.usuarioId);
   readonly suspendidos = computed(() => this.usuarios().filter((u) => !u.activo).length);
+  readonly porAprobar = computed(() => this.usuarios().filter((u) => u.activo && u.pendienteAprobacion).length);
   readonly vendedores = computed(() => this.usuarios().filter((u) => u.roles.includes('VENDEDOR')).length);
   readonly clientes = computed(() => this.usuarios().filter((u) => u.roles.includes('CLIENTE')).length);
   readonly publicados = computed(() => this.productos().filter((p) => p.activo && !p.baneado).length);
   readonly bloqueados = computed(() => this.productos().filter((p) => p.baneado).length);
   readonly porPagar = computed(() => this.pedidos().filter((p) => p.estado === 'CREADO').length);
   readonly porEnviar = computed(() => this.pedidos().filter((p) => p.estado === 'PAGADO').length);
+  readonly reembolsos = computed(() => this.pedidos().filter((p) => p.reembolsoPendiente).length);
   readonly ingresos = computed(() => this.pedidos()
     .filter((p) => p.estado === 'PAGADO' || p.estado === 'ENVIADO')
     .reduce((n, p) => n + p.total, 0));
@@ -127,7 +135,8 @@ export class Admin {
     const f = this.filtroRol();
     return this.usuarios().filter((u) => {
       if (f === 'suspendidos' && u.activo) return false;
-      if (f !== 'todos' && f !== 'suspendidos' && !u.roles.includes(f)) return false;
+      if (f === 'pendientes' && !(u.activo && u.pendienteAprobacion)) return false;
+      if (f !== 'todos' && f !== 'suspendidos' && f !== 'pendientes' && !u.roles.includes(f)) return false;
       return !q || u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
     });
   });
@@ -145,7 +154,7 @@ export class Admin {
   });
   readonly pedidosFiltrados = computed(() => {
     const f = this.filtroPedido();
-    return this.pedidos().filter((p) => f === 'todos' || p.estado === f);
+    return this.pedidos().filter((p) => f === 'todos' || (f === 'REEMBOLSO' ? p.reembolsoPendiente : p.estado === f));
   });
   readonly usuariosPagina = computed(() => this.pagina(this.usuariosFiltrados(), this.paginaUsuarios()));
   readonly productosPagina = computed(() => this.pagina(this.productosFiltrados(), this.paginaProductos()));
@@ -181,7 +190,7 @@ export class Admin {
     this.router.navigate([], { relativeTo: this.ruta, queryParams: { vista } });
   }
 
-  verUsuarios(filtro: 'todos' | 'suspendidos' | RolUsuario): void {
+  verUsuarios(filtro: FiltroUsuarios): void {
     this.filtroRol.set(filtro);
     this.qUsuario.set('');
     this.paginaUsuarios.set(0);
@@ -226,10 +235,29 @@ export class Admin {
   }
 
   estadoPedido(p: Pedido): { txt: string; cls: string } {
+    if (p.reembolsoPendiente) return { txt: 'Reembolso pendiente', cls: 'pill-amber' };
+    if (p.estado === 'CANCELADO' && p.reembolsadoEn) return { txt: 'Reembolsado', cls: 'pill-azul' };
     const etapa = p.envio?.estado;
     if (p.estado !== 'CANCELADO' && etapa === 'ENTREGADO') return { txt: 'Entregado', cls: 'pill-ok' };
     if (p.estado !== 'CANCELADO' && etapa === 'NO_ENTREGADO') return { txt: 'No entregado', cls: 'pill-rojo' };
     return ESTADOS_PEDIDO[p.estado] ?? { txt: p.estado, cls: '' };
+  }
+
+  /** El admin ya devolvió el dinero desde el panel de Wompi; aquí solo lo deja registrado. */
+  marcarReembolsado(p: Pedido): void {
+    this.ocupado.set(true);
+    this.errorReembolso.set(null);
+    this.http.post<Pedido>(`/api/admin/pedidos/${p.id}/reembolso`, {}).subscribe({
+      next: (actualizado) => {
+        this.pedidos.update((ps) => ps.map((x) => (x.id === actualizado.id ? actualizado : x)));
+        this.confirmandoReembolso.set(null);
+        this.ocupado.set(false);
+      },
+      error: (e) => {
+        this.errorReembolso.set(mensajeDeError(e));
+        this.ocupado.set(false);
+      },
+    });
   }
 
   estadoProducto(p: ProductoVendedor): { txt: string; cls: string } {
@@ -300,6 +328,22 @@ export class Admin {
     }
     this.accionUsuario(this.http.post<UsuarioAdmin>(`/api/admin/usuarios/${u.id}/suspender`, { motivo: this.edMotivo.trim() }),
       'Cuenta suspendida. Sus sesiones abiertas ya no funcionan.', () => this.refrescarCatalogoSiVende(u));
+  }
+
+  cerrarSesiones(u: UsuarioAdmin): void {
+    this.accionUsuario(this.http.post<UsuarioAdmin>(`/api/admin/usuarios/${u.id}/cerrar-sesiones`, {}),
+      'Cerramos sus sesiones abiertas. Tendrá que volver a iniciar sesión.');
+  }
+
+  aprobar(u: UsuarioAdmin): void {
+    this.accionUsuario(this.http.post<UsuarioAdmin>(`/api/admin/usuarios/${u.id}/aprobar`, {}),
+      'Vendedor aprobado. Ya puede iniciar sesión y le avisamos por correo.');
+  }
+
+  /** Activo, suspendido o en revisión, para la tabla de usuarios. */
+  estadoUsuario(u: UsuarioAdmin): { txt: string; cls: string } {
+    if (!u.activo) return { txt: 'Suspendido', cls: 'rojo' };
+    return u.pendienteAprobacion ? { txt: 'Por aprobar', cls: 'amber' } : { txt: 'Activo', cls: 'ok' };
   }
 
   reactivar(u: UsuarioAdmin): void {

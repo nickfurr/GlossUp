@@ -15,8 +15,8 @@ import com.glossup.shared.security.JwtAuthenticationFilter;
 import com.glossup.shared.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -48,10 +48,10 @@ class PagoControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private PagarPedidoUseCase pagos;
 
-    @MockBean
+    @MockitoBean
     private ComprobanteUseCase comprobantes;
 
     private static Pedido pedido(EstadoPedido estado) {

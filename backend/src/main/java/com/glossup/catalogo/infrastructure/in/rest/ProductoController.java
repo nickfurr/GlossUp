@@ -15,6 +15,7 @@ import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.catalogo.infrastructure.in.rest.dto.ActualizarProductoRequest;
 import com.glossup.catalogo.infrastructure.in.rest.dto.ProductoResponse;
 import com.glossup.catalogo.infrastructure.in.rest.dto.RegistrarProductoRequest;
+import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -165,15 +166,49 @@ public class ProductoController {
         return ResponseEntity.ok(ProductoResponse.conModeracion(gestionarProductoUseCase.publicar(id, UsuarioAutenticado.id(authentication))));
     }
 
+    static final int TAMANO_MAXIMO = 100;
+
+    public record PaginaResponse(List<ProductoResponse> items, int pagina, int tamano, long total) {}
+
+    public record EntradaIndiceResponse(Long id, String categoria) {}
+
     @GetMapping
-    @Operation(summary = "Listar el catálogo publicado",
-               description = "Productos activos y con stock (los agotados no se muestran al cliente).",
+    @Operation(summary = "Listar el catálogo publicado por páginas (auditoría R-14)",
+               description = "Productos activos y con stock (los agotados no se muestran al cliente), por id. Con ids=1,2,3 "
+                       + "devuelve solo esos (los que sigan publicados), en ese orden. Máximo " + TAMANO_MAXIMO + " por página.",
                security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<List<ProductoResponse>> listarCatalogo() {
-        return ResponseEntity.ok(productoRepository.listarTodos().stream()
-                .filter(Producto::estaEnCatalogo)
-                .map(ProductoResponse::fromDomain)
-                .toList());
+    public PaginaResponse listarCatalogo(@RequestParam(defaultValue = "0") int pagina,
+                                         @RequestParam(defaultValue = "24") int tamano,
+                                         @RequestParam(required = false) String categoria,
+                                         @RequestParam(required = false) List<Long> ids) {
+        if (ids != null) {
+            if (ids.size() > TAMANO_MAXIMO) {
+                throw new ReglaNegocioException("Máximo " + TAMANO_MAXIMO + " productos por consulta");
+            }
+            var porId = productoRepository.buscarPorIds(ids).stream()
+                    .filter(Producto::estaEnCatalogo)
+                    .collect(java.util.stream.Collectors.toMap(Producto::getId, p -> p));
+            List<ProductoResponse> items = ids.stream().distinct().map(porId::get).filter(java.util.Objects::nonNull)
+                    .map(ProductoResponse::fromDomain).toList();
+            return new PaginaResponse(items, 0, items.size(), items.size());
+        }
+        if (pagina < 0 || tamano < 1 || tamano > TAMANO_MAXIMO) {
+            throw new ReglaNegocioException("La página empieza en 0 y el tamaño va de 1 a " + TAMANO_MAXIMO);
+        }
+        String cat = categoria == null || categoria.isBlank() ? null : categoria.trim();
+        var resultado = productoRepository.catalogo(cat, pagina, tamano);
+        return new PaginaResponse(resultado.productos().stream().map(ProductoResponse::fromDomain).toList(),
+                pagina, tamano, resultado.total());
+    }
+
+    @GetMapping("/indice")
+    @Operation(summary = "Id y categoría de todo el catálogo publicado",
+               description = "Liviano: sirve para contar por categoría y cruzar con los filtros dermatológicos sin bajar las fichas.",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    public List<EntradaIndiceResponse> indice() {
+        return productoRepository.indiceCatalogo().stream()
+                .map(e -> new EntradaIndiceResponse(e.id(), e.categoria()))
+                .toList();
     }
 
     @GetMapping("/buscar")

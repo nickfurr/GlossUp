@@ -2,11 +2,12 @@ package com.glossup.compatibilidad;
 
 import com.glossup.perfil.domain.model.Afeccion;
 import com.glossup.perfil.domain.model.Alergeno;
+import com.glossup.perfil.domain.model.TipoCabello;
 import com.glossup.perfil.domain.model.TipoPiel;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class BaseConocimientoMigracionTest {
 
     @Container
-    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:16-alpine");
 
     @BeforeAll
     static void migrar() throws SQLException {
@@ -53,6 +54,7 @@ class BaseConocimientoMigracionTest {
         assertEquals(nombres(Alergeno.values()), consulta("SELECT codigo FROM alergeno"));
         Set<String> condiciones = nombres(Afeccion.values());
         condiciones.addAll(nombres(TipoPiel.values()));
+        for (TipoCabello t : TipoCabello.values()) condiciones.add(t.familia());
         assertEquals(condiciones, consulta("SELECT codigo FROM condicion"));
     }
 
@@ -164,6 +166,22 @@ class BaseConocimientoMigracionTest {
              Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT count(*) FROM producto")) {
             rs.next();
             assertEquals(0, rs.getInt(1));
+        }
+    }
+
+    @Test
+    void arranqueLocalLimpio_siembraElCatalogoDeDemostracion() throws SQLException {
+        // Mismas carpetas que el perfil docker (application-docker.yml): db/demo crea el vendedor que V8 necesita.
+        ejecutar("CREATE DATABASE local_limpia");
+        String url = PG.getJdbcUrl().replace("/" + PG.getDatabaseName(), "/local_limpia");
+        Flyway.configure().dataSource(url, PG.getUsername(), PG.getPassword())
+                .locations("classpath:db/migration", "classpath:db/demo").outOfOrder(true).load().migrate();
+        try (Connection c = DriverManager.getConnection(url, PG.getUsername(), PG.getPassword());
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery("SELECT count(*) FROM producto p JOIN usuario u ON u.id = p.vendedor_id "
+                     + "WHERE u.email = 'manuel.pinedave@uqvirtual.edu.co' AND p.activo")) {
+            rs.next();
+            assertEquals(78, rs.getInt(1));
         }
     }
 

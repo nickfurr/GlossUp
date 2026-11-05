@@ -22,6 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Falla si alguna dependencia (Maven con sus transitivas, npm) tiene una vulnerabilidad conocida (auditoría R-03).
+      - name: Dependencias sin vulnerabilidades conocidas (OSV-Scanner)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.7.0
+        with:
+          scan-args: |-
+            --recursive
+            ./
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -38,10 +46,11 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Frontend - compilar
+      - name: Frontend - compilar y probar
         working-directory: frontend
         run: |
           npm ci
+          npm test -- --watch=false
           npm run build
 
   deploy:

@@ -5,3 +5,9 @@ spring:
     url: jdbc:postgresql://db:5432/glossup
     username: glossup
     password: glossup
+  flyway:
+    # Datos de demostración solo para el entorno local (auditoría OBS-RES-02). V7_1 crea el vendedor que V8 necesita
+    # para sembrar el catálogo; una base local creada antes la aplica igual (out-of-order), pero el catálogo solo
+    # aparece en una base nueva: podman-compose down -v && podman-compose up --build.
+    locations: classpath:db/migration,classpath:db/demo
+    out-of-order: true

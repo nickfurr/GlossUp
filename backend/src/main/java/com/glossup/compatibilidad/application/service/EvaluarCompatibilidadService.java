@@ -163,7 +163,8 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
 
         // 2) Irritantes conocidos para una condición del perfil (tipo de piel o afección).
         for (ReglaPerfil regla : k.reglasPerfil()) {
-            if (ingredientes.contains(regla.getIngrediente()) && datos.condiciones().contains(regla.getCondicion())) {
+            if (ingredientes.contains(regla.getIngrediente()) && datos.condiciones().contains(regla.getCondicion())
+                    && regla.aplicaEn(producto.zona())) {
                 resultado.agregar(new Alerta(regla.getSeveridad(),
                         "«" + producto.nombre() + "» contiene " + regla.getIngrediente()
                                 + ", no recomendado para tu condición: " + datos.etiqueta(regla.getCondicion()) + ".",
@@ -204,7 +205,7 @@ public class EvaluarCompatibilidadService implements EvaluarCompatibilidadUseCas
 
         // 5) Ingredientes recomendados para una condición del perfil → base de la recomendación.
         for (Beneficio b : k.beneficios()) {
-            if (ingredientes.contains(b.ingrediente()) && datos.condiciones().contains(b.condicion())) {
+            if (ingredientes.contains(b.ingrediente()) && datos.condiciones().contains(b.condicion()) && b.aplicaEn(producto.zona())) {
                 resultado.agregarBeneficio("Contiene " + b.ingrediente() + ", recomendado para "
                         + datos.etiqueta(b.condicion()) + ": " + b.motivo());
             }

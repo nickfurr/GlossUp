@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Servicio de aplicación que implementa {@link ConsolidarCarritoUseCase} (HU9 - SCRUM-36).
@@ -61,9 +62,14 @@ public class ConsolidarCarritoService implements ConsolidarCarritoUseCase {
             consolidado.merge(linea.productoId(), linea.cantidad(), Integer::sum);
         }
 
+        // Se reserva en orden de id: dos compras con los mismos productos bloquean las filas en el mismo
+        // orden y se esperan, en vez de bloquearse mutuamente (deadlock).
+        Map<Long, InventarioPort.Reserva> reservas = new TreeMap<>();
+        new TreeMap<>(consolidado).forEach((id, cantidad) -> reservas.put(id, inventario.reservar(id, cantidad)));
+
         List<PedidoItem> items = new ArrayList<>();
         for (Map.Entry<Long, Integer> entrada : consolidado.entrySet()) {
-            InventarioPort.Reserva reserva = inventario.reservar(entrada.getKey(), entrada.getValue());
+            InventarioPort.Reserva reserva = reservas.get(entrada.getKey());
             items.add(new PedidoItem(entrada.getKey(), reserva.nombre(), entrada.getValue(), reserva.precioUnitario()));
         }
 

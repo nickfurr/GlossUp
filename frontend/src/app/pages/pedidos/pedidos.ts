@@ -109,6 +109,12 @@ const METODOS: Record<string, string> = { CARD: 'Tarjeta', PSE: 'PSE', NEQUI: 'N
                     @if (errorRecompra()) { <p class="error" role="alert">{{ errorRecompra() }}</p> }
                   } @else if (p.estado === 'CREADO') {
                     <app-pago-pendiente [pedido]="p" (cancelado)="reemplazar($event)" />
+                  } @else if (p.reembolsoPendiente) {
+                    <p class="nota-cancelado">Tu pago ({{ p.transaccionId }}) llegó cuando el pedido ya se había cancelado por
+                      tiempo. Te devolveremos el dinero al mismo medio de pago; no tienes que hacer nada.</p>
+                  } @else if (p.reembolsadoEn) {
+                    <p class="nota-cancelado">Te devolvimos el pago ({{ p.transaccionId }}) el {{ fecha(p.reembolsadoEn) }}.
+                      Según tu banco, puede tardar unos días en verse en tu cuenta.</p>
                   } @else {
                     <p class="nota-cancelado">Este pedido se canceló sin pago; su inventario volvió al catálogo.</p>
                   }
@@ -209,6 +215,8 @@ export class Pedidos {
   }
 
   estado(p: Pedido) {
+    if (p.reembolsoPendiente) return { texto: 'Cancelado · reembolso en trámite', clase: 'e-pendiente' };
+    if (p.estado === 'CANCELADO' && p.reembolsadoEn) return { texto: 'Cancelado · reembolsado', clase: 'e-cancelado' };
     const etapa = p.estado === 'CANCELADO' ? undefined : ETAPAS[p.envio?.estado ?? ''];
     return etapa ?? ESTADOS[p.estado] ?? { texto: p.estado, clase: '' };
   }

@@ -29,5 +29,11 @@ public interface PagarPedidoUseCase {
 
     List<Pedido> misPedidos(Long usuarioId);
 
+    /** Administrador: ya devolvió desde la pasarela el pago que llegó a un pedido cancelado (auditoría OBS-T13). */
+    Pedido marcarReembolsado(Long pedidoId);
+
+    /** Avisa al cliente que su pago llegó tarde y se le devolverá. */
+    void avisarReembolso(Long pedidoId);
+
     record ResultadoPago(Pedido pedido, TransaccionPago.Estado estadoTransaccion) {}
 }
