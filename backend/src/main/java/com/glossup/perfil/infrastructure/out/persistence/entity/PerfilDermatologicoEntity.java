@@ -30,6 +30,9 @@ public class PerfilDermatologicoEntity {
     @Column(name = "actualizado_en", nullable = false)
     private OffsetDateTime actualizadoEn;
 
+    @Column(name = "autorizacion_sensibles_en")
+    private OffsetDateTime autorizacionSensiblesEn;
+
     @OneToMany(mappedBy = "perfil", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<PerfilAfeccionEntity> afecciones = new ArrayList<>();
 
@@ -55,6 +58,8 @@ public class PerfilDermatologicoEntity {
 
     public OffsetDateTime getActualizadoEn() { return actualizadoEn; }
     public void setActualizadoEn(OffsetDateTime actualizadoEn) { this.actualizadoEn = actualizadoEn; }
+    public OffsetDateTime getAutorizacionSensiblesEn() { return autorizacionSensiblesEn; }
+    public void setAutorizacionSensiblesEn(OffsetDateTime autorizacionSensiblesEn) { this.autorizacionSensiblesEn = autorizacionSensiblesEn; }
 
     public List<PerfilAfeccionEntity> getAfecciones() { return afecciones; }
     public void setAfecciones(List<PerfilAfeccionEntity> afecciones) { this.afecciones = afecciones; }

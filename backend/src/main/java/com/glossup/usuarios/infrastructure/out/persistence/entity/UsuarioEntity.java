@@ -30,6 +30,12 @@ public class UsuarioEntity {
     @Column(name = "sesiones_desde")
     private OffsetDateTime sesionesDesde;
 
+    @Column(name = "politica_aceptada_en")
+    private OffsetDateTime politicaAceptadaEn;
+
+    @Column(name = "politica_version", length = 20)
+    private String politicaVersion;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "usuario_rol",
             joinColumns = @JoinColumn(name = "usuario_id"),
@@ -64,6 +70,10 @@ public class UsuarioEntity {
     public void setMotivoSuspension(String motivoSuspension) { this.motivoSuspension = motivoSuspension; }
     public OffsetDateTime getSesionesDesde() { return sesionesDesde; }
     public void setSesionesDesde(OffsetDateTime sesionesDesde) { this.sesionesDesde = sesionesDesde; }
+    public OffsetDateTime getPoliticaAceptadaEn() { return politicaAceptadaEn; }
+    public void setPoliticaAceptadaEn(OffsetDateTime politicaAceptadaEn) { this.politicaAceptadaEn = politicaAceptadaEn; }
+    public String getPoliticaVersion() { return politicaVersion; }
+    public void setPoliticaVersion(String politicaVersion) { this.politicaVersion = politicaVersion; }
 
     public void setEmail(String email) { this.email = email; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }

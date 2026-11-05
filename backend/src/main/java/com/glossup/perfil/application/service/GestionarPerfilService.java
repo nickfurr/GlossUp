@@ -12,6 +12,8 @@ import com.glossup.shared.domain.ReglaNegocioException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+
 /**
  * Servicio de aplicación que implementa {@link GestionarPerfilUseCase}.
  * Orquesta la obtención/creación perezosa del perfil dermatológico y la gestión
@@ -38,6 +40,7 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
     @Override
     public PerfilDermatologico actualizarBiotipo(Long usuarioId, Double ph, String tipoPiel, String tipoCabello) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
+        exigirAutorizacion(perfil);
         perfil.actualizarBiotipo(ph == null ? null : new Ph(ph),
                 opcional(TipoPiel.class, tipoPiel, "tipo de piel"),
                 opcional(TipoCabello.class, tipoCabello, "tipo de cabello"));
@@ -47,6 +50,7 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
     @Override
     public PerfilDermatologico agregarAlergia(Long usuarioId, String alergia) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
+        exigirAutorizacion(perfil);
         perfil.agregarAlergia(codigo(Alergeno.class, alergia, "alergia"));
         return perfilRepository.guardar(perfil);
     }
@@ -61,6 +65,7 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
     @Override
     public PerfilDermatologico agregarAfeccion(Long usuarioId, String afeccion) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
+        exigirAutorizacion(perfil);
         perfil.agregarAfeccion(codigo(Afeccion.class, afeccion, "afección"));
         return perfilRepository.guardar(perfil);
     }
@@ -70,6 +75,25 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
         perfil.quitarAfeccion(codigo(Afeccion.class, afeccion, "afección"));
         return perfilRepository.guardar(perfil);
+    }
+
+    @Override
+    public PerfilDermatologico autorizarDatosSensibles(Long usuarioId) {
+        PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
+        perfil.autorizarDatosSensibles(OffsetDateTime.now());
+        return perfilRepository.guardar(perfil);
+    }
+
+    @Override
+    public void eliminarPerfil(Long usuarioId) {
+        perfilRepository.eliminarPorUsuarioId(usuarioId);
+    }
+
+    /** Quitar datos siempre se permite; agregarlos exige la autorización explícita del titular. */
+    private static void exigirAutorizacion(PerfilDermatologico perfil) {
+        if (!perfil.tieneAutorizacionSensibles()) {
+            throw new ReglaNegocioException("Primero autoriza el uso de tus datos de salud (Ley 1581 de 2012)");
+        }
     }
 
     private PerfilDermatologico obtenerOCrearDominio(Long usuarioId) {

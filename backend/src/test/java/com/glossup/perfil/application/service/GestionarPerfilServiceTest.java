@@ -28,6 +28,8 @@ class GestionarPerfilServiceTest {
     @Mock
     private PerfilRepositoryPort perfilRepository;
 
+    private static final OffsetDateTime AUTORIZADO = OffsetDateTime.parse("2026-11-05T10:00:00-05:00");
+
     private GestionarPerfilService service;
 
     @BeforeEach
@@ -71,7 +73,7 @@ class GestionarPerfilServiceTest {
 
     @Test
     void agregarAlergia_aceptaCodigoDelCatalogoSinImportarMayusculasYPersiste() {
-        PerfilDermatologico existente = PerfilDermatologico.crear(1L, new Ph(5.2), TipoPiel.GRASA, null);
+        PerfilDermatologico existente = PerfilDermatologico.crear(1L, new Ph(5.2), TipoPiel.GRASA, null).conAutorizacionSensibles(AUTORIZADO);
         when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(existente));
         when(perfilRepository.guardar(any(PerfilDermatologico.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -102,7 +104,7 @@ class GestionarPerfilServiceTest {
 
     @Test
     void agregarYQuitarAfeccion_actualizaCondicionesYPersiste() {
-        PerfilDermatologico existente = PerfilDermatologico.crear(1L, null, TipoPiel.SENSIBLE, null);
+        PerfilDermatologico existente = PerfilDermatologico.crear(1L, null, TipoPiel.SENSIBLE, null).conAutorizacionSensibles(AUTORIZADO);
         when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(existente));
         when(perfilRepository.guardar(any(PerfilDermatologico.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -116,7 +118,7 @@ class GestionarPerfilServiceTest {
 
     @Test
     void agregarAlergiaVacia_lanzaReglaNegocioExceptionSinGuardar() {
-        PerfilDermatologico existente = PerfilDermatologico.crear(1L, null, null, null);
+        PerfilDermatologico existente = PerfilDermatologico.crear(1L, null, null, null).conAutorizacionSensibles(AUTORIZADO);
         when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(existente));
 
         assertThrows(ReglaNegocioException.class, () -> service.agregarAlergia(1L, "   "));
@@ -125,7 +127,7 @@ class GestionarPerfilServiceTest {
 
     @Test
     void textoLibreFueraDelCatalogo_lanzaReglaNegocioExceptionSinGuardar() {
-        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(PerfilDermatologico.crear(1L, null, null, null)));
+        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(PerfilDermatologico.crear(1L, null, null, null).conAutorizacionSensibles(AUTORIZADO)));
 
         assertThrows(ReglaNegocioException.class, () -> service.agregarAlergia(1L, "polen de mi jardín"));
         assertThrows(ReglaNegocioException.class, () -> service.agregarAfeccion(1L, "me pica"));
@@ -135,12 +137,47 @@ class GestionarPerfilServiceTest {
 
     @Test
     void actualizarBiotipo_conCodigosValidos_guardaEnums() {
-        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(PerfilDermatologico.crear(1L, null, null, null)));
+        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(PerfilDermatologico.crear(1L, null, null, null).conAutorizacionSensibles(AUTORIZADO)));
         when(perfilRepository.guardar(any(PerfilDermatologico.class))).thenAnswer(inv -> inv.getArgument(0));
 
         PerfilDermatologico resultado = service.actualizarBiotipo(1L, 5.0, "sensible", "RIZADO_3B");
 
         assertEquals(TipoPiel.SENSIBLE, resultado.getTipoPiel());
         assertEquals(TipoCabello.RIZADO_3B, resultado.getTipoCabello());
+    }
+
+    @Test
+    void sinAutorizacionDeDatosSensibles_noGuardaAlergiasAfeccionesNiBiotipo() {
+        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(PerfilDermatologico.crear(1L, null, null, null)));
+
+        assertThrows(ReglaNegocioException.class, () -> service.agregarAlergia(1L, "PARABENOS"));
+        assertThrows(ReglaNegocioException.class, () -> service.agregarAfeccion(1L, "ACNE"));
+        assertThrows(ReglaNegocioException.class, () -> service.actualizarBiotipo(1L, 5.0, "SECA", null));
+        verify(perfilRepository, never()).guardar(any());
+    }
+
+    @Test
+    void autorizarDatosSensibles_registraLaFechaUnaSolaVez() {
+        PerfilDermatologico existente = PerfilDermatologico.crear(1L, null, null, null).conAutorizacionSensibles(AUTORIZADO);
+        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.of(existente));
+        when(perfilRepository.guardar(any(PerfilDermatologico.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        PerfilDermatologico resultado = service.autorizarDatosSensibles(1L);
+
+        assertEquals(AUTORIZADO, resultado.getAutorizacionSensiblesEn());
+    }
+
+    @Test
+    void autorizarDatosSensibles_sinPerfil_loCreaAutorizado() {
+        when(perfilRepository.buscarPorUsuarioId(1L)).thenReturn(Optional.empty());
+        when(perfilRepository.guardar(any(PerfilDermatologico.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertTrue(service.autorizarDatosSensibles(1L).tieneAutorizacionSensibles());
+    }
+
+    @Test
+    void eliminarPerfil_borraElPerfilDelUsuario() {
+        service.eliminarPerfil(1L);
+        verify(perfilRepository).eliminarPorUsuarioId(1L);
     }
 }

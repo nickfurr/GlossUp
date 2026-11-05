@@ -31,6 +31,7 @@ export class Login {
   nombre = '';
   rol: RolUsuario = 'CLIENTE';
   acepta = false;
+  mayorDeEdad = false;
 
   error = signal<string | null>(null);
   info = signal<string | null>(null);
@@ -45,7 +46,11 @@ export class Login {
   enviar(): void {
     this.error.set(null);
     if (this.esRegistro() && !this.acepta) {
-      this.error.set('Debes aceptar los Términos y Condiciones y la Política de Privacidad.');
+      this.error.set('Debes autorizar el tratamiento de tus datos para crear la cuenta.');
+      return;
+    }
+    if (this.esRegistro() && !this.mayorDeEdad) {
+      this.error.set('Debes ser mayor de 18 años para crear una cuenta.');
       return;
     }
     if (this.esRegistro() && this.password !== this.password2) {
@@ -71,7 +76,7 @@ export class Login {
 
     if (this.esRegistro()) {
       this.auth
-        .registrar({ email: this.email, nombre: this.nombre, password: this.password, rol: this.rol })
+        .registrar({ email: this.email, nombre: this.nombre, password: this.password, rol: this.rol, aceptaPolitica: this.acepta, mayorDeEdad: this.mayorDeEdad })
         .subscribe({
           next: () => entrar(),
           error: (e) => {

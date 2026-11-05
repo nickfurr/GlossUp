@@ -49,6 +49,7 @@ public class PerfilPersistenceAdapter implements PerfilRepositoryPort {
         entity.setTipoPiel(dominio.getTipoPiel() != null ? dominio.getTipoPiel().name() : null);
         entity.setTipoCabello(dominio.getTipoCabello() != null ? dominio.getTipoCabello().name() : null);
         entity.setActualizadoEn(dominio.getActualizadoEn());
+        entity.setAutorizacionSensiblesEn(dominio.getAutorizacionSensiblesEn());
 
         // Sincronizar afecciones
         entity.getAfecciones().clear();
@@ -64,6 +65,11 @@ public class PerfilPersistenceAdapter implements PerfilRepositoryPort {
 
         PerfilDermatologicoEntity guardado = perfilJpaRepository.save(entity);
         return aDominio(guardado);
+    }
+
+    @Override
+    public void eliminarPorUsuarioId(Long usuarioId) {
+        perfilJpaRepository.findByUsuarioId(usuarioId).ifPresent(perfilJpaRepository::delete);
     }
 
     private PerfilDermatologico aDominio(PerfilDermatologicoEntity entity) {
@@ -89,6 +95,6 @@ public class PerfilPersistenceAdapter implements PerfilRepositoryPort {
                 afecciones,
                 alergias,
                 entity.getActualizadoEn()
-        );
+        ).conAutorizacionSensibles(entity.getAutorizacionSensiblesEn());
     }
 }

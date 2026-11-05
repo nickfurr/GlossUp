@@ -36,4 +36,12 @@ export class PerfilService {
   quitarAfeccion(afeccion: string): Observable<PerfilDermatologico> {
     return this.http.delete<PerfilDermatologico>(`${BASE}/afecciones`, { body: { afeccion } });
   }
+  /** Autorización explícita para tratar los datos de salud (Ley 1581 art. 6). */
+  autorizar(): Observable<PerfilDermatologico> {
+    return this.http.post<PerfilDermatologico>(`${BASE}/autorizacion`, {});
+  }
+  /** Revoca la autorización y borra el perfil completo. */
+  eliminar(): Observable<void> {
+    return this.http.delete<void>(BASE);
+  }
 }

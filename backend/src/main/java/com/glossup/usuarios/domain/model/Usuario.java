@@ -27,6 +27,8 @@ public class Usuario {
     private String email;
     private String motivoSuspension;
     private OffsetDateTime sesionesDesde;
+    private OffsetDateTime politicaAceptadaEn;
+    private String politicaVersion;
     private String nombre;
     private String passwordHash;
     private boolean activo;
@@ -103,6 +105,32 @@ public class Usuario {
         return this;
     }
 
+    /** Prueba de la autorización del titular: cuándo aceptó y qué versión de la política (Ley 1581 art. 9). */
+    public void aceptarPolitica(String version, OffsetDateTime cuando) {
+        this.politicaVersion = Objects.requireNonNull(version, "versión requerida");
+        this.politicaAceptadaEn = Objects.requireNonNull(cuando, "fecha requerida");
+    }
+
+    /** Reconstrucción desde persistencia. */
+    public Usuario conPolitica(OffsetDateTime aceptadaEn, String version) {
+        this.politicaAceptadaEn = aceptadaEn;
+        this.politicaVersion = version;
+        return this;
+    }
+
+    /**
+     * Supresión pedida por el titular (Ley 1581 art. 8 e): se borran sus datos de contacto y no puede volver a
+     * entrar. La fila se conserva anónima porque sus pedidos y comprobantes deben guardarse por ley.
+     */
+    public void suprimir(String hashInutilizable, OffsetDateTime cuando) {
+        this.email = "eliminado-" + Objects.requireNonNull(id, "usuario sin persistir") + "@glossup.invalid";
+        this.nombre = "Cuenta eliminada";
+        this.passwordHash = validarHash(hashInutilizable);
+        this.activo = false;
+        this.motivoSuspension = "Cuenta eliminada por su titular";
+        this.sesionesDesde = cuando;
+    }
+
     public void cambiarEmail(String nuevoEmail) {
         this.email = validarEmail(nuevoEmail);
     }
@@ -157,6 +185,8 @@ public class Usuario {
     public boolean isActivo() { return activo; }
     public String getMotivoSuspension() { return motivoSuspension; }
     public OffsetDateTime getSesionesDesde() { return sesionesDesde; }
+    public OffsetDateTime getPoliticaAceptadaEn() { return politicaAceptadaEn; }
+    public String getPoliticaVersion() { return politicaVersion; }
     public Set<Rol> getRoles() { return Set.copyOf(roles); }
     public OffsetDateTime getCreadoEn() { return creadoEn; }
 }

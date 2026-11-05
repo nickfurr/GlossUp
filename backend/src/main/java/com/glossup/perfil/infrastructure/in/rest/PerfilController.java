@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -37,6 +38,23 @@ public class PerfilController {
         Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.obtenerPerfil(usuarioId);
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
+    }
+
+    @PostMapping("/autorizacion")
+    @Operation(summary = "Autorizar el uso de mis datos de salud",
+               description = "Autorización explícita y facultativa (Ley 1581 art. 6). Sin ella no se pueden guardar "
+                       + "biotipo, alergias ni afecciones.")
+    public ResponseEntity<PerfilResponse> autorizarDatosSensibles(Authentication authentication) {
+        return ResponseEntity.ok(PerfilResponse.fromDomain(
+                gestionarPerfilUseCase.autorizarDatosSensibles(UsuarioAutenticado.id(authentication))));
+    }
+
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Revocar la autorización y borrar mi perfil",
+               description = "Borra el biotipo, las alergias y las afecciones (Ley 1581 art. 8 e).")
+    public void eliminarMiPerfil(Authentication authentication) {
+        gestionarPerfilUseCase.eliminarPerfil(UsuarioAutenticado.id(authentication));
     }
 
     @GetMapping("/opciones")

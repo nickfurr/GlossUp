@@ -4,5 +4,7 @@ public record RegistrarUsuarioCommand(
         String email,
         String nombre,
         String password,
-        String rol
+        String rol,
+        boolean aceptaPolitica,
+        boolean mayorDeEdad
 ) {}

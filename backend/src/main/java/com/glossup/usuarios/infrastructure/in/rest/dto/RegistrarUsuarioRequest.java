@@ -1,5 +1,6 @@
 package com.glossup.usuarios.infrastructure.in.rest.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,5 +16,11 @@ public record RegistrarUsuarioRequest(
         @Size(min = 8, max = 120, message = "La contraseña debe tener entre 8 y 120 caracteres")
         String password,
         @NotBlank(message = "El rol es obligatorio")
-        String rol
+        String rol,
+        // Ley 1581 art. 9: sin autorización previa y expresa no se recogen datos (auditoría NC-T11).
+        @AssertTrue(message = "Debes aceptar la Política de Tratamiento de Datos para crear la cuenta")
+        boolean aceptaPolitica,
+        // Ley 1581 art. 7: los datos de salud de menores exigen a su representante (auditoría OBS-T11).
+        @AssertTrue(message = "Debes ser mayor de 18 años para crear una cuenta")
+        boolean mayorDeEdad
 ) {}

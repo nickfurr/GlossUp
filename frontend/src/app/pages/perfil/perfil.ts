@@ -3,10 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { PerfilService } from '../../shared/perfil';
 import type { OpcionPerfil, OpcionesPerfil, PerfilDermatologico, TipoPiel } from '../../shared/models';
 import { mensajeDeError } from '../../shared/productos';
+import { AjustesCuenta } from '../vendedor/ajustes-cuenta';
 
 @Component({
   selector: 'app-perfil',
-  imports: [FormsModule],
+  imports: [FormsModule, AjustesCuenta],
   template: `
     <section class="profile-page">
       <a class="back-link" href="/cliente">← Volver a la tienda</a>
@@ -28,17 +29,30 @@ import { mensajeDeError } from '../../shared/productos';
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       @if (cargando() && !perfil()) { <div class="card loading" aria-live="polite">Cargando tu perfil...</div> }
       @if (perfil(); as p) {
-        <label class="card consent-card" [class.consent-disabled]="perfilLleno()">
-          <input
-            type="checkbox"
-            name="aceptaSensibles"
-            [(ngModel)]="aceptaSensibles"
-            [disabled]="perfilLleno()"
-          />
-          <span>
-            Usamos tus alergias y condiciones de piel únicamente para advertirte si un producto es incompatible contigo. Estos datos son sensibles según la Ley 1581 de 2012; su ingreso es voluntario y puedes modificarlos o eliminarlos en cualquier momento desde tu perfil.
-          </span>
-        </label>
+        <div class="card consent-card" [class.consent-disabled]="autorizado()">
+          <label>
+            <input
+              type="checkbox"
+              name="aceptaSensibles"
+              [checked]="autorizado()"
+              [disabled]="autorizado() || cargando()"
+              (change)="autorizar($event)"
+            />
+            <span>
+              Autorizo que GlossUP use mis alergias y condiciones de piel únicamente para advertirme si un producto es incompatible conmigo. Estos datos son sensibles según la Ley 1581 de 2012; su ingreso es voluntario y puedo modificarlos o eliminarlos en cualquier momento.
+              <a href="/privacidad" target="_blank" rel="noopener">Política de Tratamiento de Datos</a>
+            </span>
+          </label>
+          @if (autorizado() && confirmandoRevocar()) {
+            <span>Se borrarán tu pH, tipo de piel y cabello, alergias y afecciones. ¿Continuar?</span>
+            <span>
+              <button type="button" class="btn-sec" [disabled]="cargando()" (click)="confirmandoRevocar.set(false)">No</button>
+              <button type="button" class="btn-sec peligro" [disabled]="cargando()" (click)="revocar()">Sí, retirar y borrar</button>
+            </span>
+          } @else if (autorizado()) {
+            <button type="button" class="btn-sec peligro" (click)="confirmandoRevocar.set(true)">Retirar mi autorización y borrar mis datos de salud</button>
+          }
+        </div>
         <div class="profile-layout">
           <div class="card profile-form">
             <div class="section-title"><div><span class="section-kicker">01 · Biotipo</span><h2>Cuéntanos sobre ti</h2></div><span class="section-mark">✦</span></div>
@@ -59,7 +73,7 @@ import { mensajeDeError } from '../../shared/productos';
               }
             </select>
             @if (errorBiotipo()) { <p class="field-error" role="alert">{{ errorBiotipo() }}</p> }
-            <button class="btn-primario profile-save" type="button" [disabled]="cargando() || !aceptaSensibles" (click)="guardarBiotipo()">
+            <button class="btn-primario profile-save" type="button" [disabled]="cargando() || !autorizado()" (click)="guardarBiotipo()">
               {{ cargando() ? 'Guardando...' : 'Guardar cambios' }}
             </button>
           </div>
@@ -84,7 +98,7 @@ import { mensajeDeError } from '../../shared/productos';
                 <option [ngValue]="null">Elige un alérgeno</option>
                 @for (o of disponibles('alergias'); track o.codigo) { <option [ngValue]="o.codigo">{{ o.etiqueta }}</option> }
               </select>
-              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAlergia || !aceptaSensibles" (click)="agregarAlergia()">Añadir</button>
+              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAlergia || !autorizado()" (click)="agregarAlergia()">Añadir</button>
             </div>
             <p id="detalle-alergia" class="field-hint">{{ detalleAlergia() }}</p>
           </div>
@@ -101,11 +115,12 @@ import { mensajeDeError } from '../../shared/productos';
                   </optgroup>
                 }
               </select>
-              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAfeccion || !aceptaSensibles" (click)="agregarAfeccion()">Añadir</button>
+              <button class="btn-sec" type="button" [disabled]="cargando() || !nuevaAfeccion || !autorizado()" (click)="agregarAfeccion()">Añadir</button>
             </div>
           </div>
         </div>
       }
+      <app-ajustes-cuenta />
     </section>
   `,
 })
@@ -117,12 +132,12 @@ export class Perfil {
   error = signal<string | null>(null);
   mensaje = signal<string | null>(null);
   errorBiotipo = signal<string | null>(null);
+  readonly confirmandoRevocar = signal(false);
   ph: number | null = null;
   tipoPiel: TipoPiel | null = null;
   tipoCabello: string | null = null;
   nuevaAlergia: string | null = null;
   nuevaAfeccion: string | null = null;
-  aceptaSensibles = false;
   readonly zonas = [
     { codigo: 'PIEL', etiqueta: 'Piel' },
     { codigo: 'CABELLO', etiqueta: 'Cabello y cuero cabelludo' },
@@ -134,16 +149,30 @@ export class Perfil {
     this.cargar();
   }
 
-  perfilLleno(): boolean {
-    const p = this.perfil();
-    if (!p) return false;
-    return (
-      p.ph !== null ||
-      p.tipoPiel !== null ||
-      p.tipoCabello !== null ||
-      (p.alergias && p.alergias.length > 0) ||
-      (p.afecciones && p.afecciones.length > 0)
-    );
+  /** La autorización vive en el servidor: sin ella el API no guarda datos de salud. */
+  autorizado(): boolean {
+    return !!this.perfil()?.autorizacionSensiblesEn;
+  }
+
+  autorizar(evento: Event): void {
+    const casilla = evento.target as HTMLInputElement;
+    if (!casilla.checked) return;
+    this.error.set(null);
+    this.cargando.set(true);
+    this.service.autorizar().subscribe({
+      next: (p) => { this.perfil.set(p); this.cargando.set(false); },
+      error: (e) => { casilla.checked = false; this.error.set(mensajeDeError(e)); this.cargando.set(false); },
+    });
+  }
+
+  revocar(): void {
+    this.error.set(null);
+    this.mensaje.set(null);
+    this.cargando.set(true);
+    this.service.eliminar().subscribe({
+      next: () => { this.confirmandoRevocar.set(false); this.mensaje.set('Retiramos tu autorización y borramos tus datos de salud.'); this.cargar(); },
+      error: (e) => { this.error.set(mensajeDeError(e)); this.cargando.set(false); },
+    });
   }
 
   completitud(): number {
@@ -165,9 +194,6 @@ export class Perfil {
         this.ph = p.ph;
         this.tipoPiel = p.tipoPiel;
         this.tipoCabello = p.tipoCabello;
-        if (this.perfilLleno()) {
-          this.aceptaSensibles = true;
-        }
         this.cargando.set(false);
       },
       error: (e) => { this.error.set(mensajeDeError(e)); this.cargando.set(false); },
@@ -213,9 +239,6 @@ export class Perfil {
         this.ph = p.ph;
         this.tipoPiel = p.tipoPiel;
         this.tipoCabello = p.tipoCabello;
-        if (this.perfilLleno()) {
-          this.aceptaSensibles = true;
-        }
         this.mensaje.set(success);
         this.cargando.set(false);
       },

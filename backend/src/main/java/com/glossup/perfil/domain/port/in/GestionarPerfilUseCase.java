@@ -34,4 +34,10 @@ public interface GestionarPerfilUseCase {
      * Quita una afección (código de {@code Afeccion}) del perfil (HU2).
      */
     PerfilDermatologico quitarAfeccion(Long usuarioId, String afeccion);
+
+    /** Registra la autorización explícita para tratar los datos de salud; sin ella no se guardan (Ley 1581 art. 6). */
+    PerfilDermatologico autorizarDatosSensibles(Long usuarioId);
+
+    /** Revoca la autorización: borra el perfil con sus alergias y afecciones (Ley 1581 art. 8 e). */
+    void eliminarPerfil(Long usuarioId);
 }

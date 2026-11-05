@@ -28,7 +28,7 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
     <section class="cliente-home">
       <form class="home-search" (ngSubmit)="buscar()">
         <span aria-hidden="true">⌕</span>
-        <input type="search" name="q" [(ngModel)]="q" placeholder="Busca productos, marcas o categorías" aria-label="Buscar productos" />
+        <input type="search" name="q" [(ngModel)]="q" placeholder="Busca productos, marcas, categorías o ingredientes" aria-label="Buscar productos" />
         <button type="submit" [disabled]="cargando()">Buscar</button>
       </form>
 

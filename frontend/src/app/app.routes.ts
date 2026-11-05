@@ -15,10 +15,13 @@ import { Pedidos } from './pages/pedidos/pedidos';
 import { Checkout } from './pages/checkout/checkout';
 import { Direcciones } from './pages/direcciones/direcciones';
 import { Restablecer } from './pages/restablecer/restablecer';
+import { Privacidad } from './pages/privacidad/privacidad';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'restablecer', component: Restablecer },
+  // Pública: el registro enlaza aquí la política que el usuario acepta (Ley 1581).
+  { path: 'privacidad', component: Privacidad },
   { path: '', component: Inicio },
 
   // Panel por rol: cada guard deja pasar solo a su tipo de usuario.

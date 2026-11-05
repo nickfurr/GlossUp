@@ -1,9 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 import { mensajeDeError } from '../../shared/productos';
 
-/** Ajustes de la cuenta del vendedor: nombre visible y contraseña. */
+/** Ajustes de la cuenta propia: nombre visible, contraseña y eliminación de la cuenta. */
 @Component({
   selector: 'app-ajustes-cuenta',
   imports: [FormsModule],
@@ -42,6 +43,29 @@ import { mensajeDeError } from '../../shared/productos';
           <button type="submit" class="btn-primario" [disabled]="ocupado()">Cambiar contraseña</button>
         </div>
       </form>
+
+      <!-- Un administrador no puede eliminar su cuenta: el sistema podría quedarse sin ninguno. -->
+      @if (!esAdmin()) {
+        <form class="panel" (ngSubmit)="confirmandoEliminar() ? eliminarCuenta() : pedirConfirmacion()" novalidate>
+          <h3>Eliminar mi cuenta</h3>
+          <p class="nota">Borramos tu perfil dermatológico y tus direcciones, y tu cuenta queda anónima; si vendes, tus
+            productos dejan de publicarse. Tus pedidos se conservan porque la ley exige guardar los comprobantes.
+            No se puede deshacer.</p>
+          <label class="campo">Contraseña actual
+            <input name="claveEliminar" type="password" [(ngModel)]="claveEliminar" autocomplete="current-password" />
+          </label>
+          @if (errorEliminar()) { <p class="error" role="alert">{{ errorEliminar() }}</p> }
+          <div class="editor-acciones">
+            @if (confirmandoEliminar()) {
+              <span class="confirma">¿Eliminar tu cuenta definitivamente?</span>
+              <button type="button" class="btn-sec" [disabled]="ocupado()" (click)="confirmandoEliminar.set(false)">No</button>
+              <button type="submit" class="btn-peligro" [disabled]="ocupado()">Sí, eliminar mi cuenta</button>
+            } @else {
+              <button type="button" class="btn-peligro" (click)="pedirConfirmacion()">Eliminar mi cuenta</button>
+            }
+          </div>
+        </form>
+      }
     </div>
   `,
 })
@@ -53,10 +77,15 @@ export class AjustesCuenta {
   readonly avisoNombre = signal<string | null>(null);
   readonly errorClave = signal<string | null>(null);
   readonly avisoClave = signal<string | null>(null);
+  readonly errorEliminar = signal<string | null>(null);
+  readonly confirmandoEliminar = signal(false);
+  readonly esAdmin = computed(() => !!this.sesion()?.roles.includes('ADMIN'));
+  private router = inject(Router);
   nombre = this.auth.sesion()?.nombre ?? '';
   actual = '';
   nueva = '';
   repetida = '';
+  claveEliminar = '';
 
   guardarNombre(): void {
     this.errorNombre.set(null);
@@ -98,6 +127,25 @@ export class AjustesCuenta {
       },
       error: (e) => {
         this.errorClave.set(mensajeDeError(e));
+        this.ocupado.set(false);
+      },
+    });
+  }
+
+  pedirConfirmacion(): void {
+    this.errorEliminar.set(this.claveEliminar ? null : 'Escribe tu contraseña para confirmar.');
+    this.confirmandoEliminar.set(!!this.claveEliminar);
+  }
+
+  /** Supresión de la cuenta por su titular (Ley 1581 art. 8 e). Solo llega aquí tras confirmar. */
+  eliminarCuenta(): void {
+    if (!this.confirmandoEliminar()) return;
+    this.errorEliminar.set(null);
+    this.ocupado.set(true);
+    this.auth.eliminarCuenta(this.claveEliminar).subscribe({
+      next: () => this.router.navigateByUrl('/login', { replaceUrl: true }),
+      error: (e) => {
+        this.errorEliminar.set(mensajeDeError(e));
         this.ocupado.set(false);
       },
     });
