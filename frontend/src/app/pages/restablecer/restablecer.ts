@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 import { mensajeDeError } from '../../shared/productos';
+import { EsperaReintento } from '../../shared/espera-reintento';
 
 /** Crea una contraseña nueva con el enlace de un solo uso, pedido por correo o entregado por el administrador. */
 @Component({
@@ -27,7 +28,10 @@ import { mensajeDeError } from '../../shared/productos';
             <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="120" />
           </label>
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-          <button type="submit" class="btn-primario" [disabled]="ocupado()">{{ ocupado() ? 'Guardando…' : 'Guardar contraseña' }}</button>
+          @if (espera.mensaje(); as m) { <p class="error" role="alert" aria-live="polite">{{ m }}</p> }
+          <button type="submit" class="btn-primario" [disabled]="ocupado() || espera.bloqueado()">
+            {{ ocupado() ? 'Guardando…' : espera.bloqueado() ? 'Espera…' : 'Guardar contraseña' }}
+          </button>
         </form>
       }
     </section>
@@ -44,10 +48,12 @@ export class Restablecer {
   readonly listo = signal(false);
   readonly ocupado = signal(false);
   readonly error = signal<string | null>(null);
+  readonly espera = new EsperaReintento();
   nueva = '';
   repetida = '';
 
   guardar(): void {
+    if (this.espera.bloqueado()) return;
     this.error.set(null);
     if (this.nueva.length < 8) {
       this.error.set('La contraseña debe tener al menos 8 caracteres.');
@@ -61,8 +67,11 @@ export class Restablecer {
     this.auth.restablecerClave(this.token, this.nueva).subscribe({
       next: () => this.listo.set(true),
       error: (e) => {
-        this.error.set(mensajeDeError(e));
         this.ocupado.set(false);
+        if (this.espera.manejar(e)) {
+          return;
+        }
+        this.error.set(mensajeDeError(e));
       },
     });
   }

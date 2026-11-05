@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, rutaDePanel } from '../../shared/auth';
 import type { RolUsuario } from '../../shared/models';
+import { EsperaReintento } from '../../shared/espera-reintento';
 
 /**
  * Inicio de sesión y registro (mockups 3-4): tarjeta a dos columnas (panel de marca + formulario),
@@ -21,6 +22,12 @@ export class Login {
 
   /** Motivo que escribió el administrador; se muestra en una ventana grande al intentar entrar. */
   readonly motivoSuspension = signal<string | null>(null);
+
+  readonly esperaLogin = new EsperaReintento();
+  readonly esperaRegistro = new EsperaReintento();
+  readonly esperaRecuperar = new EsperaReintento();
+
+  readonly esperaActual = computed(() => (this.esRegistro() ? this.esperaRegistro : this.esperaLogin));
 
   modo = signal<'login' | 'registro'>('login');
   readonly esRegistro = computed(() => this.modo() === 'registro');
@@ -43,6 +50,9 @@ export class Login {
   }
 
   enviar(): void {
+    if (this.esperaActual().bloqueado()) {
+      return;
+    }
     this.error.set(null);
     if (this.esRegistro() && !this.acepta) {
       this.error.set('Debes aceptar los Términos y Condiciones y la Política de Privacidad.');
@@ -73,6 +83,9 @@ export class Login {
         next: (s) => this.router.navigateByUrl(rutaDePanel(s.panel), { replaceUrl: true }),
         error: (e) => {
           this.cargando.set(false);
+          if (this.esperaLogin.manejar(e)) {
+            return;
+          }
           if (e?.status === 403) {
             this.motivoSuspension.set(e.error?.detalles?.[0] ?? 'No se indicó un motivo.');
             this.password = '';
@@ -89,8 +102,11 @@ export class Login {
         .subscribe({
           next: () => entrar(),
           error: (e) => {
-            this.error.set(this.msg(e, 'registro'));
             this.cargando.set(false);
+            if (this.esperaRegistro.manejar(e)) {
+              return;
+            }
+            this.error.set(this.msg(e, 'registro'));
           },
         });
     } else {
@@ -100,6 +116,9 @@ export class Login {
 
   /** Usa el correo ya escrito en el formulario. El mensaje es igual exista o no la cuenta. */
   avisoOlvido(): void {
+    if (this.esperaRecuperar.bloqueado()) {
+      return;
+    }
     this.error.set(null);
     this.info.set(null);
     const correo = this.email.trim();
@@ -109,7 +128,12 @@ export class Login {
     }
     this.auth.recuperarClave(correo).subscribe({
       next: () => this.info.set('Si ese correo tiene cuenta, te enviamos un enlace para crear una contraseña nueva. Si no te llega en unos minutos, pídele el enlace al administrador.'),
-      error: () => this.error.set('Revisa que el correo esté bien escrito e inténtalo de nuevo.'),
+      error: (e) => {
+        if (this.esperaRecuperar.manejar(e)) {
+          return;
+        }
+        this.error.set('Revisa que el correo esté bien escrito e inténtalo de nuevo.');
+      },
     });
   }
   avisoGoogle(): void {
@@ -119,6 +143,7 @@ export class Login {
   private msg(err: { status?: number; error?: { message?: string } }, modo: 'login' | 'registro'): string {
     const status = err?.status;
     const m = err?.error?.message;
+    if (status === 429) return '';
     if (status === 401) return 'Correo o contraseña incorrectos.';
     if (status === 0 || status === 502 || status === 503 || status === 504) return 'No pudimos conectar con el servidor. Inténtalo de nuevo en un momento.';
     if (status === 422) return m ?? 'Ese correo ya está registrado.';
