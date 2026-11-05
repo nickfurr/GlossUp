@@ -66,8 +66,10 @@ management:
       enabled: false
 
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
-    path: /swagger-ui.html
+    enabled: false
 
 glossup:
   security:
