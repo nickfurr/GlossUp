@@ -34,6 +34,7 @@ public class Pedido {
     private String transaccionId;
     private String metodoPago;
     private OffsetDateTime pagadoEn;
+    private OffsetDateTime reembolsadoEn;
 
     public Pedido(Long id, Long usuarioId, EstadoPedido estado, List<PedidoItem> items,
                   OffsetDateTime creadoEn) {
@@ -80,6 +81,36 @@ public class Pedido {
         this.transaccionId = transaccionId;
         this.metodoPago = metodoPago;
         this.pagadoEn = pagadoEn;
+        return this;
+    }
+
+    /**
+     * Pago aprobado que llegó cuando el pedido ya estaba cancelado (venció sin pagar): se guarda la transacción
+     * para devolver el dinero y el pedido queda con reembolso pendiente (auditoría OBS-T13).
+     */
+    public void registrarPagoTardio(String transaccionId, String metodoPago, OffsetDateTime pagadoEn) {
+        if (estado != EstadoPedido.CANCELADO || this.transaccionId != null) {
+            throw new ReglaNegocioException("El pedido #" + id + " no puede recibir un pago tardío");
+        }
+        conPago(transaccionId, metodoPago, pagadoEn);
+    }
+
+    /** Cancelado pero con un pago aprobado que todavía no se le ha devuelto al cliente. */
+    public boolean reembolsoPendiente() {
+        return estado == EstadoPedido.CANCELADO && transaccionId != null && reembolsadoEn == null;
+    }
+
+    /** El administrador ya devolvió el dinero desde el panel de la pasarela. */
+    public void marcarReembolsado(OffsetDateTime ahora) {
+        if (!reembolsoPendiente()) {
+            throw new ReglaNegocioException("El pedido #" + id + " no tiene un reembolso pendiente");
+        }
+        this.reembolsadoEn = ahora;
+    }
+
+    /** Reconstrucción desde persistencia. */
+    public Pedido conReembolso(OffsetDateTime reembolsadoEn) {
+        this.reembolsadoEn = reembolsadoEn;
         return this;
     }
 
@@ -142,4 +173,5 @@ public class Pedido {
     public String getTransaccionId() { return transaccionId; }
     public String getMetodoPago() { return metodoPago; }
     public OffsetDateTime getPagadoEn() { return pagadoEn; }
+    public OffsetDateTime getReembolsadoEn() { return reembolsadoEn; }
 }

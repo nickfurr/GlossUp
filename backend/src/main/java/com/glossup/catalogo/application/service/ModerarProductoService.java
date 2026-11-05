@@ -4,8 +4,12 @@ import com.glossup.catalogo.domain.model.Producto;
 import com.glossup.catalogo.domain.port.in.ModerarProductoUseCase;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.shared.security.EventosSeguridad;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Comparator;
+import java.util.List;
 
 @Service
 @Transactional
@@ -21,6 +25,7 @@ public class ModerarProductoService implements ModerarProductoUseCase {
     public Producto banear(Long productoId, String motivo) {
         Producto producto = buscar(productoId);
         producto.banear(motivo);
+        EventosSeguridad.registrar("ADMIN_BLOQUEA_PRODUCTO", "producto", productoId);
         return productos.guardar(producto);
     }
 
@@ -28,6 +33,7 @@ public class ModerarProductoService implements ModerarProductoUseCase {
     public Producto desbanear(Long productoId) {
         Producto producto = buscar(productoId);
         producto.desbanear();
+        EventosSeguridad.registrar("ADMIN_DESBLOQUEA_PRODUCTO", "producto", productoId);
         return productos.guardar(producto);
     }
 
@@ -60,5 +66,11 @@ public class ModerarProductoService implements ModerarProductoUseCase {
     private Producto buscar(Long productoId) {
         return productos.buscarPorId(productoId)
                 .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Producto> listarTodos() {
+        return productos.listarTodos().stream().sorted(Comparator.comparing(Producto::getId)).toList();
     }
 }

@@ -4,13 +4,17 @@ import com.glossup.recomendacion.domain.model.EstadoPedido;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
 import com.glossup.recomendacion.domain.model.PedidoPagado;
+import com.glossup.recomendacion.domain.model.ReembolsoPendiente;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
 import com.glossup.recomendacion.domain.port.in.PagarPedidoUseCase;
+import com.glossup.recomendacion.domain.port.out.ClientePort;
 import com.glossup.recomendacion.domain.port.out.InventarioPort;
+import com.glossup.recomendacion.domain.port.out.NotificacionPort;
 import com.glossup.recomendacion.domain.port.out.PasarelaPagosPort;
 import com.glossup.recomendacion.domain.port.out.PedidoRepositoryPort;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.shared.security.EventosSeguridad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,21 +50,27 @@ public class PagarPedidoService implements PagarPedidoUseCase {
     private final PasarelaPagosPort pasarela;
     private final InventarioPort inventario;
     private final ApplicationEventPublisher eventos;
+    private final ClientePort clientes;
+    private final NotificacionPort notificacion;
     private final String urlPublica;
     private final Clock reloj;
 
     @Autowired
     public PagarPedidoService(PedidoRepositoryPort pedidos, PasarelaPagosPort pasarela, InventarioPort inventario,
-                              ApplicationEventPublisher eventos, @Value("${glossup.url-publica}") String urlPublica) {
-        this(pedidos, pasarela, inventario, eventos, urlPublica, Clock.systemUTC());
+                              ApplicationEventPublisher eventos, ClientePort clientes, NotificacionPort notificacion,
+                              @Value("${glossup.url-publica}") String urlPublica) {
+        this(pedidos, pasarela, inventario, eventos, clientes, notificacion, urlPublica, Clock.systemUTC());
     }
 
     PagarPedidoService(PedidoRepositoryPort pedidos, PasarelaPagosPort pasarela, InventarioPort inventario,
-                       ApplicationEventPublisher eventos, String urlPublica, Clock reloj) {
+                       ApplicationEventPublisher eventos, ClientePort clientes, NotificacionPort notificacion,
+                       String urlPublica, Clock reloj) {
         this.pedidos = pedidos;
         this.pasarela = pasarela;
         this.inventario = inventario;
         this.eventos = eventos;
+        this.clientes = clientes;
+        this.notificacion = notificacion;
         this.urlPublica = urlPublica.replaceAll("/+$", "");
         this.reloj = reloj;
     }
@@ -152,18 +163,56 @@ public class PagarPedidoService implements PagarPedidoUseCase {
                 eventos.publishEvent(new PedidoPagado(pagado.getId())); // comprobante (HU11), tras el commit
                 return pagado;
             }
-            case CANCELADO -> log.error("Pago aprobado {} para el pedido #{} ya cancelado: requiere reembolso manual",
-                    t.id(), pedido.getId());
+            case CANCELADO -> {
+                return registrarPagoTardio(pedido, t);
+            }
             default -> { } // ya pagado (evento repetido): nada que hacer
         }
         return pedido;
     }
 
+    /** El dinero entró pero el pedido ya no existe: queda en el panel del administrador para devolverlo. */
+    private Pedido registrarPagoTardio(Pedido pedido, TransaccionPago t) {
+        if (t.id().equals(pedido.getTransaccionId())) {
+            return pedido; // evento repetido: el reembolso ya está registrado
+        }
+        if (pedido.getTransaccionId() != null) {
+            // Rarísimo (dos pagos aprobados del mismo pedido vencido): el pedido solo guarda uno, este queda en el log.
+            log.error("REEMBOLSO: segundo pago aprobado {} para el pedido #{} cancelado (ya tenía {}); devolverlo desde Wompi",
+                    t.id(), pedido.getId(), pedido.getTransaccionId());
+            return pedido;
+        }
+        pedido.registrarPagoTardio(t.id(), t.metodo(), ahora());
+        Pedido guardado = pedidos.guardar(pedido);
+        log.error("REEMBOLSO: pago aprobado {} para el pedido #{} ya cancelado; queda pendiente en el panel de administración",
+                t.id(), pedido.getId());
+        eventos.publishEvent(new ReembolsoPendiente(guardado.getId())); // correo al cliente, tras el commit
+        return guardado;
+    }
+
+    @Override
+    @Transactional
+    public Pedido marcarReembolsado(Long pedidoId) {
+        Pedido pedido = pedidos.buscarPorId(pedidoId)
+                .orElseThrow(() -> new NotFoundException("Pedido no encontrado con ID: " + pedidoId));
+        pedido.marcarReembolsado(ahora());
+        EventosSeguridad.registrar("ADMIN_MARCA_REEMBOLSO", "pedido", pedidoId, "transaccion", pedido.getTransaccionId());
+        return pedidos.guardar(pedido);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void avisarReembolso(Long pedidoId) {
+        pedidos.buscarPorId(pedidoId).ifPresent(pedido -> clientes.buscar(pedido.getUsuarioId())
+                .ifPresent(cliente -> notificacion.avisarReembolso(cliente, pedido)));
+    }
+
     private Pedido cancelarYLiberar(Pedido pedido) {
         pedido.cancelar();
-        for (PedidoItem item : pedido.getItems()) {
-            inventario.liberar(item.productoId(), item.cantidad());
-        }
+        // Mismo orden de bloqueo que la reserva (por id de producto) para no chocar con un checkout en curso.
+        pedido.getItems().stream()
+                .sorted(Comparator.comparing(PedidoItem::productoId))
+                .forEach(item -> inventario.liberar(item.productoId(), item.cantidad()));
         return pedidos.guardar(pedido);
     }
 

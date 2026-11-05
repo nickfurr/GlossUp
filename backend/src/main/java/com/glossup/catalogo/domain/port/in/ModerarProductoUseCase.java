@@ -2,6 +2,8 @@ package com.glossup.catalogo.domain.port.in;
 
 import com.glossup.catalogo.domain.model.Producto;
 
+import java.util.List;
+
 /** Puerto de entrada: el administrador bloquea productos, por encima de lo que decida el vendedor. */
 public interface ModerarProductoUseCase {
 
@@ -16,4 +18,7 @@ public interface ModerarProductoUseCase {
     void reactivarVendedor(Long vendedorId);
 
     boolean tienePublicados(Long vendedorId);
+
+    /** Todos los productos, publicados o no, por id: lo que el administrador revisa. */
+    List<Producto> listarTodos();
 }

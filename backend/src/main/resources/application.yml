@@ -53,6 +53,9 @@ spring:
 server:
   # Azure Container Apps (y Cloud Run) inyectan el puerto por la variable PORT.
   port: ${PORT:8080}
+  # Detrás del proxy de Azure: la IP del cliente sale de X-Forwarded-For, solo si lo envía un proxy interno
+  # (Tomcat RemoteIpValve). La usan el registro de eventos de seguridad (auditoría R-04) y los enlaces https.
+  forward-headers-strategy: native
   tomcat:
     threads:
       # 0.25 vCPU y 10 conexiones: 200 hilos (por defecto) solo se apilan esperando el pool (auditoría OBS-RES-04).
@@ -87,6 +90,9 @@ glossup:
       # Sin valor por defecto: si falta GLOSSUP_JWT_SECRET la app no arranca (auditoría R-01).
       secret: ${GLOSSUP_JWT_SECRET}
       expiration-ms: 3600000
+    # La cookie de sesión solo viaja por HTTPS. Chrome y Firefox la aceptan también en http://localhost; para
+    # probar en otro host sin HTTPS (o con Safari en local) usa GLOSSUP_COOKIE_SEGURA=false.
+    cookie-segura: ${GLOSSUP_COOKIE_SEGURA:true}
   cors:
     allowed-origins: http://localhost:5173,http://localhost:4200,http://localhost:3000
   # Dirección pública del front: Wompi devuelve al cliente a {url-publica}/pago/resultado/{pedido}.

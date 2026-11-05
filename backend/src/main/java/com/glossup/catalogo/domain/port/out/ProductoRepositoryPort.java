@@ -15,6 +15,13 @@ public interface ProductoRepositoryPort {
 
     Optional<Producto> buscarPorId(Long id);
 
+    /**
+     * Suma {@code delta} (negativo para descontar) al stock de forma atómica frente a otras transacciones.
+     *
+     * @return false si el producto no existe o el stock quedaría negativo; en ese caso no cambia nada
+     */
+    boolean ajustarStock(Long id, int delta);
+
     /** Varios productos en un solo viaje a la BD; los ids que no existen se omiten. */
     List<Producto> buscarPorIds(Collection<Long> ids);
 

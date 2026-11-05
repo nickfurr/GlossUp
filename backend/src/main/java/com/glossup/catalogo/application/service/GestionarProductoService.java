@@ -11,6 +11,7 @@ import com.glossup.catalogo.domain.port.out.IngredienteRepositoryPort;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.shared.domain.Dinero;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.shared.security.EventosSeguridad;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,6 +82,7 @@ public class GestionarProductoService implements GestionarProductoUseCase {
 
         producto.despublicar();
         productoRepository.guardar(producto);
+        EventosSeguridad.registrar("PRODUCTO_DADO_DE_BAJA", "producto", productoId, "vendedor", vendedorId);
     }
 
     @Override
@@ -93,6 +95,7 @@ public class GestionarProductoService implements GestionarProductoUseCase {
         }
 
         producto.publicar();
+        EventosSeguridad.registrar("PRODUCTO_PUBLICADO", "producto", productoId, "vendedor", vendedorId);
         return productoRepository.guardar(producto);
     }
 

@@ -8,8 +8,8 @@ import com.glossup.shared.security.JwtAuthenticationFilter;
 import com.glossup.shared.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,7 +32,7 @@ class EventosEnvioControllerTest {
     }
 
     @Autowired private MockMvc mockMvc;
-    @MockBean private EnvioUseCase envios;
+    @MockitoBean private EnvioUseCase envios;
 
     private static final String EN_CAMINO = "{\"guia\":\"G-5\",\"estado\":\"EN_CAMINO\"}";
 

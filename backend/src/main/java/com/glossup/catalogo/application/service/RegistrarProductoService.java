@@ -8,6 +8,7 @@ import com.glossup.catalogo.domain.port.in.RegistrarProductoUseCase;
 import com.glossup.catalogo.domain.port.out.IngredienteRepositoryPort;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.shared.domain.Dinero;
+import com.glossup.shared.security.EventosSeguridad;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +62,8 @@ public class RegistrarProductoService implements RegistrarProductoUseCase {
         producto.describir(command.descripcion());
 
         // 4. Persistir a través del puerto de salida
-        return productoRepository.guardar(producto);
+        Producto creado = productoRepository.guardar(producto);
+        EventosSeguridad.registrar("PRODUCTO_CREADO", "producto", creado.getId(), "vendedor", command.vendedorId());
+        return creado;
     }
 }

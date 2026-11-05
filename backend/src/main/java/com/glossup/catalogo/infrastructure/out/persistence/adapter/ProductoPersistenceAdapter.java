@@ -46,6 +46,11 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     }
 
     @Override
+    public boolean ajustarStock(Long id, int delta) {
+        return productoJpaRepository.ajustarStock(id, delta) == 1;
+    }
+
+    @Override
     public List<Producto> buscarPorVendedor(Long vendedorId) {
         return productoJpaRepository.findByVendedorId(vendedorId).stream()
                 .map(this::aDominio)

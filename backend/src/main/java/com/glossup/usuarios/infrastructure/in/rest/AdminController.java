@@ -1,17 +1,10 @@
 package com.glossup.usuarios.infrastructure.in.rest;
 
-import com.glossup.catalogo.domain.model.Producto;
 import com.glossup.catalogo.domain.port.in.ModerarProductoUseCase;
-import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import com.glossup.catalogo.infrastructure.in.rest.dto.ProductoResponse;
-import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.AdministrarUsuariosUseCase;
 import com.glossup.usuarios.domain.port.in.RecuperarClaveUseCase;
-import com.glossup.usuarios.infrastructure.out.persistence.entity.RolEntity;
-import com.glossup.usuarios.infrastructure.out.persistence.entity.UsuarioEntity;
-import com.glossup.usuarios.infrastructure.out.persistence.repository.RolJpaRepository;
-import com.glossup.usuarios.infrastructure.out.persistence.repository.UsuarioJpaRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,15 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/** Adaptador de entrada del administrador: solo traduce HTTP a casos de uso (auditoría OBS-T02). */
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
@@ -39,25 +31,13 @@ import java.util.stream.Collectors;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminController {
 
-    private final UsuarioJpaRepository usuarioRepository;
-    private final RolJpaRepository rolRepository;
-    private final ProductoRepositoryPort productoRepository;
-    private final PasswordEncoder passwordEncoder;
     private final AdministrarUsuariosUseCase administrar;
     private final RecuperarClaveUseCase recuperar;
     private final ModerarProductoUseCase moderar;
 
-    public AdminController(UsuarioJpaRepository usuarioRepository,
-                           RolJpaRepository rolRepository,
-                           ProductoRepositoryPort productoRepository,
-                           PasswordEncoder passwordEncoder,
-                           AdministrarUsuariosUseCase administrar,
+    public AdminController(AdministrarUsuariosUseCase administrar,
                            RecuperarClaveUseCase recuperar,
                            ModerarProductoUseCase moderar) {
-        this.usuarioRepository = usuarioRepository;
-        this.rolRepository = rolRepository;
-        this.productoRepository = productoRepository;
-        this.passwordEncoder = passwordEncoder;
         this.administrar = administrar;
         this.recuperar = recuperar;
         this.moderar = moderar;
@@ -70,7 +50,8 @@ public class AdminController {
             boolean activo,
             Set<String> roles,
             OffsetDateTime creadoEn,
-            String motivoSuspension
+            String motivoSuspension,
+            boolean pendienteAprobacion
     ) {}
 
     public record DatosUsuarioRequest(
@@ -94,12 +75,8 @@ public class AdminController {
 
     @GetMapping("/usuarios")
     @Operation(summary = "Listar los usuarios registrados en el sistema")
-    public ResponseEntity<List<UsuarioAdminResponse>> listarUsuarios() {
-        List<UsuarioAdminResponse> lista = usuarioRepository.findAll().stream()
-                .sorted(Comparator.comparing(UsuarioEntity::getId))
-                .map(this::aResponse)
-                .toList();
-        return ResponseEntity.ok(lista);
+    public List<UsuarioAdminResponse> listarUsuarios() {
+        return administrar.listar().stream().map(this::aResponse).toList();
     }
 
     @PutMapping("/usuarios/{id}")
@@ -126,6 +103,18 @@ public class AdminController {
         return aResponse(administrar.reactivar(id));
     }
 
+    @PostMapping("/usuarios/{id}/cerrar-sesiones")
+    @Operation(summary = "Cerrar todas las sesiones abiertas de una cuenta", description = "Tendrá que volver a iniciar sesión en cada dispositivo.")
+    public UsuarioAdminResponse cerrarSesiones(@PathVariable Long id) {
+        return aResponse(administrar.cerrarSesiones(id));
+    }
+
+    @PostMapping("/usuarios/{id}/aprobar")
+    @Operation(summary = "Aprobar una cuenta de vendedor que se registró sola", description = "Hasta entonces no puede iniciar sesión.")
+    public UsuarioAdminResponse aprobarVendedor(@PathVariable Long id, Authentication auth) {
+        return aResponse(administrar.aprobarVendedor(adminId(auth), id));
+    }
+
     @PostMapping("/usuarios/{id}/recuperacion")
     @Operation(summary = "Generar un enlace para que el usuario cree una contraseña nueva",
                description = "Un solo uso, 24 horas. El administrador nunca ve ni fija la contraseña.")
@@ -148,47 +137,20 @@ public class AdminController {
     @PostMapping("/vendedores")
     @Operation(summary = "Registrar una nueva cuenta con rol VENDEDOR")
     public ResponseEntity<UsuarioAdminResponse> crearVendedor(@Valid @RequestBody CrearVendedorRequest request) {
-        String emailNorm = request.email().trim().toLowerCase();
-        if (usuarioRepository.findByEmailIgnoreCase(emailNorm).isPresent()) {
-            throw new ReglaNegocioException("El correo '" + emailNorm + "' ya está registrado");
-        }
-
-        RolEntity rolVendedor = rolRepository.findByNombreIgnoreCase("VENDEDOR")
-                .orElseGet(() -> rolRepository.save(new RolEntity(null, "VENDEDOR")));
-
-        UsuarioEntity nuevo = new UsuarioEntity(
-                null,
-                emailNorm,
-                passwordEncoder.encode(request.password()),
-                request.nombre().trim(),
-                true,
-                OffsetDateTime.now(),
-                Set.of(rolVendedor)
-        );
-        UsuarioEntity guardado = usuarioRepository.save(nuevo);
-        return ResponseEntity.status(HttpStatus.CREATED).body(aResponse(guardado));
+        Usuario nuevo = administrar.crearVendedor(request.nombre().trim(), request.email(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED).body(aResponse(nuevo));
     }
 
     @GetMapping("/productos")
     @Operation(summary = "Listar todos los productos registrados en el catálogo")
-    public ResponseEntity<List<ProductoResponse>> listarProductos() {
-        List<ProductoResponse> productos = productoRepository.listarTodos().stream()
-                .sorted(Comparator.comparing(Producto::getId))
-                .map(ProductoResponse::conModeracion)
-                .toList();
-        return ResponseEntity.ok(productos);
-    }
-
-    private UsuarioAdminResponse aResponse(UsuarioEntity u) {
-        Set<String> roles = u.getRoles().stream()
-                .map(RolEntity::getNombre)
-                .collect(Collectors.toSet());
-        return new UsuarioAdminResponse(u.getId(), u.getNombre(), u.getEmail(), u.isActivo(), roles, u.getCreadoEn(), u.getMotivoSuspension());
+    public List<ProductoResponse> listarProductos() {
+        return moderar.listarTodos().stream().map(ProductoResponse::conModeracion).toList();
     }
 
     private UsuarioAdminResponse aResponse(Usuario u) {
         Set<String> roles = u.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
-        return new UsuarioAdminResponse(u.getId(), u.getNombre(), u.getEmail(), u.isActivo(), roles, u.getCreadoEn(), u.getMotivoSuspension());
+        return new UsuarioAdminResponse(u.getId(), u.getNombre(), u.getEmail(), u.isActivo(), roles, u.getCreadoEn(),
+                u.getMotivoSuspension(), u.isPendienteAprobacion());
     }
 
     private static Long adminId(Authentication auth) {

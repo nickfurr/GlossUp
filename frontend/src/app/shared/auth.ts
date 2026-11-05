@@ -4,16 +4,18 @@ import { Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import type { Panel, RolUsuario, SesionUsuario } from './models';
 
+/** El token no llega aquí: el servidor lo guarda en una cookie HttpOnly que este código no puede leer (auditoría OBS-T09). */
 interface LoginResponse {
-  token: string;
   usuarioId: number;
   email: string;
   nombre: string;
   roles: RolUsuario[];
 }
 
-const TOKEN_KEY = 'glossup_token';
+/** Solo datos para pintar la sesión (nombre, rol). Ningún secreto vive en localStorage. */
 const USER_KEY = 'glossup_usuario';
+/** Donde las versiones anteriores guardaban el token; se borra si quedó. */
+const TOKEN_VIEJO = 'glossup_token';
 
 /** Panel destino según el rol de mayor privilegio (ADMIN > VENDEDOR > CLIENTE). */
 export function panelDeRoles(roles: RolUsuario[]): Panel {
@@ -35,9 +37,9 @@ export function rutaDePanel(panel: Panel): string {
 }
 
 /**
- * Sesión de usuario: login contra /api/auth/login (el panel se deriva de los roles), persistencia
- * en localStorage y token para el interceptor. El registro crea la cuenta y luego el componente
- * inicia sesión automáticamente con las mismas credenciales.
+ * Sesión de usuario: login contra /api/auth/login (el panel se deriva de los roles). El servidor abre la sesión en
+ * una cookie HttpOnly; aquí solo se recuerda quién es para la interfaz. El registro crea la cuenta y luego el
+ * componente inicia sesión con las mismas credenciales (salvo vendedores, que esperan aprobación).
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -46,11 +48,11 @@ export class AuthService {
 
   login(email: string, password: string): Observable<SesionUsuario> {
     return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
-      map((data) => this.guardarSesion(data.token, data.usuarioId, data.email, data.roles ?? [], data.nombre)),
+      map((data) => this.guardarSesion(data.usuarioId, data.email, data.roles ?? [], data.nombre)),
     );
   }
 
-  private guardarSesion(token: string, usuarioId: number, email: string, roles: RolUsuario[], nombre?: string): SesionUsuario {
+  private guardarSesion(usuarioId: number, email: string, roles: RolUsuario[], nombre?: string): SesionUsuario {
     const sesion: SesionUsuario = {
       usuarioId,
       nombre: nombre || email.split('@')[0] || email,
@@ -59,7 +61,7 @@ export class AuthService {
       panel: panelDeRoles(roles),
     };
     try {
-      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.removeItem(TOKEN_VIEJO);
       localStorage.setItem(USER_KEY, JSON.stringify(sesion));
     } catch {
       /* almacenamiento no disponible */
@@ -89,6 +91,7 @@ export class AuthService {
     );
   }
 
+  /** Cierra las sesiones de los otros dispositivos; el servidor renueva la cookie de este. */
   cambiarClave(actual: string, nueva: string): Observable<void> {
     return this.http.put<void>('/api/cuenta/clave', { actual, nueva });
   }
@@ -107,9 +110,21 @@ export class AuthService {
     return this.http.post<void>('/api/cuenta/eliminar', { clave }).pipe(tap(() => this.salir()));
   }
 
+  /** Cierra la sesión de este navegador: el servidor borra la cookie y aquí se olvida al usuario. */
   salir(): void {
+    this.http.post<void>('/api/auth/logout', {}).subscribe({ error: () => { /* sin conexión: la cookie vence sola */ } });
+    this.olvidar();
+  }
+
+  /** Cierra la sesión en todos los dispositivos de la cuenta, incluido este (auditoría OBS-T09). */
+  cerrarTodasLasSesiones(): Observable<void> {
+    return this.http.post<void>('/api/cuenta/cerrar-sesiones', {}).pipe(tap(() => this.olvidar()));
+  }
+
+  /** Solo el estado local: para cuando el servidor ya dijo que la sesión no vale (401). */
+  olvidar(): void {
     try {
-      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_VIEJO);
       localStorage.removeItem(USER_KEY);
     } catch {
       /* ignore */
@@ -119,8 +134,12 @@ export class AuthService {
 
   private cargar(): SesionUsuario | null {
     try {
-      // Sin token no hay sesión: el usuario guardado solo no sirve para llamar a la API.
-      if (!localStorage.getItem(TOKEN_KEY)) return null;
+      // Sesión de una versión anterior (token en localStorage): hay que volver a entrar para tener la cookie.
+      if (localStorage.getItem(TOKEN_VIEJO)) {
+        localStorage.removeItem(TOKEN_VIEJO);
+        localStorage.removeItem(USER_KEY);
+        return null;
+      }
       const raw = localStorage.getItem(USER_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as Partial<SesionUsuario>;

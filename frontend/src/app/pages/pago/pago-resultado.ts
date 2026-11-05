@@ -84,12 +84,16 @@ const MAX_CONSULTAS = 20;
             <div class="panel estado estado-error" role="status">
               <span class="icono" aria-hidden="true">✕</span>
               <h1>Pedido #{{ p.id }} cancelado</h1>
-              @if (estado() === 'APROBADA') {
-                <p>Tu pago llegó después de que el pedido se canceló por tiempo. Te devolveremos el dinero; escríbenos con la transacción {{ transaccionId }}.</p>
+              @if (p.reembolsoPendiente || estado() === 'APROBADA') {
+                <p>Tu pago llegó después de que el pedido se canceló por tiempo, así que no lo vamos a despachar.
+                  Te devolveremos el dinero al mismo medio de pago; no tienes que hacer nada. Verás el reembolso en Mis pedidos.</p>
               } @else {
                 <p>El pedido se canceló y su inventario volvió al catálogo.</p>
               }
-              <div class="acciones"><a routerLink="/catalogo" class="btn-primario">Ir al catálogo</a></div>
+              <div class="acciones">
+                <a routerLink="/catalogo" class="btn-primario">Ir al catálogo</a>
+                <a routerLink="/pedidos" [queryParams]="{ pedido: p.id }" class="btn-sec">Ver mis pedidos</a>
+              </div>
             </div>
           }
         }

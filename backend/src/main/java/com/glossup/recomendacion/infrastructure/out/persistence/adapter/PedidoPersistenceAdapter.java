@@ -95,6 +95,7 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
         entity.setPagoTransaccionId(dominio.getTransaccionId());
         entity.setPagoMetodo(dominio.getMetodoPago());
         entity.setPagadoEn(dominio.getPagadoEn());
+        entity.setReembolsadoEn(dominio.getReembolsadoEn());
         entity.setEnvio(aEmbeddable(dominio.getEnvio()));
 
         entity.getItems().clear();
@@ -118,7 +119,8 @@ public class PedidoPersistenceAdapter implements PedidoRepositoryPort {
                 items,
                 entity.getCreadoEn(),
                 aEnvio(entity.getEnvio()))
-                .conPago(entity.getPagoTransaccionId(), entity.getPagoMetodo(), entity.getPagadoEn());
+                .conPago(entity.getPagoTransaccionId(), entity.getPagoMetodo(), entity.getPagadoEn())
+                .conReembolso(entity.getReembolsadoEn());
     }
 
     private static EnvioEmbeddable aEmbeddable(Envio e) {

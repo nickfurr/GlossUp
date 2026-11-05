@@ -415,6 +415,7 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .aviso-bloqueo { margin: 0 0 1rem; padding: .7rem .9rem; border: 1px solid #f2b8c4; border-radius: 10px; background: #fdecef; color: #8f1c33; font-size: .88rem; }
 .aviso-ok { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 10px; background: #e3f3ea; color: #1f6b3a; font-weight: 600; }
 .celda-persona { display: grid; gap: .1rem; min-width: 0; overflow-wrap: anywhere; }
+.celda-reembolso { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .35rem; font-size: .85rem; }
 .tabla-admin td { vertical-align: middle; }
 .tabla-admin td:first-child, .tabla-admin th:first-child { width: 100%; } /* el texto largo se queda con el espacio libre */
 .tabla-admin td:not(:first-child) { white-space: nowrap; }

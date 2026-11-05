@@ -1,6 +1,6 @@
 package com.glossup.recomendacion.infrastructure.out.pago;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.sun.net.httpserver.HttpServer;

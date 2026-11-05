@@ -9,6 +9,7 @@ import com.glossup.perfil.domain.model.TipoPiel;
 import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.domain.port.out.PerfilRepositoryPort;
 import com.glossup.shared.domain.ReglaNegocioException;
+import com.glossup.shared.security.EventosSeguridad;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,12 +82,14 @@ public class GestionarPerfilService implements GestionarPerfilUseCase {
     public PerfilDermatologico autorizarDatosSensibles(Long usuarioId) {
         PerfilDermatologico perfil = obtenerOCrearDominio(usuarioId);
         perfil.autorizarDatosSensibles(OffsetDateTime.now());
+        EventosSeguridad.registrar("AUTORIZA_DATOS_SALUD", "usuario", usuarioId);
         return perfilRepository.guardar(perfil);
     }
 
     @Override
     public void eliminarPerfil(Long usuarioId) {
         perfilRepository.eliminarPorUsuarioId(usuarioId);
+        EventosSeguridad.registrar("REVOCA_DATOS_SALUD", "usuario", usuarioId);
     }
 
     /** Quitar datos siempre se permite; agregarlos exige la autorización explícita del titular. */

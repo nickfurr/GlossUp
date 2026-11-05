@@ -1,6 +1,7 @@
 package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.domain.ReglaNegocioException;
+import com.glossup.shared.security.EventosSeguridad;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.RegistrarUsuarioCommand;
@@ -47,7 +48,12 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
                 command.nombre(),
                 rol);
         usuario.aceptarPolitica(POLITICA_VIGENTE, OffsetDateTime.now());
-        return usuarioRepository.guardar(usuario);
+        if (rol == Rol.VENDEDOR) {
+            usuario.quedarPendienteDeAprobacion(); // vende al público: lo revisa un administrador (auditoría OBS-T08)
+        }
+        Usuario creado = usuarioRepository.guardar(usuario);
+        EventosSeguridad.registrar("CUENTA_CREADA", "usuario", creado.getId(), "rol", rol);
+        return creado;
     }
 
     private Rol parseRolPublico(String valor) {

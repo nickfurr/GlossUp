@@ -24,6 +24,20 @@
     @if (vista() === 'dashboard') {
       <div class="vend-topline"><h2>{{ saludo() }}, {{ sesion()?.nombre }}</h2></div>
 
+      @if (porAprobar() > 0) {
+        <p class="aviso-bloqueo" role="status">
+          {{ porAprobar() === 1 ? 'Hay 1 vendedor esperando' : 'Hay ' + porAprobar() + ' vendedores esperando' }} tu aprobación para poder entrar.
+          <button type="button" class="btn-mini" (click)="verUsuarios('pendientes')">Revisar</button>
+        </p>
+      }
+      @if (reembolsos() > 0) {
+        <p class="aviso-bloqueo" role="alert">
+          {{ reembolsos() === 1 ? 'Hay 1 pago que llegó' : 'Hay ' + reembolsos() + ' pagos que llegaron' }} a pedidos ya cancelados.
+          Devuelve el dinero desde el panel de Wompi y márcalo aquí.
+          <button type="button" class="btn-mini" (click)="verPedidos('REEMBOLSO')">Ver reembolsos</button>
+        </p>
+      }
+
       <div class="tiles">
         <button type="button" class="tile-stat tile-accion" (click)="verUsuarios('todos')"><span class="label">Usuarios</span><span class="val val-vino">{{ usuarios().length }}</span><span class="tile-nota">{{ vendedores() }} vendedores · {{ clientes() }} clientes</span></button>
         <button type="button" class="tile-stat tile-accion" (click)="verUsuarios('suspendidos')"><span class="label">Cuentas suspendidas</span><span class="val val-rosa">{{ suspendidos() }}</span></button>
@@ -80,6 +94,7 @@
             <button type="button" class="filtro" [class.activo]="filtroRol() === r" [attr.aria-pressed]="filtroRol() === r" (click)="filtroRol.set(r); paginaUsuarios.set(0)">{{ etiquetaRol[r] }}</button>
           }
           <button type="button" class="filtro" [class.activo]="filtroRol() === 'suspendidos'" [attr.aria-pressed]="filtroRol() === 'suspendidos'" (click)="filtroRol.set('suspendidos'); paginaUsuarios.set(0)">Suspendidos</button>
+          <button type="button" class="filtro" [class.activo]="filtroRol() === 'pendientes'" [attr.aria-pressed]="filtroRol() === 'pendientes'" (click)="filtroRol.set('pendientes'); paginaUsuarios.set(0)">Por aprobar</button>
         </div>
       </div>
       <div class="panel">
@@ -94,7 +109,7 @@
                   <tr>
                     <td><span class="celda-persona"><strong>{{ u.nombre }}</strong><span class="suave">{{ u.email }}</span></span></td>
                     <td>{{ etiquetaRol[u.roles[0]] || 'Sin rol' }}</td>
-                    <td><span [class]="'badge-estado ' + (u.activo ? 'ok' : 'rojo')">{{ u.activo ? 'Activo' : 'Suspendido' }}</span></td>
+                    <td><span [class]="'badge-estado ' + estadoUsuario(u).cls">{{ estadoUsuario(u).txt }}</span></td>
                     <td class="col-accion"><button type="button" class="btn-sec" (click)="abrirUsuario(u)" [attr.aria-label]="'Gestionar a ' + u.nombre">Gestionar</button></td>
                   </tr>
                 }
@@ -161,11 +176,12 @@
     @if (vista() === 'pedidos') {
       <div class="vend-topline"><h2>Pedidos</h2><button type="button" class="btn-sec" (click)="cargar()">Actualizar</button></div>
       <div class="filtros filtros-pedidos" role="group" aria-label="Filtrar pedidos">
-        @for (f of [['todos', 'Todos'], ['CREADO', 'Sin pagar'], ['PAGADO', 'Por enviar'], ['ENVIADO', 'Enviados'], ['CANCELADO', 'Cancelados']]; track f[0]) {
+        @for (f of [['todos', 'Todos'], ['CREADO', 'Sin pagar'], ['PAGADO', 'Por enviar'], ['ENVIADO', 'Enviados'], ['CANCELADO', 'Cancelados'], ['REEMBOLSO', 'Reembolsos pendientes']]; track f[0]) {
           <button type="button" class="filtro" [class.activo]="filtroPedido() === f[0]" [attr.aria-pressed]="filtroPedido() === f[0]" (click)="filtroPedido.set(f[0]); paginaPedidos.set(0)">{{ f[1] }}</button>
         }
       </div>
       <div class="panel">
+        @if (errorReembolso()) { <p class="aviso-bloqueo" role="alert">{{ errorReembolso() }}</p> }
         @if (pedidosFiltrados().length === 0) {
           <p class="nota">{{ cargando() ? 'Cargando…' : 'No hay pedidos con este filtro.' }}</p>
         } @else {
@@ -178,7 +194,20 @@
                     <td><span class="celda-persona"><strong>#{{ p.id }} · {{ nombreDe(p.usuarioId) }}</strong>
                       <span class="suave">{{ fecha(p.creadoEn) }} · {{ p.items.length }} {{ p.items.length === 1 ? 'producto' : 'productos' }}@if (p.envio?.guia; as guia) { · Guía {{ guia }} }</span></span></td>
                     <td class="precio">{{ cop.format(p.total) }}</td>
-                    <td><span [class]="'pill ' + estadoPedido(p).cls">{{ estadoPedido(p).txt }}</span></td>
+                    <td><span [class]="'pill ' + estadoPedido(p).cls">{{ estadoPedido(p).txt }}</span>
+                      @if (p.reembolsoPendiente) {
+                        <span class="celda-reembolso">
+                          <span class="suave">Pago {{ p.transaccionId }}</span>
+                          @if (confirmandoReembolso() === p.id) {
+                            <span class="confirma">¿Ya lo devolviste en Wompi?</span>
+                            <button type="button" class="btn-mini" [disabled]="ocupado()" (click)="confirmandoReembolso.set(null)">No</button>
+                            <button type="button" class="btn-mini" [disabled]="ocupado()" (click)="marcarReembolsado(p)">Sí, ya lo devolví</button>
+                          } @else {
+                            <button type="button" class="btn-mini" (click)="confirmandoReembolso.set(p.id)">Marcar reembolsado</button>
+                          }
+                        </span>
+                      }
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -214,6 +243,16 @@
       @if (avisoGestion()) { <p class="aviso-ok" role="status">{{ avisoGestion() }}</p> }
       @if (errorGestion()) { <p class="aviso-bloqueo" role="alert">{{ errorGestion() }}</p> }
       @if (!u.activo) { <p class="aviso-bloqueo">Cuenta suspendida. Motivo: {{ u.motivoSuspension || 'sin indicar' }}</p> }
+      @if (u.activo && u.pendienteAprobacion) {
+        <div class="panel">
+          <h3>Aprobar vendedor</h3>
+          <p class="nota">Se registró como vendedor y no puede entrar hasta que lo apruebes. Verifica que sea un vendedor real
+            (nombre, correo y lo que venderá). Si no lo es, suspende la cuenta con el motivo.</p>
+          <div class="editor-acciones">
+            <button type="button" class="btn-primario" [disabled]="ocupado()" (click)="aprobar(u)">Aprobar vendedor</button>
+          </div>
+        </div>
+      }
 
       <form class="panel" (ngSubmit)="guardarDatos(u)" novalidate>
         <h3>Datos</h3>
@@ -234,6 +273,14 @@
         }
         <div class="gestion-acciones"><button type="button" class="btn-sec" [disabled]="ocupado() || !u.activo" (click)="generarEnlace(u)">{{ enlace() ? 'Generar otro enlace' : 'Generar enlace' }}</button></div>
       </section>
+
+      @if (!esMiCuenta()) {
+        <section class="panel">
+          <h3>Sesiones abiertas</h3>
+          <p class="suave">Si crees que alguien más entró a esta cuenta, cierra sus sesiones: tendrá que volver a iniciar sesión en cada dispositivo.</p>
+          <div class="gestion-acciones"><button type="button" class="btn-sec" [disabled]="ocupado() || !u.activo" (click)="cerrarSesiones(u)">Cerrar sus sesiones</button></div>
+        </section>
+      }
 
       @if (esMiCuenta()) {
         <p class="nota">Esta es tu cuenta: no puedes cambiar tu rol ni suspenderte.</p>

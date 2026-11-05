@@ -1,7 +1,9 @@
 package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.exception.CredencialesInvalidasException;
+import com.glossup.shared.exception.CuentaPendienteException;
 import com.glossup.shared.exception.CuentaSuspendidaException;
+import com.glossup.shared.security.EventosSeguridad;
 import com.glossup.shared.security.JwtService;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
@@ -29,16 +31,25 @@ public class AutenticarUsuarioService implements AutenticarUsuarioUseCase {
 
     @Override
     public AutenticacionResultado autenticar(AutenticarUsuarioCommand command) {
-        Usuario usuario = usuarioRepository.buscarPorEmail(command.email())
-                .orElseThrow(CredencialesInvalidasException::new);
-
+        Usuario usuario = usuarioRepository.buscarPorEmail(command.email()).orElse(null);
+        if (usuario == null) {
+            EventosSeguridad.alertar("LOGIN_FALLIDO", "motivo", "cuenta_inexistente");
+            throw new CredencialesInvalidasException();
+        }
         if (usuario.getRoles().isEmpty() || !passwordEncoder.matches(command.password(), usuario.getPasswordHash())) {
+            EventosSeguridad.alertar("LOGIN_FALLIDO", "usuario", usuario.getId(), "motivo", "clave_incorrecta");
             throw new CredencialesInvalidasException();
         }
         // Solo después de comprobar la contraseña: así nadie averigua qué correos están suspendidos.
         if (!usuario.isActivo()) {
+            EventosSeguridad.alertar("LOGIN_RECHAZADO", "usuario", usuario.getId(), "motivo", "cuenta_suspendida");
             throw new CuentaSuspendidaException(usuario.getMotivoSuspension());
         }
+        if (usuario.isPendienteAprobacion()) {
+            EventosSeguridad.alertar("LOGIN_RECHAZADO", "usuario", usuario.getId(), "motivo", "vendedor_por_aprobar");
+            throw new CuentaPendienteException();
+        }
+        EventosSeguridad.registrar("LOGIN_OK", "usuario", usuario.getId());
 
         String token = jwtService.generarToken(
                 usuario.getId().toString(),

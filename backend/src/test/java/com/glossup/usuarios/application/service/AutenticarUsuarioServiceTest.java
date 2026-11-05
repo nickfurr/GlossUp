@@ -1,6 +1,7 @@
 package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.exception.CredencialesInvalidasException;
+import com.glossup.shared.exception.CuentaPendienteException;
 import com.glossup.shared.exception.CuentaSuspendidaException;
 import com.glossup.shared.security.JwtService;
 import com.glossup.usuarios.domain.model.Rol;
@@ -33,6 +34,23 @@ class AutenticarUsuarioServiceTest {
     void setUp() {
         ana = new Usuario(7L, "ana@glossup.co", "Ana", encoder.encode("clave-buena"), true, Set.of(Rol.CLIENTE), OffsetDateTime.now());
         when(usuarios.buscarPorEmail("ana@glossup.co")).thenReturn(Optional.of(ana));
+    }
+
+    @Test
+    void vendedorPendienteDeAprobacion_noEntraHastaQueLoAprueben() {
+        Usuario tienda = new Usuario(8L, "tienda@glossup.co", "Tienda", encoder.encode("clave-buena"), true,
+                Set.of(Rol.VENDEDOR), OffsetDateTime.now());
+        tienda.quedarPendienteDeAprobacion();
+        when(usuarios.buscarPorEmail("tienda@glossup.co")).thenReturn(Optional.of(tienda));
+        AutenticarUsuarioCommand login = new AutenticarUsuarioCommand("tienda@glossup.co", "clave-buena");
+
+        assertThrows(CuentaPendienteException.class, () -> service.autenticar(login));
+        // Con la clave mala no se delata que la cuenta existe y está en revisión.
+        assertThrows(CredencialesInvalidasException.class,
+                () -> service.autenticar(new AutenticarUsuarioCommand("tienda@glossup.co", "clave-mala")));
+
+        tienda.aprobar();
+        assertEquals(8L, service.autenticar(login).usuario().getId());
     }
 
     @Test

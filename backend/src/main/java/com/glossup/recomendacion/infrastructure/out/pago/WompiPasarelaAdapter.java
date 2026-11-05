@@ -1,8 +1,8 @@
 package com.glossup.recomendacion.infrastructure.out.pago;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
 import com.glossup.recomendacion.domain.port.out.PasarelaPagosPort;
 import com.glossup.shared.domain.ReglaNegocioException;
@@ -72,7 +72,7 @@ public class WompiPasarelaAdapter implements PasarelaPagosPort {
         String expiracion = FECHA_WOMPI.format(expira);
         // Orden exigido por Wompi: referencia, monto en centavos, moneda, expiración y secreto de integridad.
         String firma = sha256(referencia + montoCentavos + MONEDA + expiracion + secretoIntegridad);
-        return UriComponentsBuilder.fromHttpUrl(urlCheckout)
+        return UriComponentsBuilder.fromUriString(urlCheckout)
                 .queryParam("public-key", llavePublica)
                 .queryParam("currency", MONEDA)
                 .queryParam("amount-in-cents", montoCentavos)
@@ -111,7 +111,7 @@ public class WompiPasarelaAdapter implements PasarelaPagosPort {
         JsonNode evento;
         try {
             evento = json.readTree(cuerpo);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return Optional.empty();
         }
         // Checksum = SHA256(valores de signature.properties en orden + timestamp + secreto de eventos).
