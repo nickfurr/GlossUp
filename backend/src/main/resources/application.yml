@@ -101,6 +101,10 @@ glossup:
         refill-tokens: 5
         refill-period: 15m
   security:
+    tarpit:
+      base-delay-ms: ${GLOSSUP_TARPIT_BASE_DELAY_MS:500}
+      max-delay-ms: ${GLOSSUP_TARPIT_MAX_DELAY_MS:4000}
+      expire-minutes: ${GLOSSUP_TARPIT_EXPIRE_MINUTES:5}
     jwt:
       # Sin valor por defecto: si falta GLOSSUP_JWT_SECRET la app no arranca (auditoría R-01).
       secret: ${GLOSSUP_JWT_SECRET}

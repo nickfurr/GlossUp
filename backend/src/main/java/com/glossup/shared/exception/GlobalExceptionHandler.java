@@ -1,9 +1,15 @@
 package com.glossup.shared.exception;
 
 import com.glossup.shared.domain.ReglaNegocioException;
+import com.glossup.shared.ratelimit.ClientIpResolver;
+import com.glossup.shared.security.LoginTarpitService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -18,14 +24,40 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private final ClientIpResolver ipResolver;
+    private final ApplicationEventPublisher eventPublisher;
+    private final LoginTarpitService tarpitService;
+
+    public GlobalExceptionHandler(ClientIpResolver ipResolver,
+                                  ApplicationEventPublisher eventPublisher,
+                                  LoginTarpitService tarpitService) {
+        this.ipResolver = ipResolver;
+        this.eventPublisher = eventPublisher;
+        this.tarpitService = tarpitService;
+    }
+
+    public GlobalExceptionHandler() {
+        this(new ClientIpResolver(0), null, null);
+    }
+
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException ex, HttpServletRequest req) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), req, List.of());
     }
 
-    @ExceptionHandler(CredencialesInvalidasException.class)
-    public ResponseEntity<ApiError> handleInvalidCredentials(CredencialesInvalidasException ex,
-                                                               HttpServletRequest req) {
+    @ExceptionHandler({CredencialesInvalidasException.class, BadCredentialsException.class})
+    public ResponseEntity<ApiError> handleInvalidCredentials(Exception ex, HttpServletRequest req) {
+        String ip = ipResolver != null ? ipResolver.resolver(req) : "0.0.0.0";
+        if (eventPublisher != null) {
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken("anonymous", "[PROTECTED]");
+            authToken.setDetails(ip);
+            eventPublisher.publishEvent(
+                    new AuthenticationFailureBadCredentialsEvent(authToken, new BadCredentialsException(ex.getMessage())));
+        }
+        if (tarpitService != null) {
+            tarpitService.aplicarRetardo(ip);
+        }
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), req, List.of());
     }
 

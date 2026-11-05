@@ -28,11 +28,17 @@ public class RateLimitConfig {
     }
 
     @Bean
+    public ClientIpResolver clientIpResolver(RateLimitProperties props) {
+        return new ClientIpResolver(props.trustedProxies());
+    }
+
+    @Bean
     public AuthRateLimitFilter authRateLimitFilter(LoadingCache<String, Bucket> buckets,
+                                                  ClientIpResolver ipResolver,
                                                   RateLimitProperties props,
                                                   org.springframework.beans.factory.ObjectProvider<ObjectMapper> objectMapperProvider) {
         ObjectMapper mapper = objectMapperProvider.getIfAvailable(() -> new ObjectMapper().findAndRegisterModules());
-        return new AuthRateLimitFilter(buckets, new ClientIpResolver(props.trustedProxies()), props, mapper);
+        return new AuthRateLimitFilter(buckets, ipResolver, props, mapper);
     }
 
     private static String endpointDeClave(String clave) {
