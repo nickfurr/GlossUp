@@ -2,6 +2,7 @@ package com.glossup.compatibilidad;
 
 import com.glossup.perfil.domain.model.Afeccion;
 import com.glossup.perfil.domain.model.Alergeno;
+import com.glossup.perfil.domain.model.TipoCabello;
 import com.glossup.perfil.domain.model.TipoPiel;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,6 +54,7 @@ class BaseConocimientoMigracionTest {
         assertEquals(nombres(Alergeno.values()), consulta("SELECT codigo FROM alergeno"));
         Set<String> condiciones = nombres(Afeccion.values());
         condiciones.addAll(nombres(TipoPiel.values()));
+        for (TipoCabello t : TipoCabello.values()) condiciones.add(t.familia());
         assertEquals(condiciones, consulta("SELECT codigo FROM condicion"));
     }
 

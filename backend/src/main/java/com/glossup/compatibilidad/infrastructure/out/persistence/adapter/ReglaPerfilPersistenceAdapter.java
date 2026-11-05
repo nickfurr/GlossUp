@@ -5,6 +5,7 @@ import com.glossup.compatibilidad.domain.model.ReglaIncompatibilidad;
 import com.glossup.compatibilidad.domain.model.ReglaPerfil;
 import com.glossup.compatibilidad.domain.model.ReglaRango;
 import com.glossup.compatibilidad.domain.model.Severidad;
+import com.glossup.compatibilidad.domain.model.Zona;
 import com.glossup.compatibilidad.domain.port.out.ReglaRepositoryPort;
 import com.glossup.compatibilidad.infrastructure.out.persistence.entity.ReglaPerfilEntity;
 import com.glossup.compatibilidad.infrastructure.out.persistence.repository.ReglaPerfilJpaRepository;
@@ -45,8 +46,9 @@ public class ReglaPerfilPersistenceAdapter implements ReglaRepositoryPort {
 
     @Override
     public List<Beneficio> beneficios() {
-        return jdbc.query("SELECT ingrediente_inci, condicion, motivo FROM beneficio",
-                (rs, i) -> new Beneficio(rs.getString(1).toLowerCase(), rs.getString(2).toLowerCase(), rs.getString(3)));
+        return jdbc.query("SELECT ingrediente_inci, condicion, motivo, zona FROM beneficio",
+                (rs, i) -> new Beneficio(rs.getString(1).toLowerCase(), rs.getString(2).toLowerCase(), rs.getString(3),
+                        rs.getString(4) == null ? null : Zona.valueOf(rs.getString(4))));
     }
 
     @Override
@@ -75,6 +77,6 @@ public class ReglaPerfilPersistenceAdapter implements ReglaRepositoryPort {
 
     private ReglaPerfil aDominio(ReglaPerfilEntity e) {
         return new ReglaPerfil(e.getId(), e.getIngredienteInci(), e.getCondicion(),
-                Severidad.valueOf(e.getSeveridad()), e.getMotivo());
+                Severidad.valueOf(e.getSeveridad()), e.getMotivo(), e.getZona() == null ? null : Zona.valueOf(e.getZona()));
     }
 }

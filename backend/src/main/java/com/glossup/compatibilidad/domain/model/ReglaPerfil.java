@@ -15,8 +15,15 @@ public class ReglaPerfil {
     private final String condicion;
     private final Severidad severidad;
     private final String motivo;
+    /** Null = cualquier producto; si no, solo los de esa zona (las reglas del tipo de cabello, solo en capilares). */
+    private final Zona zona;
 
     public ReglaPerfil(Long id, String ingrediente, String condicion, Severidad severidad, String motivo) {
+        this(id, ingrediente, condicion, severidad, motivo, null);
+    }
+
+    public ReglaPerfil(Long id, String ingrediente, String condicion, Severidad severidad, String motivo, Zona zona) {
+        this.zona = zona;
         this.id = id;
         this.ingrediente = normalizar(ingrediente, "ingrediente");
         this.condicion = normalizar(condicion, "condicion");
@@ -35,6 +42,10 @@ public class ReglaPerfil {
             throw new ReglaNegocioException("El campo " + campo + " es obligatorio");
         }
         return s.trim().toLowerCase();
+    }
+
+    public boolean aplicaEn(Zona zonaProducto) {
+        return zona == null || zona == zonaProducto;
     }
 
     public Long getId() { return id; }

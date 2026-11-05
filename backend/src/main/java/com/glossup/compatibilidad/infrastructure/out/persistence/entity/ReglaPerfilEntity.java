@@ -27,6 +27,9 @@ public class ReglaPerfilEntity {
     @Column(name = "motivo", columnDefinition = "TEXT")
     private String motivo;
 
+    @Column(name = "zona", length = 10)
+    private String zona;
+
     public ReglaPerfilEntity() {}
 
     public Long getId() { return id; }
@@ -34,4 +37,6 @@ public class ReglaPerfilEntity {
     public String getCondicion() { return condicion; }
     public String getSeveridad() { return severidad; }
     public String getMotivo() { return motivo; }
+
+    public String getZona() { return zona; }
 }
