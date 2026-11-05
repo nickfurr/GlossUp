@@ -1915,8 +1915,10 @@ components:
         actual:
           type: string
         nueva:
+          description: Debe tener entre 8 y 120 caracteres y combinar letras mayúsculas, minúsculas, números y caracteres especiales
           maxLength: 120
           minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,120}$'
           type: string
     ActualizarProductoRequest:
       required:
@@ -2310,8 +2312,10 @@ components:
         token:
           type: string
         nueva:
+          description: Debe tener entre 8 y 120 caracteres y combinar letras mayúsculas, minúsculas, números y caracteres especiales
           maxLength: 120
           minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,120}$'
           type: string
     RegistrarUsuarioRequest:
       required:
@@ -2328,8 +2332,10 @@ components:
           minLength: 0
           type: string
         password:
+          description: Debe tener entre 8 y 120 caracteres y combinar letras mayúsculas, minúsculas, números y caracteres especiales
           maxLength: 120
           minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,120}$'
           type: string
         rol:
           type: string
@@ -2379,8 +2385,10 @@ components:
         email:
           type: string
         password:
-          maxLength: 2147483647
+          description: Debe tener entre 8 y 120 caracteres y combinar letras mayúsculas, minúsculas, números y caracteres especiales
+          maxLength: 120
           minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,120}$'
           type: string
     MotivoRequest:
       required:

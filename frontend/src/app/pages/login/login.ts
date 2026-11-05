@@ -48,14 +48,23 @@ export class Login {
       this.error.set('Debes aceptar los Términos y Condiciones y la Política de Privacidad.');
       return;
     }
-    if (this.esRegistro() && this.password !== this.password2) {
-      this.error.set('Las contraseñas no coinciden.');
-      return;
-    }
-    // El formulario no usa la validación nativa, así que la casilla se exige aquí (Ley 1581, auditoría NC-T11).
-    if (this.esRegistro() && !this.acepta) {
-      this.error.set('Para crear la cuenta debes aceptar los Términos y la Política de datos.');
-      return;
+    if (this.esRegistro()) {
+      if (this.password.length < 8) {
+        this.error.set('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
+      const tieneMayus = /[A-Z]/.test(this.password);
+      const tieneMinus = /[a-z]/.test(this.password);
+      const tieneNum = /[0-9]/.test(this.password);
+      const tieneEspecial = /[^a-zA-Z0-9]/.test(this.password);
+      if (!tieneMayus || !tieneMinus || !tieneNum || !tieneEspecial) {
+        this.error.set('La contraseña debe combinar letras mayúsculas, minúsculas, números y caracteres especiales.');
+        return;
+      }
+      if (this.password !== this.password2) {
+        this.error.set('Las contraseñas no coinciden.');
+        return;
+      }
     }
     this.cargando.set(true);
 

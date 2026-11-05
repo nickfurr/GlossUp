@@ -30,16 +30,22 @@ class GestionarCuentaServiceTest {
 
     @Test
     void cambiarClave_conLaActualCorrecta_guardaLaNuevaCifrada() {
-        service.cambiarClave(1L, "clave-actual", "clave-nueva-1");
-        assertTrue(encoder.matches("clave-nueva-1", usuario.getPasswordHash()));
+        service.cambiarClave(1L, "clave-actual", "Clave-nueva-1!");
+        assertTrue(encoder.matches("Clave-nueva-1!", usuario.getPasswordHash()));
         verify(usuarios).guardar(usuario);
     }
 
     @Test
     void cambiarClave_conLaActualIncorrecta_noCambiaNada() {
         String antes = usuario.getPasswordHash();
-        assertThrows(ReglaNegocioException.class, () -> service.cambiarClave(1L, "otra", "clave-nueva-1"));
+        assertThrows(ReglaNegocioException.class, () -> service.cambiarClave(1L, "otra", "Clave-nueva-1!"));
         assertEquals(antes, usuario.getPasswordHash());
+        verify(usuarios, never()).guardar(any());
+    }
+
+    @Test
+    void cambiarClave_conNuevaInsegura_fallaPorComplejidad() {
+        assertThrows(ReglaNegocioException.class, () -> service.cambiarClave(1L, "clave-actual", "insegura"));
         verify(usuarios, never()).guardar(any());
     }
 

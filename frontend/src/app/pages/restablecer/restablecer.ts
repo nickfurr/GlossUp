@@ -21,7 +21,7 @@ import { mensajeDeError } from '../../shared/productos';
         <form (ngSubmit)="guardar()" novalidate>
           <label class="campo">Contraseña nueva
             <input name="nueva" type="password" [(ngModel)]="nueva" autocomplete="new-password" maxlength="120" />
-            <span class="field-hint">Mínimo 8 caracteres.</span>
+            <span class="field-hint">Mínimo 8 caracteres (mayúsculas, minúsculas, números y caracteres especiales).</span>
           </label>
           <label class="campo">Repítela
             <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="120" />
@@ -51,6 +51,8 @@ export class Restablecer {
     this.error.set(null);
     if (this.nueva.length < 8) {
       this.error.set('La contraseña debe tener al menos 8 caracteres.');
+    } else if (!/[A-Z]/.test(this.nueva) || !/[a-z]/.test(this.nueva) || !/[0-9]/.test(this.nueva) || !/[^a-zA-Z0-9]/.test(this.nueva)) {
+      this.error.set('La contraseña debe combinar mayúsculas, minúsculas, números y caracteres especiales.');
     } else if (this.nueva !== this.repetida) {
       this.error.set('Las contraseñas no coinciden.');
     }

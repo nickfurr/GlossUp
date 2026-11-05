@@ -46,7 +46,7 @@
             type="password"
             name="password"
             [(ngModel)]="password"
-            [placeholder]="esRegistro() ? 'Mínimo 8 caracteres' : '••••••••'"
+            [placeholder]="esRegistro() ? 'Mayús, minús, núm, símbolo' : '••••••••'"
             [minlength]="esRegistro() ? 8 : null"
             required
           />

@@ -1,11 +1,13 @@
 package com.glossup.usuarios.infrastructure.in.rest;
 
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.port.in.RecuperarClaveUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +26,10 @@ public class RecuperarClaveController {
 
     public record RestablecerRequest(
             @NotBlank String token,
-            @NotBlank @Size(min = 8, max = 120, message = "La contraseña debe tener entre 8 y 120 caracteres") String nueva) {}
+            @NotBlank
+            @Size(min = Clave.LONGITUD_MINIMA, max = Clave.LONGITUD_MAXIMA, message = "La contraseña debe tener entre 8 y 120 caracteres")
+            @Pattern(regexp = Clave.REGEX_COMPLEJIDAD, message = Clave.MENSAJE_REQUISITOS)
+            String nueva) {}
 
     private final RecuperarClaveUseCase recuperar;
 
