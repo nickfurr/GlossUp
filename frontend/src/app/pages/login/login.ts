@@ -52,11 +52,6 @@ export class Login {
       this.error.set('Las contraseñas no coinciden.');
       return;
     }
-    // El formulario no usa la validación nativa, así que la casilla se exige aquí (Ley 1581, auditoría NC-T11).
-    if (this.esRegistro() && !this.acepta) {
-      this.error.set('Para crear la cuenta debes aceptar los Términos y la Política de datos.');
-      return;
-    }
     this.cargando.set(true);
 
     const entrar = () =>
@@ -102,9 +97,6 @@ export class Login {
       next: () => this.info.set('Si ese correo tiene cuenta, te enviamos un enlace para crear una contraseña nueva. Si no te llega en unos minutos, pídele el enlace al administrador.'),
       error: () => this.error.set('Revisa que el correo esté bien escrito e inténtalo de nuevo.'),
     });
-  }
-  avisoGoogle(): void {
-    this.info.set('Inicio con Google: próximamente.');
   }
 
   private msg(err: { status?: number; error?: { message?: string } }, modo: 'login' | 'registro'): string {

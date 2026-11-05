@@ -48,7 +48,7 @@ public class CorreoRecuperacionAdapter implements CorreoRecuperacionPort {
         try {
             servidor.send(mensaje);
         } catch (MailException e) {
-            log.warn("No se pudo enviar el enlace de recuperación: {}", e.getMessage());
+            log.warn("No se pudo enviar el enlace de recuperación: {}", e.getClass().getSimpleName()); // sin el mensaje: trae el correo (OBS-T14)
         }
     }
 }

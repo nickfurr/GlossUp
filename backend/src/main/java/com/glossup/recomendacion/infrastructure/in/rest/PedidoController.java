@@ -1,5 +1,6 @@
 package com.glossup.recomendacion.infrastructure.in.rest;
 
+import com.glossup.shared.security.UsuarioAutenticado;
 import com.glossup.recomendacion.domain.model.MetodoEnvio;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.port.in.ConsolidarCarritoCommand;
@@ -48,7 +49,7 @@ public class PedidoController {
             @Valid @RequestBody CarritoRequest request,
             Authentication authentication) {
 
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         List<ConsolidarCarritoCommand.Linea> lineas = request.items().stream()
                 .map(i -> new ConsolidarCarritoCommand.Linea(i.productoId(), i.cantidad()))
                 .toList();
@@ -61,21 +62,11 @@ public class PedidoController {
     @GetMapping("/{id}")
     @Operation(summary = "Consultar un pedido propio por ID")
     public ResponseEntity<PedidoResponse> obtener(@PathVariable Long id, Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         Pedido pedido = pedidoRepository.buscarPorId(id)
                 .filter(p -> p.getUsuarioId().equals(usuarioId))
                 .orElseThrow(() -> new NotFoundException("Pedido no encontrado con ID: " + id));
         return ResponseEntity.ok(PedidoResponse.fromDomain(pedido));
     }
 
-    private Long extraerUsuarioId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return 1L;
-        }
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            return (long) Math.abs(authentication.getName().hashCode());
-        }
-    }
 }

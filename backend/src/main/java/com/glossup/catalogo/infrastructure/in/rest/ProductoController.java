@@ -1,5 +1,6 @@
 package com.glossup.catalogo.infrastructure.in.rest;
 
+import com.glossup.shared.security.UsuarioAutenticado;
 import com.glossup.catalogo.domain.model.Producto;
 import com.glossup.catalogo.domain.port.in.ExtraerIngredientesImagenUseCase;
 import com.glossup.catalogo.domain.port.in.RegistrarProductoCommand;
@@ -59,7 +60,7 @@ public class ProductoController {
             @Valid @RequestBody RegistrarProductoRequest request,
             Authentication authentication) {
 
-        Long vendedorId = extraerVendedorId(authentication);
+        Long vendedorId = UsuarioAutenticado.id(authentication);
 
         List<RegistrarProductoCommand.IngredienteComando> ingredientesCmd = request.ingredientes().stream()
                 .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.concentracion()))
@@ -117,7 +118,7 @@ public class ProductoController {
             @Valid @RequestBody ActualizarProductoRequest request,
             Authentication authentication) {
 
-        Long vendedorId = extraerVendedorId(authentication);
+        Long vendedorId = UsuarioAutenticado.id(authentication);
 
         List<RegistrarProductoCommand.IngredienteComando> ingredientesCmd = request.ingredientes().stream()
                 .map(i -> new RegistrarProductoCommand.IngredienteComando(i.inci(), i.concentracion()))
@@ -151,7 +152,7 @@ public class ProductoController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        Long vendedorId = extraerVendedorId(authentication);
+        Long vendedorId = UsuarioAutenticado.id(authentication);
         gestionarProductoUseCase.eliminar(id, vendedorId);
         return ResponseEntity.noContent().build();
     }
@@ -161,7 +162,7 @@ public class ProductoController {
     @Operation(summary = "Volver a publicar un producto dado de baja",
                security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ProductoResponse> publicar(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ProductoResponse.conModeracion(gestionarProductoUseCase.publicar(id, extraerVendedorId(authentication))));
+        return ResponseEntity.ok(ProductoResponse.conModeracion(gestionarProductoUseCase.publicar(id, UsuarioAutenticado.id(authentication))));
     }
 
     @GetMapping
@@ -203,21 +204,10 @@ public class ProductoController {
     @Operation(summary = "Listar productos del vendedor autenticado",
                security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<List<ProductoResponse>> listarMisProductos(Authentication authentication) {
-        Long vendedorId = extraerVendedorId(authentication);
+        Long vendedorId = UsuarioAutenticado.id(authentication);
         List<ProductoResponse> productos = productoRepository.buscarPorVendedor(vendedorId).stream()
                 .map(ProductoResponse::conModeracion)
                 .toList();
         return ResponseEntity.ok(productos);
-    }
-
-    private Long extraerVendedorId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return 1L;
-        }
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            return (long) Math.abs(authentication.getName().hashCode());
-        }
     }
 }

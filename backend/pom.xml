@@ -109,13 +109,6 @@
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Lombok: reduce boilerplate -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-
         <!-- Pruebas (RNF-27 testabilidad del dominio) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -158,14 +151,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
             </plugin>
 
             <!-- Cobertura de pruebas (metrica "Cobertura de pruebas del modulo" >= 85%) -->

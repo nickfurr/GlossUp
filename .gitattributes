@@ -1,0 +1,4 @@
+# Los scripts se ejecutan dentro de contenedores Linux: con CRLF (checkout en Windows) fallan
+# con "bad interpreter" (auditoría OBS-RES-01).
+mvnw text eol=lf
+*.sh text eol=lf

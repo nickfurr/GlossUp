@@ -1,5 +1,6 @@
 package com.glossup.recomendacion.infrastructure.in.rest;
 
+import com.glossup.shared.security.UsuarioAutenticado;
 import com.glossup.recomendacion.domain.model.Carrito;
 import com.glossup.recomendacion.domain.port.in.GestionarCarritoUseCase;
 import com.glossup.recomendacion.infrastructure.in.rest.dto.CantidadRequest;
@@ -35,7 +36,7 @@ public class CarritoController {
     @GetMapping
     @Operation(summary = "Ver mi carrito")
     public ResponseEntity<CarritoResponse> ver(Authentication authentication) {
-        Carrito carrito = gestionarCarritoUseCase.verCarrito(extraerUsuarioId(authentication));
+        Carrito carrito = gestionarCarritoUseCase.verCarrito(UsuarioAutenticado.id(authentication));
         return ResponseEntity.ok(CarritoResponse.fromDomain(carrito));
     }
 
@@ -45,7 +46,7 @@ public class CarritoController {
             @Valid @RequestBody LineaCarritoRequest request,
             Authentication authentication) {
         Carrito carrito = gestionarCarritoUseCase.agregarItem(
-                extraerUsuarioId(authentication), request.productoId(), request.cantidad());
+                UsuarioAutenticado.id(authentication), request.productoId(), request.cantidad());
         return ResponseEntity.status(HttpStatus.CREATED).body(CarritoResponse.fromDomain(carrito));
     }
 
@@ -56,7 +57,7 @@ public class CarritoController {
             @Valid @RequestBody CantidadRequest request,
             Authentication authentication) {
         Carrito carrito = gestionarCarritoUseCase.cambiarCantidad(
-                extraerUsuarioId(authentication), productoId, request.cantidad());
+                UsuarioAutenticado.id(authentication), productoId, request.cantidad());
         return ResponseEntity.ok(CarritoResponse.fromDomain(carrito));
     }
 
@@ -65,25 +66,15 @@ public class CarritoController {
     public ResponseEntity<CarritoResponse> quitar(
             @PathVariable Long productoId,
             Authentication authentication) {
-        Carrito carrito = gestionarCarritoUseCase.quitarItem(extraerUsuarioId(authentication), productoId);
+        Carrito carrito = gestionarCarritoUseCase.quitarItem(UsuarioAutenticado.id(authentication), productoId);
         return ResponseEntity.ok(CarritoResponse.fromDomain(carrito));
     }
 
     @DeleteMapping
     @Operation(summary = "Vaciar el carrito")
     public ResponseEntity<CarritoResponse> vaciar(Authentication authentication) {
-        Carrito carrito = gestionarCarritoUseCase.vaciar(extraerUsuarioId(authentication));
+        Carrito carrito = gestionarCarritoUseCase.vaciar(UsuarioAutenticado.id(authentication));
         return ResponseEntity.ok(CarritoResponse.fromDomain(carrito));
     }
 
-    private Long extraerUsuarioId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return 1L;
-        }
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            return (long) Math.abs(authentication.getName().hashCode());
-        }
-    }
 }

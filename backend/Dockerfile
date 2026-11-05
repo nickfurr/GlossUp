@@ -15,6 +15,9 @@ RUN ./mvnw -B -q clean package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+# Sin root (auditoría R-17).
+RUN groupadd --system glossup && useradd --system --gid glossup glossup
+USER glossup
 EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=docker
 ENTRYPOINT ["java", "-jar", "app.jar"]

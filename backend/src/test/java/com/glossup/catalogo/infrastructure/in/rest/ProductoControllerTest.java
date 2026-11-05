@@ -421,4 +421,42 @@ class ProductoControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"));
     }
+
+    @Test
+    @WithMockUser(username = "5", roles = "VENDEDOR")
+    void registrarProducto_conJsonIlegible_retorna400BadRequest() throws Exception {
+        mockMvc.perform(post("/api/catalogo/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{roto"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El cuerpo de la peticion no es un JSON valido"));
+    }
+
+    @Test
+    @WithMockUser(username = "1", roles = "CLIENTE")
+    void metodoNoSoportado_conservaEl405() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/catalogo/productos"))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    @WithMockUser(username = "1", roles = "CLIENTE")
+    void baseDeDatosCaida_retorna503() throws Exception {
+        when(productoRepository.buscarPorId(7L))
+                .thenThrow(new org.springframework.dao.DataAccessResourceFailureException("Connection is not available"));
+
+        mockMvc.perform(get("/api/catalogo/productos/7"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("El servicio no esta disponible en este momento. Intenta de nuevo en unos minutos."));
+    }
+
+    @Test
+    @WithMockUser(username = "1", roles = "CLIENTE")
+    void errorInesperado_retorna500SinDetalleInterno() throws Exception {
+        when(productoRepository.buscarPorId(8L)).thenThrow(new IllegalStateException("SELECT * FROM producto ..."));
+
+        mockMvc.perform(get("/api/catalogo/productos/8"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Ha ocurrido un error interno en el servidor"));
+    }
 }

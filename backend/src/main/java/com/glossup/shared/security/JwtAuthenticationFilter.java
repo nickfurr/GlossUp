@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -40,7 +41,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            if (jwtService.esValido(token) && sesionVigente(token)) {
+            boolean valido;
+            try {
+                valido = jwtService.esValido(token) && sesionVigente(token);
+            } catch (DataAccessResourceFailureException e) {
+                // Este filtro corre antes que los controladores, asi que el 503 de GlobalExceptionHandler
+                // no lo alcanza: sin esto la BD caida respondia 500 (auditoria R-16).
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                return;
+            }
+            if (valido) {
                 String usuario = jwtService.extraerSubject(token);
                 List<SimpleGrantedAuthority> authorities = jwtService.extraerRoles(token).stream()
                         .map(rol -> new SimpleGrantedAuthority("ROLE_" + rol))

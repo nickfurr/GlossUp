@@ -8,7 +8,7 @@
     } @else {
       <ul class="auth-ventajas">
         <li><span class="tick">✓</span> Compatibilidad por ingredientes</li>
-        <li><span class="tick">✓</span> Recomendaciones con IA</li>
+        <li><span class="tick">✓</span> Alertas al combinar productos</li>
         <li><span class="tick">✓</span> Perfil dermatológico</li>
       </ul>
     }
@@ -77,10 +77,6 @@
         {{ cargando() ? 'Procesando…' : esRegistro() ? 'Crear cuenta' : 'Ingresar' }}
       </button>
 
-      @if (!esRegistro()) {
-        <div class="separador">o continúa con</div>
-        <button type="button" class="btn-sec ancho" (click)="avisoGoogle()">Google</button>
-      }
     </form>
 
     <p class="auth-switch">
