@@ -2,11 +2,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../shared/auth';
-import { ProductosService, mensajeDeError } from '../../shared/productos';
-import { CompatibilidadService, EstadoCompatibilidad, estadoDe } from '../../shared/compatibilidad';
+import { ProductoRecomendado, ProductosService, mensajeDeError } from '../../shared/productos';
+import { CompatibilidadService } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { AgregarCarrito } from '../../shared/agregar-carrito';
-import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
+import type { ResultadoCompatibilidad } from '../../shared/models';
 
 const MAX_RECOMENDADOS = 6;
 
@@ -36,7 +36,7 @@ const MAX_RECOMENDADOS = 6;
       <div class="section-heading">
         <div><span class="eyebrow">Para ti</span><h2>Productos recomendados</h2></div>
         @if (!cargando()) {
-          <span class="catalog-note">{{ perfilVacio() ? 'Lo más nuevo del catálogo' : 'Según tu perfil dermatológico' }}</span>
+          <span class="catalog-note">{{ perfilVacio() ? 'Lo más comprado y lo más nuevo' : 'Según tu perfil y tus compras' }}</span>
         }
       </div>
 
@@ -69,6 +69,7 @@ const MAX_RECOMENDADOS = 6;
                 <h3 class="cat-nombre">{{ p.nombre }}</h3>
               </a>
               <p class="cat-marca">{{ p.marca || p.categoria || 'Cosmético' }}</p>
+              <p class="cat-razon">{{ p.razon }}</p>
               <app-compat-info [resultado]="compat()[p.id]" />
               <div class="cat-pie">
                 <span class="precio">{{ formatearCop(p.precio) }}</span>
@@ -101,7 +102,7 @@ export class Cliente {
 
   readonly sesion = inject(AuthService).sesion;
   readonly esqueletos = [1, 2, 3, 4, 5, 6];
-  readonly recomendados = signal<ProductoVendedor[]>([]);
+  readonly recomendados = signal<ProductoRecomendado[]>([]);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
   readonly cargando = signal(true);
@@ -121,26 +122,22 @@ export class Cliente {
   }
 
   /**
-   * Recomendados: catálogo publicado cruzado con el perfil (HU6). Primero los compatibles sin
-   * alertas, luego los de precaución; los no compatibles se descartan. Sin perfil, lo más nuevo.
+   * Recomendados del servidor (auditoría NC-T10): sin alertas para el perfil, ordenados por los beneficios para sus
+   * condiciones, el parecido con lo que ya compró, lo que otros compraron con eso y la popularidad. Sin perfil, por
+   * popularidad y novedad. Los sellos de compatibilidad se piden solo para estos productos.
    */
   private cargarRecomendados(): void {
-    this.api.listarCatalogo().subscribe({
-      next: (ps) => {
-        const disponibles = ps.filter((p) => p.stock > 0);
-        this.compatibilidad.evaluar(disponibles.map((p) => p.id)).subscribe({
-          next: (e) => {
-            this.perfilVacio.set(e.perfilVacio);
-            this.compat.set(e.resultados);
-            this.recomendados.set(e.perfilVacio ? masNuevos(disponibles) : rankear(disponibles, e.resultados));
-            this.cargando.set(false);
-          },
-          // Si la evaluación falla, igual mostramos productos para no dejar la portada vacía.
-          error: () => {
-            this.recomendados.set(masNuevos(disponibles));
-            this.cargando.set(false);
-          },
-        });
+    this.api.recomendados(MAX_RECOMENDADOS).subscribe({
+      next: (r) => {
+        this.perfilVacio.set(r.perfilVacio);
+        this.recomendados.set(r.productos);
+        this.cargando.set(false);
+        if (r.productos.length) {
+          this.compatibilidad.evaluar(r.productos.map((p) => p.id)).subscribe({
+            next: (e) => this.compat.set(e.resultados),
+            error: () => { /* sin sellos: las tarjetas igual se pueden comprar */ },
+          });
+        }
       },
       error: (e) => {
         this.error.set(mensajeDeError(e));
@@ -148,23 +145,4 @@ export class Cliente {
       },
     });
   }
-}
-
-function masNuevos(ps: ProductoVendedor[]): ProductoVendedor[] {
-  return [...ps].sort((a, b) => (b.creadoEn ?? '').localeCompare(a.creadoEn ?? '')).slice(0, MAX_RECOMENDADOS);
-}
-
-/** Orden de recomendación; 3 = se excluye. El Record obliga a cubrir cada estado nuevo. */
-const PESO: Record<EstadoCompatibilidad, number> = { recomendado: 0, compatible: 1, precaucion: 2, 'no-compatible': 3 };
-
-function rankear(ps: ProductoVendedor[], resultados: Record<number, ResultadoCompatibilidad>): ProductoVendedor[] {
-  const peso = (p: ProductoVendedor) => {
-    const r = resultados[p.id];
-    if (!r) return 2;
-    return PESO[estadoDe(r)];
-  };
-  return ps
-    .filter((p) => peso(p) < 3)
-    .sort((a, b) => peso(a) - peso(b))
-    .slice(0, MAX_RECOMENDADOS);
 }

@@ -1,6 +1,8 @@
 package com.glossup.catalogo.infrastructure.out.persistence.repository;
 
 import com.glossup.catalogo.infrastructure.out.persistence.entity.ProductoEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +15,21 @@ import java.util.List;
 public interface ProductoJpaRepository extends JpaRepository<ProductoEntity, Long> {
 
     List<ProductoEntity> findByVendedorId(Long vendedorId);
+
+    /** Catálogo publicado (activo, sin bloqueo y con stock, como {@code Producto.estaEnCatalogo}) por páginas (auditoría R-14). */
+    @Query(value = "SELECT p FROM ProductoEntity p WHERE p.activo = true AND p.baneado = false AND p.stock > 0 ORDER BY p.id",
+           countQuery = "SELECT count(p) FROM ProductoEntity p WHERE p.activo = true AND p.baneado = false AND p.stock > 0")
+    Page<ProductoEntity> catalogo(Pageable pagina);
+
+    @Query(value = "SELECT p FROM ProductoEntity p WHERE p.activo = true AND p.baneado = false AND p.stock > 0 "
+            + "AND p.categoria = :categoria ORDER BY p.id",
+           countQuery = "SELECT count(p) FROM ProductoEntity p WHERE p.activo = true AND p.baneado = false AND p.stock > 0 "
+            + "AND p.categoria = :categoria")
+    Page<ProductoEntity> catalogoPorCategoria(@Param("categoria") String categoria, Pageable pagina);
+
+    /** Solo id y categoría del catálogo publicado: lo que el navegador necesita para contar y filtrar sin bajar fichas. */
+    @Query("SELECT p.id, p.categoria FROM ProductoEntity p WHERE p.activo = true AND p.baneado = false AND p.stock > 0 ORDER BY p.id")
+    List<Object[]> indiceCatalogo();
 
     /**
      * Suma {@code delta} al stock en una sola sentencia: PostgreSQL bloquea la fila hasta el commit, así

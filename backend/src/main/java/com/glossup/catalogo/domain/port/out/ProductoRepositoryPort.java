@@ -31,4 +31,14 @@ public interface ProductoRepositoryPort {
     List<Producto> buscarPorPalabraClave(String palabraClave);
 
     List<Producto> listarTodos();
+
+    /** Una página del catálogo publicado, por id; {@code categoria} null = todas. */
+    PaginaCatalogo catalogo(String categoria, int pagina, int tamano);
+
+    /** Id y categoría de cada producto del catálogo publicado, por id. */
+    List<EntradaCatalogo> indiceCatalogo();
+
+    record PaginaCatalogo(List<Producto> productos, long total) {}
+
+    record EntradaCatalogo(Long id, String categoria) {}
 }
