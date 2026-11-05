@@ -80,7 +80,8 @@ public class ComprobanteService implements ComprobanteUseCase {
             notificacion.enviarComprobante(cliente, pedido, nuevo);
         } catch (RuntimeException e) {
             // Sin correo el comprobante igual queda guardado y se descarga desde "Mis pedidos".
-            log.warn("No se pudo enviar el comprobante {} a {}: {}", numero, cliente.email(), e.getMessage());
+            // Sin el correo en el log (Ley 1581, auditoría OBS-T14); el mensaje de la excepción de correo también lo trae.
+            log.warn("No se pudo enviar el comprobante {} al usuario {}: {}", numero, pedido.getUsuarioId(), e.getClass().getSimpleName());
         }
         return nuevo;
     }

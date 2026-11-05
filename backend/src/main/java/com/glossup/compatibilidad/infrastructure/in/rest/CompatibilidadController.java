@@ -1,5 +1,6 @@
 package com.glossup.compatibilidad.infrastructure.in.rest;
 
+import com.glossup.shared.security.UsuarioAutenticado;
 import com.glossup.compatibilidad.domain.model.ResultadoCompatibilidad;
 import com.glossup.compatibilidad.domain.port.in.EvaluarCompatibilidadUseCase;
 import com.glossup.compatibilidad.infrastructure.in.rest.dto.CruceResponse;
@@ -43,7 +44,7 @@ public class CompatibilidadController {
                        + "Devuelve si es compatible y las alertas con su causa (RNF-05).")
     public ResponseEntity<ResultadoCompatibilidadResponse> evaluar(
             @PathVariable Long productoId, Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         ResultadoCompatibilidad resultado = evaluarCompatibilidad.evaluarProductoPerfil(usuarioId, productoId);
         return ResponseEntity.ok(ResultadoCompatibilidadResponse.fromDomain(productoId, resultado));
     }
@@ -57,7 +58,7 @@ public class CompatibilidadController {
         if (ids.size() > MAX_LOTE) {
             throw new ReglaNegocioException("Máximo " + MAX_LOTE + " productos por evaluación");
         }
-        return ResponseEntity.ok(evaluarCompatibilidad.evaluarProductosPerfil(extraerUsuarioId(authentication), ids)
+        return ResponseEntity.ok(evaluarCompatibilidad.evaluarProductosPerfil(UsuarioAutenticado.id(authentication), ids)
                 .entrySet().stream()
                 .map(e -> ResultadoCompatibilidadResponse.fromDomain(e.getKey(), e.getValue()))
                 .toList());
@@ -87,17 +88,7 @@ public class CompatibilidadController {
         if (piel != null && !TIPOS_PIEL.contains(piel)) {
             throw new ReglaNegocioException("Tipo de piel no válido: " + tipoPiel + ". Usa uno de " + TIPOS_PIEL);
         }
-        return ResponseEntity.ok(evaluarCompatibilidad.filtrarCatalogo(extraerUsuarioId(authentication), piel, excluirAlergenos));
+        return ResponseEntity.ok(evaluarCompatibilidad.filtrarCatalogo(UsuarioAutenticado.id(authentication), piel, excluirAlergenos));
     }
 
-    private Long extraerUsuarioId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return 1L;
-        }
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            return (long) Math.abs(authentication.getName().hashCode());
-        }
-    }
 }

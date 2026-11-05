@@ -1,5 +1,6 @@
 package com.glossup.perfil.infrastructure.in.rest;
 
+import com.glossup.shared.security.UsuarioAutenticado;
 import com.glossup.perfil.domain.model.PerfilDermatologico;
 import com.glossup.perfil.domain.port.in.GestionarPerfilUseCase;
 import com.glossup.perfil.infrastructure.in.rest.dto.AfeccionRequest;
@@ -33,7 +34,7 @@ public class PerfilController {
     @Operation(summary = "Obtener mi perfil dermatológico",
                description = "Retorna el perfil dermatológico del cliente autenticado. Si aún no existe, crea uno inicial vacío.")
     public ResponseEntity<PerfilResponse> obtenerMiPerfil(Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.obtenerPerfil(usuarioId);
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
@@ -50,7 +51,7 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> actualizarPerfil(
             @Valid @RequestBody ActualizarPerfilRequest request,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.actualizarBiotipo(
                 usuarioId, request.ph(), request.tipoPiel(), request.tipoCabello());
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
@@ -62,7 +63,7 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> agregarAlergia(
             @Valid @RequestBody AlergiaRequest request,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.agregarAlergia(usuarioId, request.alergia());
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
@@ -73,7 +74,7 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> quitarAlergiaPorBody(
             @Valid @RequestBody AlergiaRequest request,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.quitarAlergia(usuarioId, request.alergia());
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
@@ -84,7 +85,7 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> quitarAlergiaPorRuta(
             @PathVariable String alergia,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.quitarAlergia(usuarioId, alergia);
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
@@ -95,7 +96,7 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> agregarAfeccion(
             @Valid @RequestBody AfeccionRequest request,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.agregarAfeccion(usuarioId, request.afeccion());
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
@@ -106,7 +107,7 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> quitarAfeccionPorBody(
             @Valid @RequestBody AfeccionRequest request,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.quitarAfeccion(usuarioId, request.afeccion());
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
@@ -117,19 +118,9 @@ public class PerfilController {
     public ResponseEntity<PerfilResponse> quitarAfeccionPorRuta(
             @PathVariable String afeccion,
             Authentication authentication) {
-        Long usuarioId = extraerUsuarioId(authentication);
+        Long usuarioId = UsuarioAutenticado.id(authentication);
         PerfilDermatologico perfil = gestionarPerfilUseCase.quitarAfeccion(usuarioId, afeccion);
         return ResponseEntity.ok(PerfilResponse.fromDomain(perfil));
     }
 
-    private Long extraerUsuarioId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return 1L;
-        }
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            return (long) Math.abs(authentication.getName().hashCode());
-        }
-    }
 }
