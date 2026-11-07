@@ -32,7 +32,7 @@ import { mensajeDeError } from '../../shared/productos';
         </label>
         <label class="campo">Contraseña nueva
           <input name="nueva" type="password" [(ngModel)]="nueva" autocomplete="new-password" maxlength="72" />
-          <span class="field-hint">Entre 8 y 72 caracteres. Al cambiarla se cierran tus sesiones en otros dispositivos.</span>
+          <span class="field-hint">Entre 8 y 72 caracteres, con mayúsculas, minúsculas, números y caracteres especiales. Al cambiarla se cierran tus sesiones en otros dispositivos.</span>
         </label>
         <label class="campo">Repite la contraseña nueva
           <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="72" />
@@ -125,6 +125,8 @@ export class AjustesCuenta {
       this.errorClave.set('Escribe tu contraseña actual.');
     } else if (this.nueva.length < 8) {
       this.errorClave.set('La contraseña nueva debe tener al menos 8 caracteres.');
+    } else if (!/[A-Z]/.test(this.nueva) || !/[a-z]/.test(this.nueva) || !/[0-9]/.test(this.nueva) || !/[^a-zA-Z0-9]/.test(this.nueva)) {
+      this.errorClave.set('La contraseña nueva debe combinar mayúsculas, minúsculas, números y caracteres especiales.');
     } else if (this.nueva !== this.repetida) {
       this.errorClave.set('Las contraseñas nuevas no coinciden.');
     }

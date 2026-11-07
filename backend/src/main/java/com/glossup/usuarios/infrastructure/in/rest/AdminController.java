@@ -2,6 +2,7 @@ package com.glossup.usuarios.infrastructure.in.rest;
 
 import com.glossup.catalogo.domain.port.in.ModerarProductoUseCase;
 import com.glossup.catalogo.infrastructure.in.rest.dto.ProductoResponse;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.AdministrarUsuariosUseCase;
 import com.glossup.usuarios.domain.port.in.RecuperarClaveUseCase;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -70,7 +72,10 @@ public class AdminController {
     public record CrearVendedorRequest(
             @NotBlank(message = "El nombre es obligatorio") String nombre,
             @NotBlank(message = "El correo es obligatorio") @Email(message = "Correo inválido") String email,
-            @NotBlank(message = "La contraseña es obligatoria") @Size(min = 8, message = "Mínimo 8 caracteres") String password
+            @NotBlank(message = "La contraseña es obligatoria")
+            @Size(min = Clave.LONGITUD_MINIMA, max = Clave.LONGITUD_MAXIMA, message = "La contraseña debe tener entre 8 y 72 caracteres")
+            @Pattern(regexp = Clave.REGEX_COMPLEJIDAD, message = Clave.MENSAJE_REQUISITOS)
+            String password
     ) {}
 
     @GetMapping("/usuarios")

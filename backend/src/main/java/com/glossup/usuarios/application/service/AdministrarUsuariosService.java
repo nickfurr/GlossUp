@@ -3,6 +3,7 @@ package com.glossup.usuarios.application.service;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
 import com.glossup.shared.security.EventosSeguridad;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.AdministrarUsuariosUseCase;
@@ -108,7 +109,7 @@ public class AdministrarUsuariosService implements AdministrarUsuariosUseCase {
         if (usuarios.buscarPorEmail(correo).isPresent()) {
             throw new ReglaNegocioException("El correo '" + correo + "' ya está registrado");
         }
-        Usuario creado = usuarios.guardar(Usuario.registrar(correo, encoder.encode(clave), nombre, Rol.VENDEDOR));
+        Usuario creado = usuarios.guardar(Usuario.registrar(correo, encoder.encode(new Clave(clave).valor()), nombre, Rol.VENDEDOR));
         EventosSeguridad.registrar("ADMIN_CREA_VENDEDOR", "usuario", creado.getId());
         return creado;
     }

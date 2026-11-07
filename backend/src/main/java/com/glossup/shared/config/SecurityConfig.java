@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -46,9 +47,12 @@ import java.util.Set;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final com.glossup.shared.ratelimit.AuthRateLimitFilter authRateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          org.springframework.beans.factory.ObjectProvider<com.glossup.shared.ratelimit.AuthRateLimitFilter> authRateLimitFilterProvider) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authRateLimitFilter = authRateLimitFilterProvider.getIfAvailable();
     }
 
     /**
@@ -97,6 +101,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.spa()
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .requireCsrfProtectionMatcher(SecurityConfig::usaCookieDeSesion))
+                .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -121,6 +126,9 @@ public class SecurityConfig {
                 }))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(SecurityConfig::escribirCookieCsrf, CsrfFilter.class);
+        if (authRateLimitFilter != null) {
+            http.addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
+        }
         return http.build();
     }
 

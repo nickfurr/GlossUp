@@ -77,7 +77,7 @@ class SesionCookieTest {
         when(autenticar.autenticar(any())).thenReturn(new AutenticacionResultado("token-firmado", ana));
 
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"ana@glossup.co\",\"password\":\"clave-segura-1\"}"))
+                        .content("{\"email\":\"ana@glossup.co\",\"password\":\"Clave-segura-1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(header().stringValues("Set-Cookie", hasItem(allOf(startsWith("glossup_sesion=token-firmado"),
                         containsString("HttpOnly"), containsString("Secure"), containsString("SameSite=Strict"),
@@ -112,10 +112,10 @@ class SesionCookieTest {
     @Test
     void cambiarClave_cierraLasDemasSesionesYRenuevaEsta() throws Exception {
         mockMvc.perform(put("/api/cuenta/clave").cookie(sesionDe("7")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actual\":\"clave-vieja-1\",\"nueva\":\"clave-nueva-1\"}"))
+                        .content("{\"actual\":\"clave-vieja-1\",\"nueva\":\"Clave-nueva-1\"}"))
                 .andExpect(status().isNoContent())
                 .andExpect(header().stringValues("Set-Cookie", hasItem(allOf(startsWith("glossup_sesion=ey"), containsString("HttpOnly")))));
-        verify(cuenta).cambiarClave(7L, "clave-vieja-1", "clave-nueva-1");
+        verify(cuenta).cambiarClave(7L, "clave-vieja-1", "Clave-nueva-1");
     }
 
     @Test

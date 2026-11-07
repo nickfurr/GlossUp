@@ -92,10 +92,10 @@ class AdminControllerTest {
     @Test
     @WithMockUser(username = "1", roles = "ADMIN")
     void creaVendedorConLosDatosValidados() throws Exception {
-        when(administrar.crearVendedor("Tienda", "tienda@glossup.co", "clave-segura-1")).thenReturn(
+        when(administrar.crearVendedor("Tienda", "tienda@glossup.co", "Clave-segura-1")).thenReturn(
                 new Usuario(9L, "tienda@glossup.co", "Tienda", "hash", true, Set.of(Rol.VENDEDOR), OffsetDateTime.now()));
         mockMvc.perform(post("/api/admin/vendedores").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nombre\":\" Tienda \",\"email\":\"tienda@glossup.co\",\"password\":\"clave-segura-1\"}"))
+                        .content("{\"nombre\":\" Tienda \",\"email\":\"tienda@glossup.co\",\"password\":\"Clave-segura-1\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(9));
         mockMvc.perform(post("/api/admin/vendedores").contentType(MediaType.APPLICATION_JSON)

@@ -3,6 +3,7 @@ package com.glossup.usuarios.application.service;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
 import com.glossup.shared.security.EventosSeguridad;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.GestionarCuentaUseCase;
@@ -47,7 +48,8 @@ public class GestionarCuentaService implements GestionarCuentaUseCase {
         if (!encoder.matches(claveActual, usuario.getPasswordHash())) {
             throw new ReglaNegocioException("La contraseña actual no es correcta");
         }
-        usuario.cambiarPasswordHash(encoder.encode(claveNueva));
+        Clave nueva = new Clave(claveNueva);
+        usuario.cambiarPasswordHash(encoder.encode(nueva.valor()));
         usuario.cerrarSesiones(OffsetDateTime.now()); // quien tuviera la clave anterior queda afuera; el controlador renueva esta sesión
         usuarios.guardar(usuario);
         EventosSeguridad.registrar("CLAVE_CAMBIADA", "usuario", usuarioId);

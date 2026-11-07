@@ -49,7 +49,7 @@
             type="password"
             name="password"
             [(ngModel)]="password"
-            [placeholder]="esRegistro() ? 'Mínimo 8 caracteres' : '••••••••'"
+            [placeholder]="esRegistro() ? 'Mayús, minús, núm, símbolo' : '••••••••'"
             [minlength]="esRegistro() ? 8 : null"
             required
           />
@@ -63,7 +63,8 @@
       </div>
 
       @if (!esRegistro()) {
-        <button type="button" class="link olvido" (click)="avisoOlvido()">¿Olvidaste tu contraseña?</button>
+        <button type="button" class="link olvido" (click)="avisoOlvido()" [disabled]="esperaRecuperar.bloqueado()">¿Olvidaste tu contraseña?</button>
+        @if (esperaRecuperar.mensaje(); as m) { <p class="error" role="alert">{{ m }}</p> }
       }
 
       @if (esRegistro()) {
@@ -79,10 +80,11 @@
       }
 
       @if (error()) { <p class="error">{{ error() }}</p> }
+      @if (esperaActual().mensaje(); as m) { <p class="error" role="alert" aria-live="polite">{{ m }}</p> }
       @if (info()) { <p class="nota" role="status">{{ info() }}</p> }
 
-      <button type="submit" class="btn-primario ancho" [disabled]="cargando()">
-        {{ cargando() ? 'Procesando…' : esRegistro() ? 'Crear cuenta' : 'Ingresar' }}
+      <button type="submit" class="btn-primario ancho" [disabled]="cargando() || esperaActual().bloqueado()">
+        {{ cargando() ? 'Procesando…' : esperaActual().bloqueado() ? 'Espera…' : esRegistro() ? 'Crear cuenta' : 'Ingresar' }}
       </button>
 
     </form>

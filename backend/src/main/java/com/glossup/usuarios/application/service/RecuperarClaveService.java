@@ -3,6 +3,7 @@ package com.glossup.usuarios.application.service;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
 import com.glossup.shared.security.EventosSeguridad;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.RecuperarClaveUseCase;
 import com.glossup.usuarios.domain.port.out.CorreoRecuperacionPort;
@@ -74,7 +75,8 @@ public class RecuperarClaveService implements RecuperarClaveUseCase {
                 .flatMap(usuarios::buscarPorId)
                 .filter(Usuario::isActivo)
                 .orElseThrow(() -> new ReglaNegocioException("Este enlace no es válido o ya venció. Pide uno nuevo."));
-        usuario.cambiarPasswordHash(encoder.encode(claveNueva));
+        Clave nueva = new Clave(claveNueva);
+        usuario.cambiarPasswordHash(encoder.encode(nueva.valor()));
         usuario.cerrarSesiones(OffsetDateTime.now()); // si alguien había entrado con la clave anterior, queda afuera
         usuarios.guardar(usuario);
         EventosSeguridad.registrar("CLAVE_RESTABLECIDA", "usuario", usuario.getId());

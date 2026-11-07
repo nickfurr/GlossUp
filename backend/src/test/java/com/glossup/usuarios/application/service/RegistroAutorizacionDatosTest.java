@@ -20,7 +20,7 @@ class RegistroAutorizacionDatosTest {
     private final RegistrarUsuarioService service = new RegistrarUsuarioService(usuarios, new BCryptPasswordEncoder(4));
 
     private RegistrarUsuarioCommand comando(boolean aceptaPolitica, boolean mayorDeEdad) {
-        return new RegistrarUsuarioCommand("ana@correo.co", "Ana", "clave-segura-1", "CLIENTE", aceptaPolitica, mayorDeEdad);
+        return new RegistrarUsuarioCommand("ana@correo.co", "Ana", "ClaveSegura#1", "CLIENTE", aceptaPolitica, mayorDeEdad);
     }
 
     @Test
@@ -39,7 +39,7 @@ class RegistroAutorizacionDatosTest {
         when(usuarios.buscarPorEmail(any())).thenReturn(Optional.empty());
         when(usuarios.guardar(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Usuario vendedor = service.registrar(new RegistrarUsuarioCommand("tienda@correo.co", "Tienda", "clave-segura-1",
+        Usuario vendedor = service.registrar(new RegistrarUsuarioCommand("tienda@correo.co", "Tienda", "Clave-segura-1",
                 "VENDEDOR", true, true));
         assertTrue(vendedor.isPendienteAprobacion());
         assertFalse(service.registrar(comando(true, true)).isPendienteAprobacion());

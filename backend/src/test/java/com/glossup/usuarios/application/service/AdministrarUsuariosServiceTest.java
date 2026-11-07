@@ -69,14 +69,14 @@ class AdministrarUsuariosServiceTest {
     @Test
     void crearVendedor_quedaAprobadoYConLaClaveCifrada() {
         when(usuarios.buscarPorEmail("tienda@glossup.co")).thenReturn(Optional.empty());
-        Usuario v = service.crearVendedor("Tienda", " Tienda@GlossUP.co ", "clave-segura-1");
+        Usuario v = service.crearVendedor("Tienda", " Tienda@GlossUP.co ", "Clave-segura-1");
         assertTrue(v.tieneRol(Rol.VENDEDOR));
         assertFalse(v.isPendienteAprobacion());
         assertEquals("tienda@glossup.co", v.getEmail());
-        assertNotEquals("clave-segura-1", v.getPasswordHash());
+        assertNotEquals("Clave-segura-1", v.getPasswordHash());
 
         when(usuarios.buscarPorEmail("tienda@glossup.co")).thenReturn(Optional.of(v));
-        assertThrows(ReglaNegocioException.class, () -> service.crearVendedor("Otra", "tienda@glossup.co", "clave-segura-1"));
+        assertThrows(ReglaNegocioException.class, () -> service.crearVendedor("Otra", "tienda@glossup.co", "Clave-segura-1"));
     }
 
     @Test

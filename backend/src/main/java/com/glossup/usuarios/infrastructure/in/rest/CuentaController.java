@@ -2,6 +2,7 @@ package com.glossup.usuarios.infrastructure.in.rest;
 
 import com.glossup.shared.security.CookieSesion;
 import com.glossup.shared.security.JwtService;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.port.in.GestionarCuentaUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,7 +38,9 @@ public class CuentaController {
     public record ClaveRequest(
             @NotBlank(message = "Escribe tu contraseña actual") String actual,
             @NotBlank(message = "Escribe la contraseña nueva")
-            @Size(min = 8, max = 120, message = "La contraseña debe tener entre 8 y 120 caracteres") String nueva) {}
+            @Size(min = Clave.LONGITUD_MINIMA, max = Clave.LONGITUD_MAXIMA, message = "La contraseña debe tener entre 8 y 72 caracteres")
+            @Pattern(regexp = Clave.REGEX_COMPLEJIDAD, message = Clave.MENSAJE_REQUISITOS)
+            String nueva) {}
 
     public record EliminarCuentaRequest(@NotBlank(message = "Escribe tu contraseña para confirmar") String clave) {}
 

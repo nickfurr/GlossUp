@@ -27,11 +27,13 @@ class CorreoAvisoEnvioTest {
 
     private static final ClientePort.Cliente ANA = new ClientePort.Cliente("Ana", "ana@correo.co");
 
-    @SuppressWarnings("unchecked")
     private static ObjectProvider<JavaMailSender> con(JavaMailSender servidor) {
-        ObjectProvider<JavaMailSender> proveedor = mock(ObjectProvider.class);
-        when(proveedor.getIfAvailable()).thenReturn(servidor);
-        return proveedor;
+        return new ObjectProvider<>() {
+            @Override public JavaMailSender getObject() { return servidor; }
+            @Override public JavaMailSender getObject(Object... args) { return servidor; }
+            @Override public JavaMailSender getIfAvailable() { return servidor; }
+            @Override public JavaMailSender getIfUnique() { return servidor; }
+        };
     }
 
     private static Pedido enEtapa(EstadoEnvio etapa) {

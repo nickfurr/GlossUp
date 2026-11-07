@@ -85,7 +85,39 @@ springdoc:
     enabled: false
 
 glossup:
+  rate-limit:
+    enabled: ${GLOSSUP_RATE_LIMIT_ENABLED:true}
+    # Proxies de confianza delante de la app (ingress de ACA = 1). 0 = ignorar X-Forwarded-For.
+    trusted-proxies: ${GLOSSUP_RATE_LIMIT_TRUSTED_PROXIES:1}
+    cache:
+      expire-after-access: 10m
+      maximum-size: 50000
+    default-limit:
+      capacity: 20
+      refill-tokens: 20
+      refill-period: 1m
+    endpoints:
+      "[/api/auth/login]":
+        capacity: 10
+        refill-tokens: 10
+        refill-period: 1m
+      "[/api/auth/register]":
+        capacity: 5
+        refill-tokens: 5
+        refill-period: 10m
+      "[/api/auth/recuperar]":
+        capacity: 3
+        refill-tokens: 3
+        refill-period: 15m
+      "[/api/auth/restablecer]":
+        capacity: 5
+        refill-tokens: 5
+        refill-period: 15m
   security:
+    tarpit:
+      base-delay-ms: ${GLOSSUP_TARPIT_BASE_DELAY_MS:500}
+      max-delay-ms: ${GLOSSUP_TARPIT_MAX_DELAY_MS:4000}
+      expire-minutes: ${GLOSSUP_TARPIT_EXPIRE_MINUTES:5}
     jwt:
       # Sin valor por defecto: si falta GLOSSUP_JWT_SECRET la app no arranca (auditoría R-01).
       secret: ${GLOSSUP_JWT_SECRET}
