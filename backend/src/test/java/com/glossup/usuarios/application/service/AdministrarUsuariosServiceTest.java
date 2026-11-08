@@ -3,10 +3,12 @@ package com.glossup.usuarios.application.service;
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
+import com.glossup.usuarios.domain.port.out.AvisoCuentaPort;
 import com.glossup.usuarios.domain.port.out.ModeracionCatalogoPort;
 import com.glossup.usuarios.domain.port.out.UsuarioRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -21,7 +23,9 @@ class AdministrarUsuariosServiceTest {
     private static final Long ADMIN = 1L;
     private final UsuarioRepositoryPort usuarios = mock(UsuarioRepositoryPort.class);
     private final ModeracionCatalogoPort catalogo = mock(ModeracionCatalogoPort.class);
-    private final AdministrarUsuariosService service = new AdministrarUsuariosService(usuarios, catalogo);
+    private final AvisoCuentaPort avisos = mock(AvisoCuentaPort.class);
+    private final AdministrarUsuariosService service =
+            new AdministrarUsuariosService(usuarios, catalogo, new BCryptPasswordEncoder(4), avisos);
 
     private Usuario conRol(long id, Rol rol) {
         Usuario u = new Usuario(id, "u" + id + "@glossup.co", "Usuario", "hash", true, Set.of(rol), OffsetDateTime.now());
@@ -49,6 +53,30 @@ class AdministrarUsuariosServiceTest {
         assertFalse(v.isActivo());
         assertEquals("Fraude", v.getMotivoSuspension());
         verify(catalogo).suspenderVendedor(2L);
+    }
+
+    @Test
+    void aprobarVendedorPendiente_loDejaEntrarYLeAvisa() {
+        Usuario v = conRol(4L, Rol.VENDEDOR);
+        v.quedarPendienteDeAprobacion();
+        service.aprobarVendedor(ADMIN, 4L);
+        assertFalse(v.isPendienteAprobacion());
+        verify(avisos).avisarAprobacion("u4@glossup.co", "Usuario");
+        // Aprobar dos veces es un error: no hay nada pendiente.
+        assertThrows(ReglaNegocioException.class, () -> service.aprobarVendedor(ADMIN, 4L));
+    }
+
+    @Test
+    void crearVendedor_quedaAprobadoYConLaClaveCifrada() {
+        when(usuarios.buscarPorEmail("tienda@glossup.co")).thenReturn(Optional.empty());
+        Usuario v = service.crearVendedor("Tienda", " Tienda@GlossUP.co ", "Clave-segura-1");
+        assertTrue(v.tieneRol(Rol.VENDEDOR));
+        assertFalse(v.isPendienteAprobacion());
+        assertEquals("tienda@glossup.co", v.getEmail());
+        assertNotEquals("Clave-segura-1", v.getPasswordHash());
+
+        when(usuarios.buscarPorEmail("tienda@glossup.co")).thenReturn(Optional.of(v));
+        assertThrows(ReglaNegocioException.class, () -> service.crearVendedor("Otra", "tienda@glossup.co", "Clave-segura-1"));
     }
 
     @Test

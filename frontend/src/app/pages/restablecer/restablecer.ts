@@ -21,11 +21,11 @@ import { EsperaReintento } from '../../shared/espera-reintento';
       } @else {
         <form (ngSubmit)="guardar()" novalidate>
           <label class="campo">Contraseña nueva
-            <input name="nueva" type="password" [(ngModel)]="nueva" autocomplete="new-password" maxlength="120" />
-            <span class="field-hint">Mínimo 8 caracteres (mayúsculas, minúsculas, números y caracteres especiales).</span>
+            <input name="nueva" type="password" [(ngModel)]="nueva" autocomplete="new-password" maxlength="72" />
+            <span class="field-hint">Entre 8 y 72 caracteres, con mayúsculas, minúsculas, números y caracteres especiales.</span>
           </label>
           <label class="campo">Repítela
-            <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="120" />
+            <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="72" />
           </label>
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
           @if (espera.mensaje(); as m) { <p class="error" role="alert" aria-live="polite">{{ m }}</p> }

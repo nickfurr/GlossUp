@@ -13,6 +13,8 @@ import com.glossup.catalogo.infrastructure.out.persistence.entity.ProductoIngred
 import com.glossup.catalogo.infrastructure.out.persistence.repository.IngredienteJpaRepository;
 import com.glossup.catalogo.infrastructure.out.persistence.repository.ProductoJpaRepository;
 import com.glossup.shared.domain.Dinero;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -46,6 +48,11 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     }
 
     @Override
+    public boolean ajustarStock(Long id, int delta) {
+        return productoJpaRepository.ajustarStock(id, delta) == 1;
+    }
+
+    @Override
     public List<Producto> buscarPorVendedor(Long vendedorId) {
         return productoJpaRepository.findByVendedorId(vendedorId).stream()
                 .map(this::aDominio)
@@ -64,6 +71,22 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     public List<Producto> buscarPorIds(Collection<Long> ids) {
         return productoJpaRepository.findAllById(ids).stream()
                 .map(this::aDominio)
+                .toList();
+    }
+
+    @Override
+    public PaginaCatalogo catalogo(String categoria, int pagina, int tamano) {
+        PageRequest pedida = PageRequest.of(pagina, tamano);
+        Page<ProductoEntity> page = categoria == null
+                ? productoJpaRepository.catalogo(pedida)
+                : productoJpaRepository.catalogoPorCategoria(categoria, pedida);
+        return new PaginaCatalogo(page.getContent().stream().map(this::aDominio).toList(), page.getTotalElements());
+    }
+
+    @Override
+    public List<EntradaCatalogo> indiceCatalogo() {
+        return productoJpaRepository.indiceCatalogo().stream()
+                .map(f -> new EntradaCatalogo((Long) f[0], (String) f[1]))
                 .toList();
     }
 

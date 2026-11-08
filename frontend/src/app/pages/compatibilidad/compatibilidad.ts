@@ -1,18 +1,21 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import { CompatibilidadService, EstadoCompatibilidad, estadoDe } from '../../shared/compatibilidad';
 import { CompatInfo } from '../../shared/compat-info';
 import { Cargando } from '../../shared/cargando';
-import { ProductosService, mensajeDeError } from '../../shared/productos';
-import type { ProductoVendedor, ResultadoCompatibilidad } from '../../shared/models';
+import { ProductosService, mensajeDeError, paginarPorIds } from '../../shared/productos';
+import type { ResultadoCompatibilidad } from '../../shared/models';
 
 type Filtro = 'todos' | EstadoCompatibilidad;
+/** Tope de ids por evaluación en el servidor. */
+const LOTE_EVALUACION = 200;
 const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precaucion: 1, compatible: 2, recomendado: 3 };
 
 /**
  * Compatibilidad producto–perfil (HU6): todo el catálogo publicado evaluado contra el perfil
- * dermatológico del cliente, agrupado en no compatibles, con precaución y compatibles.
+ * dermatológico del cliente, agrupado en no compatibles, con precaución y compatibles. Se evalúan los ids del
+ * índice; las fichas se bajan por tandas (auditoría R-14).
  */
 @Component({
   selector: 'app-compatibilidad',
@@ -41,8 +44,12 @@ const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precau
                     (click)="filtro.set(f.id)">{{ f.label }} ({{ conteo()[f.id] }})</button>
           }
         </div>
-        @if (visibles().length === 0) {
+        @if (pagina.error()) {
+          <p class="error" role="alert">{{ pagina.error() }}</p>
+        } @else if (pagina.total() === 0) {
           <p class="nota">No hay productos en esta categoría.</p>
+        } @else if (!visibles().length) {
+          <app-cargando texto="Cargando productos…" />
         } @else {
           <div class="product-grid">
             @for (p of visibles(); track p.id) {
@@ -58,12 +65,19 @@ const ORDEN: Record<EstadoCompatibilidad, number> = { 'no-compatible': 0, precau
               </article>
             }
           </div>
+          @if (pagina.hayMas()) {
+            <div class="cargar-mas">
+              <button type="button" class="btn-sec" [disabled]="pagina.cargando()" (click)="pagina.cargarMas()">
+                {{ pagina.cargando() ? 'Cargando…' : 'Ver más productos (' + (pagina.total() - visibles().length) + ' más)' }}</button>
+            </div>
+          }
         }
       }
     </section>
   `,
   styles: [`
     .compat-filtros { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.5rem 0 1rem; }
+    .cargar-mas { display: flex; justify-content: center; margin-top: 1.25rem; }
     .compat-filtros .activo { background: var(--vino); color: #fff; border-color: var(--vino); }
   `],
 })
@@ -71,7 +85,7 @@ export class Compatibilidad {
   private productos = inject(ProductosService);
   private compatibilidad = inject(CompatibilidadService);
 
-  readonly catalogo = signal<ProductoVendedor[]>([]);
+  readonly ids = signal<number[]>([]);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
   readonly cargando = signal(true);
@@ -94,14 +108,16 @@ export class Compatibilidad {
 
   /** Solo los productos evaluados, de los más riesgosos a los compatibles. */
   private readonly evaluados = computed(() =>
-    this.catalogo()
-      .filter((p) => this.compat()[p.id])
-      .map((p) => ({ p, estado: estadoDe(this.compat()[p.id]) }))
+    this.ids()
+      .filter((id) => this.compat()[id])
+      .map((id) => ({ id, estado: estadoDe(this.compat()[id]) }))
       .sort((a, b) => ORDEN[a.estado] - ORDEN[b.estado]),
   );
-  readonly visibles = computed(() =>
-    this.evaluados().filter((e) => this.filtro() === 'todos' || e.estado === this.filtro()).map((e) => e.p),
+  private readonly idsFiltrados = computed(() =>
+    this.evaluados().filter((e) => this.filtro() === 'todos' || e.estado === this.filtro()).map((e) => e.id),
   );
+  readonly pagina = paginarPorIds(this.idsFiltrados);
+  readonly visibles = this.pagina.visibles;
   readonly conteo = computed(() => {
     const c: Record<Filtro, number> = { todos: 0, 'no-compatible': 0, precaucion: 0, compatible: 0, recomendado: 0 };
     for (const e of this.evaluados()) { c.todos++; c[e.estado]++; }
@@ -109,15 +125,20 @@ export class Compatibilidad {
   });
 
   constructor() {
-    this.productos.listarCatalogo().pipe(
-      switchMap((ps) => {
-        this.catalogo.set(ps);
-        return this.compatibilidad.evaluar(ps.map((p) => p.id));
+    this.productos.indice().pipe(
+      switchMap((indice) => {
+        const ids = indice.map((e) => e.id);
+        const lotes = [];
+        for (let i = 0; i < ids.length; i += LOTE_EVALUACION) lotes.push(ids.slice(i, i + LOTE_EVALUACION));
+        return (lotes.length ? forkJoin(lotes.map((l) => this.compatibilidad.evaluar(l))) : of([])).pipe(
+          map((evaluaciones) => ({ ids, evaluaciones })),
+        );
       }),
     ).subscribe({
-      next: (e) => {
-        this.perfilVacio.set(e.perfilVacio);
-        this.compat.set(e.resultados);
+      next: ({ ids, evaluaciones }) => {
+        this.perfilVacio.set(evaluaciones.some((e) => e.perfilVacio));
+        this.compat.set(Object.assign({}, ...evaluaciones.map((e) => e.resultados)));
+        this.ids.set(ids);
         this.cargando.set(false);
       },
       error: (e) => {

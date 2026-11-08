@@ -18,8 +18,9 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Filtro que extrae el token "Bearer" del encabezado Authorization, lo valida y, si es correcto,
- * establece la autenticacion en el contexto de seguridad. Es stateless: no mantiene sesion.
+ * Filtro que toma el token de la cookie de sesion del navegador (o del encabezado "Authorization: Bearer" de un
+ * cliente de la API), lo valida y, si es correcto, establece la autenticacion en el contexto de seguridad.
+ * Es stateless: no mantiene sesion en el servidor; la revocacion la da {@link SesionVigentePort}.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -39,8 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        String token = header != null && header.startsWith("Bearer ") ? header.substring(7) : CookieSesion.leer(request);
+        if (token != null) {
             boolean valido;
             try {
                 valido = jwtService.esValido(token) && sesionVigente(token);

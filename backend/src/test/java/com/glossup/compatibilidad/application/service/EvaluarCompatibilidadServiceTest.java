@@ -81,6 +81,32 @@ class EvaluarCompatibilidadServiceTest {
     }
 
     @Test
+    void tipoDeCabello_avisaSoloEnProductosCapilaresYRecomiendaLoQueLeSirve() {
+        when(reglas.reglasPerfil()).thenReturn(List.of(new ReglaPerfil(2L, "sodium lauryl sulfate", "cabello_rizado",
+                Severidad.MEDIA, "Reseca el rizo", com.glossup.compatibilidad.domain.model.Zona.CABELLO)));
+        when(reglas.beneficios()).thenReturn(List.of(new Beneficio("glycerin", "cabello_rizado", "humectante.",
+                com.glossup.compatibilidad.domain.model.Zona.CABELLO)));
+        when(perfil.obtener(1L)).thenReturn(new PerfilConsulta(Set.of(), Set.of("cabello_rizado")));
+        when(catalogo.buscar(10L)).thenReturn(Optional.of(new ProductoConsulta("Champú", List.of("sodium lauryl sulfate"),
+                null, com.glossup.compatibilidad.domain.model.Zona.CABELLO)));
+        when(catalogo.buscar(11L)).thenReturn(Optional.of(new ProductoConsulta("Limpiador facial",
+                List.of("sodium lauryl sulfate", "glycerin"))));
+        when(catalogo.buscar(12L)).thenReturn(Optional.of(new ProductoConsulta("Crema de peinar", List.of("glycerin"),
+                null, com.glossup.compatibilidad.domain.model.Zona.CABELLO)));
+
+        ResultadoCompatibilidad champu = service.evaluarProductoPerfil(1L, 10L);
+        assertEquals(1, champu.getAlertas().size());
+        assertEquals(Severidad.MEDIA, champu.getAlertas().get(0).severidad());
+        assertTrue(champu.esCompatible(), "es un aviso de cuidado, no bloquea");
+
+        ResultadoCompatibilidad facial = service.evaluarProductoPerfil(1L, 11L);
+        assertFalse(facial.tieneAlertas(), "el tipo de cabello no opina de un limpiador facial");
+        assertTrue(facial.getBeneficios().isEmpty());
+
+        assertTrue(service.evaluarProductoPerfil(1L, 12L).esRecomendado());
+    }
+
+    @Test
     void cruces_detectaElParEnCualquierOrdenYSoloEntreProductosDistintos() {
         when(reglas.reglasIncompatibilidad()).thenReturn(List.of(
                 new ReglaIncompatibilidad(1L, "retinol", "glycolic acid", Severidad.MEDIA, "Suman irritación")));

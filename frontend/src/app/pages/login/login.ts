@@ -91,6 +91,12 @@ export class Login {
           if (this.esperaLogin.manejar(e)) {
             return;
           }
+          // Vendedor registrado que el administrador aún no aprueba (auditoría OBS-T08): no es una suspensión.
+          if (e?.status === 403 && !e.error?.detalles?.length && e.error?.message?.startsWith('Tu cuenta de vendedor')) {
+            this.info.set(e.error.message);
+            this.password = '';
+            return;
+          }
           if (e?.status === 403) {
             this.motivoSuspension.set(e.error?.detalles?.[0] ?? 'No se indicó un motivo.');
             this.password = '';
@@ -105,7 +111,17 @@ export class Login {
       this.auth
         .registrar({ email: this.email, nombre: this.nombre, password: this.password, rol: this.rol, aceptaPolitica: this.acepta, mayorDeEdad: this.mayorDeEdad })
         .subscribe({
-          next: () => entrar(),
+          next: () => {
+            if (this.rol !== 'VENDEDOR') {
+              entrar();
+              return;
+            }
+            // La cuenta de vendedor queda en revisión: no hay sesión que abrir todavía.
+            this.cargando.set(false);
+            this.modo.set('login');
+            this.password = this.password2 = '';
+            this.info.set('Creamos tu cuenta de vendedor. Un administrador la revisará y te avisaremos por correo cuando puedas entrar.');
+          },
           error: (e) => {
             this.cargando.set(false);
             if (this.esperaRegistro.manejar(e)) {

@@ -2,17 +2,20 @@ package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.shared.security.EventosSeguridad;
+import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.AdministrarUsuariosUseCase;
+import com.glossup.usuarios.domain.port.out.AvisoCuentaPort;
 import com.glossup.usuarios.domain.port.out.ModeracionCatalogoPort;
 import com.glossup.usuarios.domain.port.out.UsuarioRepositoryPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 /**
  * Regla central: un administrador no puede suspenderse ni quitarse el rol a sí mismo. Como quien actúa
@@ -22,14 +25,17 @@ import java.time.OffsetDateTime;
 @Transactional
 public class AdministrarUsuariosService implements AdministrarUsuariosUseCase {
 
-    private static final Logger log = LoggerFactory.getLogger(AdministrarUsuariosService.class);
-
     private final UsuarioRepositoryPort usuarios;
     private final ModeracionCatalogoPort catalogo;
+    private final PasswordEncoder encoder;
+    private final AvisoCuentaPort avisos;
 
-    public AdministrarUsuariosService(UsuarioRepositoryPort usuarios, ModeracionCatalogoPort catalogo) {
+    public AdministrarUsuariosService(UsuarioRepositoryPort usuarios, ModeracionCatalogoPort catalogo,
+                                      PasswordEncoder encoder, AvisoCuentaPort avisos) {
         this.usuarios = usuarios;
         this.catalogo = catalogo;
+        this.encoder = encoder;
+        this.avisos = avisos;
     }
 
     @Override
@@ -41,6 +47,7 @@ public class AdministrarUsuariosService implements AdministrarUsuariosUseCase {
         });
         usuario.cambiarNombre(nombre);
         usuario.cambiarEmail(correo);
+        EventosSeguridad.registrar("ADMIN_EDITA_CUENTA", "usuario", id);
         return usuarios.guardar(usuario);
     }
 
@@ -61,7 +68,7 @@ public class AdministrarUsuariosService implements AdministrarUsuariosUseCase {
         }
         usuario.cambiarRol(nuevo);
         usuario.cerrarSesiones(OffsetDateTime.now()); // el token guarda los roles: el anterior ya no debe valer
-        log.info("Admin {} cambió el rol del usuario {} a {}", adminId, id, nuevo);
+        EventosSeguridad.registrar("ADMIN_CAMBIA_ROL", "usuario", id, "rol", nuevo);
         return usuarios.guardar(usuario);
     }
 
@@ -75,7 +82,7 @@ public class AdministrarUsuariosService implements AdministrarUsuariosUseCase {
         if (usuario.tieneRol(Rol.VENDEDOR)) {
             catalogo.suspenderVendedor(id);
         }
-        log.info("Admin {} suspendió al usuario {}", adminId, id);
+        EventosSeguridad.registrar("ADMIN_SUSPENDE_CUENTA", "usuario", id);
         return usuarios.guardar(usuario);
     }
 
@@ -86,7 +93,43 @@ public class AdministrarUsuariosService implements AdministrarUsuariosUseCase {
         if (usuario.tieneRol(Rol.VENDEDOR)) {
             catalogo.reactivarVendedor(id);
         }
+        EventosSeguridad.registrar("ADMIN_REACTIVA_CUENTA", "usuario", id);
         return usuarios.guardar(usuario);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Usuario> listar() {
+        return usuarios.listarTodos();
+    }
+
+    @Override
+    public Usuario crearVendedor(String nombre, String email, String clave) {
+        String correo = email.trim().toLowerCase();
+        if (usuarios.buscarPorEmail(correo).isPresent()) {
+            throw new ReglaNegocioException("El correo '" + correo + "' ya está registrado");
+        }
+        Usuario creado = usuarios.guardar(Usuario.registrar(correo, encoder.encode(new Clave(clave).valor()), nombre, Rol.VENDEDOR));
+        EventosSeguridad.registrar("ADMIN_CREA_VENDEDOR", "usuario", creado.getId());
+        return creado;
+    }
+
+    @Override
+    public Usuario cerrarSesiones(Long id) {
+        Usuario usuario = buscar(id);
+        usuario.cerrarSesiones(OffsetDateTime.now());
+        EventosSeguridad.registrar("ADMIN_CIERRA_SESIONES", "usuario", id);
+        return usuarios.guardar(usuario);
+    }
+
+    @Override
+    public Usuario aprobarVendedor(Long adminId, Long id) {
+        Usuario usuario = buscar(id);
+        usuario.aprobar();
+        Usuario aprobado = usuarios.guardar(usuario);
+        EventosSeguridad.registrar("ADMIN_APRUEBA_VENDEDOR", "usuario", id);
+        avisos.avisarAprobacion(aprobado.getEmail(), aprobado.getNombre());
+        return aprobado;
     }
 
     private Usuario buscar(Long id) {

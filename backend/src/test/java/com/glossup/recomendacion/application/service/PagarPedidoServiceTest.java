@@ -4,9 +4,12 @@ import com.glossup.recomendacion.domain.model.EstadoPedido;
 import com.glossup.recomendacion.domain.model.Pedido;
 import com.glossup.recomendacion.domain.model.PedidoItem;
 import com.glossup.recomendacion.domain.model.PedidoPagado;
+import com.glossup.recomendacion.domain.model.ReembolsoPendiente;
 import com.glossup.recomendacion.domain.model.TransaccionPago;
 import com.glossup.recomendacion.domain.model.TransaccionPago.Estado;
+import com.glossup.recomendacion.domain.port.out.ClientePort;
 import com.glossup.recomendacion.domain.port.out.InventarioPort;
+import com.glossup.recomendacion.domain.port.out.NotificacionPort;
 import com.glossup.recomendacion.domain.port.out.PasarelaPagosPort;
 import com.glossup.recomendacion.domain.port.out.PedidoRepositoryPort;
 import com.glossup.shared.domain.Dinero;
@@ -42,12 +45,14 @@ class PagarPedidoServiceTest {
     @Mock private PasarelaPagosPort pasarela;
     @Mock private InventarioPort inventario;
     @Mock private ApplicationEventPublisher eventos;
+    @Mock private ClientePort clientes;
+    @Mock private NotificacionPort notificacion;
 
     private PagarPedidoService service;
 
     @BeforeEach
     void setUp() {
-        service = new PagarPedidoService(pedidos, pasarela, inventario, eventos, "https://glossup.co/",
+        service = new PagarPedidoService(pedidos, pasarela, inventario, eventos, clientes, notificacion, "https://glossup.co/",
                 Clock.fixed(Instant.from(AHORA), ZoneOffset.UTC));
         lenient().when(pedidos.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -139,11 +144,52 @@ class PagarPedidoServiceTest {
     }
 
     @Test
-    void pagoAprobadoDeUnPedidoYaCanceladoNoLoRevive() {
+    void pagoAprobadoDeUnPedidoYaCanceladoNoLoReviveYQuedaConReembolsoPendiente() {
         Pedido p = pedido(EstadoPedido.CANCELADO, AHORA.minusHours(2));
         when(pasarela.leerEvento("tarde")).thenReturn(Optional.of(transaccion(Estado.APROBADA, 2_500_000)));
         assertTrue(service.procesarEvento("tarde"));
+
         assertEquals(EstadoPedido.CANCELADO, p.getEstado());
+        assertTrue(p.reembolsoPendiente());
+        assertNotNull(p.getTransaccionId());
+        verify(pedidos).guardar(p);
+        verify(eventos).publishEvent(new ReembolsoPendiente(7L)); // correo al cliente
+        verify(eventos, never()).publishEvent(any(PedidoPagado.class)); // ni comprobante ni envío
+        verifyNoInteractions(inventario); // no vuelve a reservar stock
+
+        // El mismo evento repetido no registra otro reembolso.
+        clearInvocations(pedidos, eventos);
+        assertTrue(service.procesarEvento("tarde"));
+        verify(pedidos, never()).guardar(any());
+        verifyNoInteractions(eventos);
+    }
+
+    @Test
+    void marcarReembolsado_cierraElReembolsoYNoSePuedeRepetir() {
+        Pedido p = pedido(EstadoPedido.CANCELADO, AHORA.minusHours(2));
+        p.registrarPagoTardio("tx-1", "CARD", AHORA.minusHours(1));
+
+        service.marcarReembolsado(7L);
+        assertFalse(p.reembolsoPendiente());
+        assertTrue(AHORA.isEqual(p.getReembolsadoEn()));
+        assertThrows(ReglaNegocioException.class, () -> service.marcarReembolsado(7L));
+    }
+
+    @Test
+    void marcarReembolsado_unPedidoSinPagoTardioSeRechaza() {
+        pedido(EstadoPedido.CANCELADO, AHORA.minusHours(2));
+        assertThrows(ReglaNegocioException.class, () -> service.marcarReembolsado(7L));
+        pedido(EstadoPedido.PAGADO, AHORA.minusHours(2));
+        assertThrows(ReglaNegocioException.class, () -> service.marcarReembolsado(7L));
+    }
+
+    @Test
+    void avisarReembolso_escribeAlClienteDelPedido() {
+        Pedido p = pedido(EstadoPedido.CANCELADO, AHORA.minusHours(2));
+        ClientePort.Cliente ana = new ClientePort.Cliente("Ana", "ana@correo.co");
+        when(clientes.buscar(1L)).thenReturn(Optional.of(ana));
+        service.avisarReembolso(7L);
+        verify(notificacion).avisarReembolso(ana, p);
     }
 
     @Test

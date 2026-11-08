@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  *
  * <p>Invariantes de complejidad:</p>
  * <ul>
- *   <li>Longitud entre 8 y 120 caracteres.</li>
+ *   <li>Longitud entre 8 y 72 caracteres.</li>
  *   <li>Al menos una letra mayúscula (A-Z).</li>
  *   <li>Al menos una letra minúscula (a-z).</li>
  *   <li>Al menos un número (0-9).</li>
@@ -20,11 +20,11 @@ import java.util.regex.Pattern;
 public record Clave(String valor) {
 
     public static final int LONGITUD_MINIMA = 8;
-    public static final int LONGITUD_MAXIMA = 120;
+    public static final int LONGITUD_MAXIMA = 72; // BCrypt solo usa 72 bytes (CVE-2025-22228); con tildes caben menos y lo frena el codificador
 
-    public static final String REGEX_COMPLEJIDAD = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).{8,120}$";
+    public static final String REGEX_COMPLEJIDAD = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).{8,72}$";
     public static final String MENSAJE_REQUISITOS =
-            "La contraseña debe tener entre 8 y 120 caracteres y combinar letras mayúsculas, minúsculas, números y caracteres especiales";
+            "La contraseña debe tener entre 8 y 72 caracteres y combinar letras mayúsculas, minúsculas, números y caracteres especiales";
 
     private static final Pattern PATTERN_MAYUSCULA = Pattern.compile("[A-Z]");
     private static final Pattern PATTERN_MINUSCULA = Pattern.compile("[a-z]");

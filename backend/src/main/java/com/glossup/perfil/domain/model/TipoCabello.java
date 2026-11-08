@@ -22,4 +22,9 @@ public enum TipoCabello {
     }
 
     public String getEtiqueta() { return etiqueta; }
+
+    /** Familia a la que apuntan las reglas del motor: la literatura recomienda por familia, no por subtipo (V21). */
+    public String familia() {
+        return name().startsWith("LISO") ? "CABELLO_LISO" : name().startsWith("ONDULADO") ? "CABELLO_ONDULADO" : "CABELLO_RIZADO";
+    }
 }

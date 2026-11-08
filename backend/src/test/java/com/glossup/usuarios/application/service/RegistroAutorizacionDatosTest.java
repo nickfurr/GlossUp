@@ -35,6 +35,17 @@ class RegistroAutorizacionDatosTest {
     }
 
     @Test
+    void vendedorQueSeRegistraSolo_quedaPendienteYElClienteNo() {
+        when(usuarios.buscarPorEmail(any())).thenReturn(Optional.empty());
+        when(usuarios.guardar(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Usuario vendedor = service.registrar(new RegistrarUsuarioCommand("tienda@correo.co", "Tienda", "Clave-segura-1",
+                "VENDEDOR", true, true));
+        assertTrue(vendedor.isPendienteAprobacion());
+        assertFalse(service.registrar(comando(true, true)).isPendienteAprobacion());
+    }
+
+    @Test
     void sinAceptarLaPolitica_noCreaLaCuenta() {
         assertThrows(ReglaNegocioException.class, () -> service.registrar(comando(false, true)));
         verify(usuarios, never()).guardar(any());

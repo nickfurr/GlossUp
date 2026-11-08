@@ -1,6 +1,6 @@
 package com.glossup.catalogo.infrastructure.in.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.glossup.catalogo.domain.model.ComposicionProducto;
 import com.glossup.catalogo.domain.model.ImagenProducto;
 import com.glossup.catalogo.domain.model.Inci;
@@ -23,8 +23,8 @@ import com.glossup.shared.security.JwtAuthenticationFilter;
 import com.glossup.shared.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -63,16 +63,16 @@ class ProductoControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private RegistrarProductoUseCase registrarProductoUseCase;
 
-    @MockBean
+    @MockitoBean
     private GestionarProductoUseCase gestionarProductoUseCase;
 
-    @MockBean
+    @MockitoBean
     private ProductoRepositoryPort productoRepository;
 
-    @MockBean
+    @MockitoBean
     private com.glossup.catalogo.domain.port.in.ExtraerIngredientesImagenUseCase extraerIngredientesImagenUseCase;
 
     private RegistrarProductoRequest crearRequestValido() {
@@ -356,16 +356,49 @@ class ProductoControllerTest {
 
     @Test
     @WithMockUser(username = "7", roles = "CLIENTE")
-    void listarCatalogo_ocultaAgotadosEInactivos() throws Exception {
-        when(productoRepository.listarTodos()).thenReturn(List.of(
+    void listarCatalogo_devuelveUnaPaginaConElTotal() throws Exception {
+        when(productoRepository.catalogo(null, 1, 2)).thenReturn(new ProductoRepositoryPort.PaginaCatalogo(
+                List.of(productoCatalogo(3L, "Tercero", 5, true)), 3));
+
+        mockMvc.perform(get("/api/catalogo/productos").param("pagina", "1").param("tamano", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].nombre").value("Tercero"))
+                .andExpect(jsonPath("$.pagina").value(1))
+                .andExpect(jsonPath("$.total").value(3));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void listarCatalogo_tamanoFueraDeRango_422() throws Exception {
+        mockMvc.perform(get("/api/catalogo/productos").param("tamano", "500"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void listarCatalogoPorIds_respetaElOrdenYOcultaAgotadosEInactivos() throws Exception {
+        when(productoRepository.buscarPorIds(List.of(3L, 2L, 1L))).thenReturn(List.of(
                 productoCatalogo(1L, "Con stock", 5, true),
                 productoCatalogo(2L, "Agotado", 0, true),
-                productoCatalogo(3L, "Despublicado", 9, false)));
+                productoCatalogo(3L, "Otro con stock", 9, true)));
 
-        mockMvc.perform(get("/api/catalogo/productos"))
+        mockMvc.perform(get("/api/catalogo/productos").param("ids", "3,2,1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].nombre").value("Con stock"));
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].nombre").value("Otro con stock"))
+                .andExpect(jsonPath("$.items[1].nombre").value("Con stock"));
+    }
+
+    @Test
+    @WithMockUser(username = "7", roles = "CLIENTE")
+    void indice_soloIdYCategoria() throws Exception {
+        when(productoRepository.indiceCatalogo()).thenReturn(List.of(new ProductoRepositoryPort.EntradaCatalogo(1L, "Sérums")));
+        mockMvc.perform(get("/api/catalogo/productos/indice"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].categoria").value("Sérums"))
+                .andExpect(jsonPath("$[0].nombre").doesNotExist());
     }
 
     private static Producto productoCatalogo(Long id, String nombre, int stock, boolean activo) {

@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Envía el comprobante (HU11) y los avisos de envío (HU14) por correo con el SMTP de las variables SPRING_MAIL_HOST, _PORT,
+ * Envía el comprobante (HU11), los avisos de envío (HU14) y de reembolso por correo con el SMTP de las variables SPRING_MAIL_HOST, _PORT,
  * _USERNAME y _PASSWORD. Sin ellas no envía nada: el comprobante igual se descarga en "Mis pedidos".
  */
 @Component
@@ -74,6 +74,33 @@ public class CorreoNotificacionAdapter implements NotificacionPort {
         } catch (MessagingException | java.io.UnsupportedEncodingException e) {
             throw new MailSendException("No se pudo armar el correo del comprobante", e);
         }
+    }
+
+    @Override
+    public void avisarReembolso(ClientePort.Cliente cliente, Pedido pedido) {
+        JavaMailSender servidor = correo.getIfAvailable();
+        if (servidor == null || remitente.isBlank()) {
+            return;
+        }
+        NumberFormat cop = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CO"));
+        cop.setMaximumFractionDigits(0);
+        var mensaje = new SimpleMailMessage();
+        mensaje.setFrom(remitente);
+        mensaje.setTo(cliente.email());
+        mensaje.setSubject("Te devolveremos el pago del pedido #" + pedido.getId() + " · GlossUP");
+        mensaje.setText("""
+                Hola %s:
+
+                Recibimos tu pago de %s (transacción %s), pero el pedido #%d ya se había cancelado porque venció
+                el plazo para pagarlo, así que no lo vamos a despachar.
+
+                Te devolveremos el dinero al mismo medio de pago. Cuando lo hagamos lo verás en Mis pedidos:
+                %s/pedidos?pedido=%d
+
+                Si quieres los productos, vuelve a armar tu carrito. Disculpa la molestia.
+                """.formatted(cliente.nombre(), cop.format(pedido.getTotal().monto()), pedido.getTransaccionId(),
+                pedido.getId(), urlPublica, pedido.getId()));
+        servidor.send(mensaje);
     }
 
     @Override

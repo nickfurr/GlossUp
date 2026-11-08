@@ -9,8 +9,8 @@ import com.glossup.usuarios.domain.port.in.RegistrarUsuarioCommand;
 import com.glossup.usuarios.domain.port.in.RegistrarUsuarioUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,15 +32,20 @@ class RegistroAutorizacionControllerTest {
         public JwtService jwtService() {
             return new JwtService("secreto-de-prueba-con-longitud-suficiente-32+", 3600000L);
         }
+
+        @org.springframework.context.annotation.Bean
+        public com.glossup.shared.security.CookieSesion cookieSesion() {
+            return new com.glossup.shared.security.CookieSesion(true, 3600000L);
+        }
     }
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private AutenticarUsuarioUseCase autenticarUsuarioUseCase;
 
-    @MockBean
+    @MockitoBean
     private RegistrarUsuarioUseCase registrarUsuarioUseCase;
 
     private static String cuerpo(String extra) {

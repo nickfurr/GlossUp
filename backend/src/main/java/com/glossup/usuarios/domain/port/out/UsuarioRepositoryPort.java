@@ -2,6 +2,7 @@ package com.glossup.usuarios.domain.port.out;
 
 import com.glossup.usuarios.domain.model.Usuario;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UsuarioRepositoryPort {
@@ -11,4 +12,7 @@ public interface UsuarioRepositoryPort {
     Optional<Usuario> buscarPorId(Long id);
 
     Usuario guardar(Usuario usuario);
+
+    /** Todas las cuentas, por id. */
+    List<Usuario> listarTodos();
 }

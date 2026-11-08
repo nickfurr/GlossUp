@@ -2,6 +2,7 @@ package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.shared.security.EventosSeguridad;
 import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Usuario;
 import com.glossup.usuarios.domain.port.in.RecuperarClaveUseCase;
@@ -64,6 +65,7 @@ public class RecuperarClaveService implements RecuperarClaveUseCase {
         if (!usuario.isActivo()) {
             throw new ReglaNegocioException("Reactiva la cuenta antes de generar un enlace de recuperación");
         }
+        EventosSeguridad.registrar("ADMIN_GENERA_ENLACE_CLAVE", "usuario", usuarioId);
         return crearEnlace(usuario, VIGENCIA_ADMIN);
     }
 
@@ -77,6 +79,7 @@ public class RecuperarClaveService implements RecuperarClaveUseCase {
         usuario.cambiarPasswordHash(encoder.encode(nueva.valor()));
         usuario.cerrarSesiones(OffsetDateTime.now()); // si alguien había entrado con la clave anterior, queda afuera
         usuarios.guardar(usuario);
+        EventosSeguridad.registrar("CLAVE_RESTABLECIDA", "usuario", usuario.getId());
     }
 
     private String crearEnlace(Usuario usuario, Duration vigencia) {

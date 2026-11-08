@@ -32,6 +32,7 @@ public class Usuario {
     private String nombre;
     private String passwordHash;
     private boolean activo;
+    private boolean pendienteAprobacion;
     private final Set<Rol> roles;
     private final OffsetDateTime creadoEn;
 
@@ -94,6 +95,27 @@ public class Usuario {
         this.motivoSuspension = null;
     }
 
+    /** Vendedor que se registró solo: no entra hasta que un administrador lo apruebe (auditoría OBS-T08). */
+    public void quedarPendienteDeAprobacion() {
+        if (!tieneRol(Rol.VENDEDOR)) {
+            throw new ReglaNegocioException("Solo las cuentas de vendedor esperan aprobación");
+        }
+        this.pendienteAprobacion = true;
+    }
+
+    public void aprobar() {
+        if (!pendienteAprobacion) {
+            throw new ReglaNegocioException("La cuenta no tiene una aprobación pendiente");
+        }
+        this.pendienteAprobacion = false;
+    }
+
+    /** Reconstrucción desde persistencia. */
+    public Usuario conAprobacionPendiente(boolean pendiente) {
+        this.pendienteAprobacion = pendiente;
+        return this;
+    }
+
     public void cerrarSesiones(OffsetDateTime desde) {
         this.sesionesDesde = desde;
     }
@@ -139,6 +161,7 @@ public class Usuario {
     public void cambiarRol(Rol rol) {
         this.roles.clear();
         this.roles.add(Objects.requireNonNull(rol, "rol requerido"));
+        this.pendienteAprobacion = false; // el rol lo asigna un administrador: ya no hay nada que aprobar
     }
 
     public void cambiarNombre(String nuevoNombre) {
@@ -183,6 +206,7 @@ public class Usuario {
     public String getNombre() { return nombre; }
     public String getPasswordHash() { return passwordHash; }
     public boolean isActivo() { return activo; }
+    public boolean isPendienteAprobacion() { return pendienteAprobacion; }
     public String getMotivoSuspension() { return motivoSuspension; }
     public OffsetDateTime getSesionesDesde() { return sesionesDesde; }
     public OffsetDateTime getPoliticaAceptadaEn() { return politicaAceptadaEn; }

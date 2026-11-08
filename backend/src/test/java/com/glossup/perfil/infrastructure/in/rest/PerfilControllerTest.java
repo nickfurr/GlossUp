@@ -1,6 +1,6 @@
 package com.glossup.perfil.infrastructure.in.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.glossup.perfil.domain.model.Afeccion;
 import com.glossup.perfil.domain.model.Alergeno;
 import com.glossup.perfil.domain.model.PerfilDermatologico;
@@ -17,8 +17,8 @@ import com.glossup.shared.security.JwtAuthenticationFilter;
 import com.glossup.shared.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -50,7 +50,7 @@ class PerfilControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private GestionarPerfilUseCase gestionarPerfilUseCase;
 
     private PerfilDermatologico crearPerfilEjemplo(Set<Afeccion> afecciones, Set<Alergeno> alergias) {

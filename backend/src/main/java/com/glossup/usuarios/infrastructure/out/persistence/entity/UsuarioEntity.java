@@ -36,6 +36,9 @@ public class UsuarioEntity {
     @Column(name = "politica_version", length = 20)
     private String politicaVersion;
 
+    @Column(name = "pendiente_aprobacion", nullable = false)
+    private boolean pendienteAprobacion;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "usuario_rol",
             joinColumns = @JoinColumn(name = "usuario_id"),
@@ -74,6 +77,8 @@ public class UsuarioEntity {
     public void setPoliticaAceptadaEn(OffsetDateTime politicaAceptadaEn) { this.politicaAceptadaEn = politicaAceptadaEn; }
     public String getPoliticaVersion() { return politicaVersion; }
     public void setPoliticaVersion(String politicaVersion) { this.politicaVersion = politicaVersion; }
+    public boolean isPendienteAprobacion() { return pendienteAprobacion; }
+    public void setPendienteAprobacion(boolean pendienteAprobacion) { this.pendienteAprobacion = pendienteAprobacion; }
 
     public void setEmail(String email) { this.email = email; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }

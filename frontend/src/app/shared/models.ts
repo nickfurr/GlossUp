@@ -184,6 +184,9 @@ export interface Pedido {
   transaccionId?: string | null;
   metodoPago?: string | null;
   pagadoEn?: string | null;
+  /** Cancelado con un pago aprobado que llegó tarde y aún no se le devuelve al cliente (auditoría OBS-T13). */
+  reembolsoPendiente?: boolean;
+  reembolsadoEn?: string | null;
 }
 
 export type EstadoTransaccion = 'APROBADA' | 'PENDIENTE' | 'RECHAZADA' | 'ANULADA' | 'ERROR';

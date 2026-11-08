@@ -5,28 +5,18 @@ import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth';
 
 /**
- * Adjunta el token Bearer y, si el backend responde 401 (token vencido o inválido), cierra la
- * sesión completa y manda a /login: dejar el usuario en pantalla sin token hacía fallar en
- * silencio todas las llamadas (búsqueda, perfil, carrito).
+ * La sesión viaja sola en la cookie HttpOnly. Si el backend responde 401 (sesión vencida o cerrada desde otro
+ * dispositivo), olvida al usuario y manda a /login: dejarlo en pantalla hacía fallar en silencio todas las
+ * llamadas (búsqueda, perfil, carrito).
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  let token: string | null = null;
-  try {
-    token = localStorage.getItem('glossup_token');
-  } catch {
-    /* almacenamiento no disponible */
-  }
-  const autenticada = token
-    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-    : req;
-
-  return next(autenticada).pipe(
+  return next(req).pipe(
     catchError((error) => {
       // En /api/auth/** un 401 es "credenciales incorrectas": lo muestra el formulario de login.
       if (error?.status === 401 && !req.url.includes('/api/auth/')) {
-        auth.salir();
+        auth.olvidar();
         router.navigateByUrl('/login');
       }
       return throwError(() => error);

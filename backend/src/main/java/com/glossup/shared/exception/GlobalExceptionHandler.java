@@ -2,11 +2,13 @@ package com.glossup.shared.exception;
 
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.ratelimit.ClientIpResolver;
+import com.glossup.shared.security.EventosSeguridad;
 import com.glossup.shared.security.LoginTarpitService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -84,6 +86,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, ex.getMessage(), req, ex.getMotivo() != null ? List.of(ex.getMotivo()) : List.of());
     }
 
+    @ExceptionHandler(CuentaPendienteException.class)
+    public ResponseEntity<ApiError> handleCuentaPendiente(CuentaPendienteException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), req, List.of());
+    }
+
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<ApiError> handleReglaNegocio(ReglaNegocioException ex, HttpServletRequest req) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, List.of());
@@ -109,6 +116,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex, HttpServletRequest req) {
+        EventosSeguridad.alertar("ACCESO_DENEGADO", "metodo", req.getMethod(), "ruta", req.getRequestURI());
         return build(HttpStatus.FORBIDDEN, "Acceso denegado: permisos insuficientes", req, List.of());
     }
 
@@ -116,6 +124,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleCuerpoIlegible(HttpMessageNotReadableException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "El cuerpo de la peticion no es un JSON valido", req, List.of());
+    }
+
+    /** Bloqueo o choque entre transacciones simultaneas: el cliente puede reintentar (auditoria R-05). */
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<ApiError> handleConcurrencia(ConcurrencyFailureException ex, HttpServletRequest req) {
+        log.warn("Choque de concurrencia en {} {}: {}", req.getMethod(), req.getRequestURI(), ex.getClass().getSimpleName());
+        return build(HttpStatus.CONFLICT, "Otra operacion modifico estos datos al mismo tiempo. Intenta de nuevo.", req, List.of());
     }
 
     /** Base de datos caida: 503 inmediato en vez de colgar la peticion (auditoria R-16). */

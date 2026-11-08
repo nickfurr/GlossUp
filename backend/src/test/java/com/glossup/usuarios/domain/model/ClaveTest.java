@@ -43,9 +43,10 @@ class ClaveTest {
 
     @Test
     void claveDemasiadoLarga_lanzaExcepcion() {
-        String larguisima = "A1!" + "a".repeat(118); // 121 caracteres
+        String larguisima = "A1!" + "a".repeat(70); // 73 caracteres: BCrypt solo usa 72 bytes
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class, () -> new Clave(larguisima));
-        assertEquals("La contraseña no puede superar 120 caracteres", ex.getMessage());
+        assertEquals("La contraseña no puede superar 72 caracteres", ex.getMessage());
+        assertDoesNotThrow(() -> new Clave("A1!" + "a".repeat(69)));
     }
 
     @Test

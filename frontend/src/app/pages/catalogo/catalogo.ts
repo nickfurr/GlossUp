@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ProductosService, mensajeDeError } from '../../shared/productos';
+import { EntradaIndice, ProductoRecomendado, ProductosService, mensajeDeError, paginarPorIds } from '../../shared/productos';
 import { CompatibilidadService } from '../../shared/compatibilidad';
 import { PerfilService } from '../../shared/perfil';
 import { CompatInfo } from '../../shared/compat-info';
@@ -16,10 +16,10 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
 ];
 
 /**
- * Catálogo del cliente, estilo marketplace: carrusel "Recomendados para ti" (HU6: productos sin
- * alertas y con ingredientes buenos para su perfil), filtros por categoría y dermatológicos (HU13:
- * apto para un tipo de piel y sin mis alérgenos, resueltos en el servidor), búsqueda (HU12) y alta
- * al carrito (HU9). Cada tarjeta abre la ficha del producto.
+ * Catálogo del cliente, estilo marketplace: carrusel "Recomendados para ti" (recomendador del servidor: sin
+ * alertas para su perfil y con la razón de cada uno), filtros por categoría y dermatológicos (HU13: apto para un
+ * tipo de piel y sin mis alérgenos, resueltos en el servidor), búsqueda (HU12) y alta al carrito (HU9). La grilla
+ * se arma con el índice liviano del catálogo y baja las fichas por tandas (auditoría R-14).
  */
 @Component({
   selector: 'app-catalogo',
@@ -39,7 +39,7 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
           <div><span class="eyebrow">Según tu perfil dermatológico</span><h2>Recomendados para ti</h2></div>
           @if (recomendados().length) { <span class="catalog-note">{{ recomendados().length }} producto(s)</span> }
         </div>
-        @if (cargando() || evaluando()) {
+        @if (evaluando()) {
           <app-cargando [pasos]="pasosRecomendados" [cantidad]="3" />
         } @else if (perfilVacio()) {
           <p class="compat-aviso">Completa tu perfil dermatológico y te recomendaremos los productos que le sirven a tu piel y cabello.
@@ -60,11 +60,11 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
         @if (busqueda()) {
           <button type="button" class="btn-sec" (click)="limpiarBusqueda()">✕ Quitar búsqueda</button>
         } @else if (!cargando()) {
-          <span class="catalog-note">{{ visibles().length }} producto(s)</span>
+          <span class="catalog-note">{{ pagina.total() }} producto(s)</span>
         }
       </div>
 
-      @if (!busqueda() && !cargando() && catalogo().length) {
+      @if (!busqueda() && !cargando() && indice().length) {
         <div class="filtros-catalogo" role="search" aria-label="Filtros del catálogo">
           @if (categorias().length > 1) {
             <div class="grupo">
@@ -112,8 +112,10 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
         </div>
       }
 
-      @if (cargando() || filtrando()) {
+      @if (cargando() || filtrando() || (!busqueda() && pagina.cargando() && !visibles().length)) {
         <app-cargando [texto]="busqueda() ? 'Buscando productos…' : filtrando() ? 'Aplicando tus filtros…' : 'Cargando productos…'" />
+      } @else if (!busqueda() && pagina.error()) {
+        <p class="error" role="alert">{{ pagina.error() }}</p>
       } @else if (errorFiltro()) {
         <p class="error" role="alert">{{ errorFiltro() }} <button type="button" class="btn-sec" (click)="aplicarFiltros()">Reintentar</button></p>
       } @else if (visibles().length === 0) {
@@ -129,6 +131,12 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
             <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: p }" />
           }
         </div>
+        @if (!busqueda() && pagina.hayMas()) {
+          <div class="cargar-mas">
+            <button type="button" class="btn-sec" [disabled]="pagina.cargando()" (click)="pagina.cargarMas()">
+              {{ pagina.cargando() ? 'Cargando…' : 'Ver más productos (' + (pagina.total() - visibles().length) + ' más)' }}</button>
+          </div>
+        }
         <p style="margin-top:1.5rem"><a routerLink="/carrito" class="perfil-callout">Ir al carrito →</a></p>
       }
     </section>
@@ -142,6 +150,7 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
           <h3 class="cat-nombre">{{ p.nombre }}</h3>
         </a>
         <p class="cat-marca">{{ p.marca || p.categoria || 'Cosmético' }}</p>
+        @if (p.razon) { <p class="cat-razon">{{ p.razon }}</p> }
         <app-compat-info [resultado]="compat()[p.id]" />
         <div class="cat-pie">
           <span class="precio">{{ formatearCop(p.precio) }}</span>
@@ -156,6 +165,7 @@ const TIPOS_PIEL: { valor: TipoPiel; texto: string }[] = [
     <app-agregar-carrito #carro />
   `,
   styles: [`
+    .cargar-mas { display: flex; justify-content: center; margin-top: 1.25rem; }
     .carrusel { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 240px); gap: 1rem;
                 overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .75rem; }
     .carrusel .cat-card { scroll-snap-align: start; }
@@ -205,7 +215,8 @@ export class Catalogo {
   private cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
   q = '';
-  readonly catalogo = signal<ProductoVendedor[]>([]);
+  /** Id y categoría de todo el catálogo; las fichas se piden por tandas. */
+  readonly indice = signal<EntradaIndice[]>([]);
   readonly resultados = signal<ProductoVendedor[]>([]);
   readonly busqueda = signal('');
   readonly categoria = signal('Todas');
@@ -213,16 +224,12 @@ export class Catalogo {
   readonly error = signal<string | null>(null);
   readonly compat = signal<Record<number, ResultadoCompatibilidad>>({});
   readonly perfilVacio = signal(false);
-  /** La primera evaluación contra el perfil, de la que salen los recomendados. */
+  /** Mientras llegan los recomendados. */
   readonly evaluando = signal(true);
   readonly pasosRecomendados = ['Buscando lo mejor para tu piel…', 'Revisando tus afecciones y tipo de piel…', 'Eligiendo tus recomendados…'];
 
-  /** Los que más beneficios aportan al perfil, primero. */
-  readonly recomendados = computed(() =>
-    this.catalogo()
-      .filter((p) => this.compat()[p.id]?.recomendado)
-      .sort((a, b) => this.compat()[b.id].beneficios.length - this.compat()[a.id].beneficios.length),
-  );
+  /** Del recomendador del servidor, ya ordenados y con su razón. */
+  readonly recomendados = signal<ProductoRecomendado[]>([]);
   readonly tiposPiel = TIPOS_PIEL;
   readonly perfil = signal<PerfilDermatologico | null>(null);
   readonly tipoPiel = signal<TipoPiel | null>(null);
@@ -241,12 +248,12 @@ export class Catalogo {
   /** Productos que pasan los filtros dermatológicos; las categorías cuentan sobre ellos. */
   private readonly aptosCatalogo = computed(() => {
     const a = this.aptos();
-    return a ? this.catalogo().filter((p) => a.has(p.id)) : this.catalogo();
+    return a ? this.indice().filter((p) => a.has(p.id)) : this.indice();
   });
   readonly categorias = computed(() => {
     const ps = this.aptosCatalogo();
     const cuenta = new Map<string, number>();
-    for (const p of this.catalogo()) if (p.categoria) cuenta.set(p.categoria, 0);
+    for (const p of this.indice()) if (p.categoria) cuenta.set(p.categoria, 0);
     for (const p of ps) if (p.categoria) cuenta.set(p.categoria, cuenta.get(p.categoria)! + 1);
     // Sin productos aptos la categoría no sirve de nada, salvo si es la elegida (para poder salir de ella).
     return [{ nombre: 'Todas', cantidad: ps.length }, ...[...cuenta]
@@ -263,24 +270,34 @@ export class Catalogo {
     const elegida = cs.find((c) => c.nombre === this.categoria());
     return elegida && !primeras.includes(elegida) ? [...primeras, elegida] : primeras;
   });
-  readonly visibles = computed(() => {
-    if (this.busqueda()) return this.resultados();
+  private readonly idsVisibles = computed(() => {
     const c = this.categoria();
-    return c === 'Todas' ? this.aptosCatalogo() : this.aptosCatalogo().filter((p) => p.categoria === c);
+    return this.aptosCatalogo().filter((p) => c === 'Todas' || p.categoria === c).map((p) => p.id);
   });
+  /** La grilla por tandas; cada tanda nueva se evalúa contra el perfil. */
+  readonly pagina = paginarPorIds(this.idsVisibles, (ps) => this.evaluarCompatibilidad(ps.filter((p) => !this.compat()[p.id])));
+  readonly visibles = computed(() => (this.busqueda() ? this.resultados() : this.pagina.visibles()));
 
   constructor() {
-    this.api.listarCatalogo().subscribe({
-      next: (ps) => {
-        this.catalogo.set(ps);
+    this.api.indice().subscribe({
+      next: (entradas) => {
+        this.indice.set(entradas);
         this.cargando.set(false);
-        this.evaluarCompatibilidad(ps);
       },
       error: (e) => {
         this.error.set(mensajeDeError(e));
         this.cargando.set(false);
-        this.evaluando.set(false);
       },
+    });
+    this.api.recomendados(12).subscribe({
+      next: (r) => {
+        this.perfilVacio.set(r.perfilVacio);
+        this.recomendados.set(r.perfilVacio ? [] : r.productos);
+        this.evaluando.set(false);
+        this.evaluarCompatibilidad(r.productos);
+      },
+      // Sin recomendaciones el catálogo sigue usable.
+      error: () => this.evaluando.set(false),
     });
     const q = inject(ActivatedRoute).snapshot.queryParamMap.get('q');
     if (q) {
@@ -361,9 +378,9 @@ export class Catalogo {
     });
   }
 
-  /** Una sola petición por lote; se acumula en el mapa. Si falla, el catálogo sigue usable sin sellos. */
+  /** Una sola petición por tanda; se acumula en el mapa. Si falla, el catálogo sigue usable sin sellos. */
   private evaluarCompatibilidad(ps: ProductoVendedor[]): void {
-    if (!ps.length) { this.evaluando.set(false); return; }
+    if (!ps.length) return;
     this.compatibilidad.evaluar(ps.map((p) => p.id)).subscribe({
       next: (e) => {
         this.perfilVacio.set(e.perfilVacio);
@@ -372,9 +389,8 @@ export class Catalogo {
           this.perfiles.opciones().subscribe((o) => this.etiquetas.set(Object.fromEntries(o.alergias.map((a) => [a.codigo, a.etiqueta]))));
         }
         this.compat.update((c) => ({ ...c, ...e.resultados }));
-        this.evaluando.set(false);
       },
-      error: () => this.evaluando.set(false),
+      error: () => { /* sin sellos de compatibilidad */ },
     });
   }
 }

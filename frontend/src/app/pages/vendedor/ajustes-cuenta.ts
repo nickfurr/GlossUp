@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../shared/auth';
 import { mensajeDeError } from '../../shared/productos';
 
-/** Ajustes de la cuenta propia: nombre visible, contraseña y eliminación de la cuenta. */
+/** Ajustes de la cuenta propia: nombre visible, contraseña, sesiones abiertas y eliminación de la cuenta. */
 @Component({
   selector: 'app-ajustes-cuenta',
   imports: [FormsModule],
@@ -31,11 +31,11 @@ import { mensajeDeError } from '../../shared/productos';
           <input name="actual" type="password" [(ngModel)]="actual" autocomplete="current-password" />
         </label>
         <label class="campo">Contraseña nueva
-          <input name="nueva" type="password" [(ngModel)]="nueva" autocomplete="new-password" maxlength="120" />
-          <span class="field-hint">Mínimo 8 caracteres (mayúsculas, minúsculas, números y caracteres especiales).</span>
+          <input name="nueva" type="password" [(ngModel)]="nueva" autocomplete="new-password" maxlength="72" />
+          <span class="field-hint">Entre 8 y 72 caracteres, con mayúsculas, minúsculas, números y caracteres especiales. Al cambiarla se cierran tus sesiones en otros dispositivos.</span>
         </label>
         <label class="campo">Repite la contraseña nueva
-          <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="120" />
+          <input name="repetida" type="password" [(ngModel)]="repetida" autocomplete="new-password" maxlength="72" />
         </label>
         @if (errorClave()) { <p class="error" role="alert">{{ errorClave() }}</p> }
         @if (avisoClave()) { <p class="success-message" role="status">{{ avisoClave() }}</p> }
@@ -43,6 +43,16 @@ import { mensajeDeError } from '../../shared/productos';
           <button type="submit" class="btn-primario" [disabled]="ocupado()">Cambiar contraseña</button>
         </div>
       </form>
+
+      <div class="panel">
+        <h3>Sesiones abiertas</h3>
+        <p class="nota">Si dejaste la sesión abierta en otro equipo o crees que alguien más entró a tu cuenta, ciérrala
+          en todos lados. También se cierra aquí y tendrás que volver a entrar.</p>
+        @if (errorSesiones()) { <p class="error" role="alert">{{ errorSesiones() }}</p> }
+        <div class="editor-acciones">
+          <button type="button" class="btn-sec" [disabled]="ocupado()" (click)="cerrarTodasLasSesiones()">Cerrar sesión en todos mis dispositivos</button>
+        </div>
+      </div>
 
       <!-- Un administrador no puede eliminar su cuenta: el sistema podría quedarse sin ninguno. -->
       @if (!esAdmin()) {
@@ -79,6 +89,7 @@ export class AjustesCuenta {
   readonly avisoClave = signal<string | null>(null);
   readonly errorEliminar = signal<string | null>(null);
   readonly confirmandoEliminar = signal(false);
+  readonly errorSesiones = signal<string | null>(null);
   readonly esAdmin = computed(() => !!this.sesion()?.roles.includes('ADMIN'));
   private router = inject(Router);
   nombre = this.auth.sesion()?.nombre ?? '';
@@ -124,11 +135,24 @@ export class AjustesCuenta {
     this.auth.cambiarClave(this.actual, this.nueva).subscribe({
       next: () => {
         this.actual = this.nueva = this.repetida = '';
-        this.avisoClave.set('Cambiamos tu contraseña.');
+        this.avisoClave.set('Cambiamos tu contraseña y cerramos tus sesiones en otros dispositivos.');
         this.ocupado.set(false);
       },
       error: (e) => {
         this.errorClave.set(mensajeDeError(e));
+        this.ocupado.set(false);
+      },
+    });
+  }
+
+  /** Revocación remota (auditoría OBS-T09): ningún dispositivo con la sesión abierta sigue entrando. */
+  cerrarTodasLasSesiones(): void {
+    this.errorSesiones.set(null);
+    this.ocupado.set(true);
+    this.auth.cerrarTodasLasSesiones().subscribe({
+      next: () => this.router.navigateByUrl('/login', { replaceUrl: true }),
+      error: (e) => {
+        this.errorSesiones.set(mensajeDeError(e));
         this.ocupado.set(false);
       },
     });

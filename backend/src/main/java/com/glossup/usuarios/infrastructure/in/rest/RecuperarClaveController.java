@@ -27,7 +27,7 @@ public class RecuperarClaveController {
     public record RestablecerRequest(
             @NotBlank String token,
             @NotBlank
-            @Size(min = Clave.LONGITUD_MINIMA, max = Clave.LONGITUD_MAXIMA, message = "La contraseña debe tener entre 8 y 120 caracteres")
+            @Size(min = Clave.LONGITUD_MINIMA, max = Clave.LONGITUD_MAXIMA, message = "La contraseña debe tener entre 8 y 72 caracteres")
             @Pattern(regexp = Clave.REGEX_COMPLEJIDAD, message = Clave.MENSAJE_REQUISITOS)
             String nueva) {}
 

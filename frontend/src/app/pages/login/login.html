@@ -23,9 +23,12 @@
         <div class="campo-full">
           <span class="etiqueta">Tipo de cuenta</span>
           <div class="toggle-rol">
-            <button type="button" [class.activo]="rol === 'CLIENTE'" (click)="rol = 'CLIENTE'">Cliente</button>
-            <button type="button" [class.activo]="rol === 'VENDEDOR'" (click)="rol = 'VENDEDOR'">Vendedor</button>
+            <button type="button" [class.activo]="rol === 'CLIENTE'" [attr.aria-pressed]="rol === 'CLIENTE'" (click)="rol = 'CLIENTE'">Cliente</button>
+            <button type="button" [class.activo]="rol === 'VENDEDOR'" [attr.aria-pressed]="rol === 'VENDEDOR'" (click)="rol = 'VENDEDOR'">Vendedor</button>
           </div>
+          @if (rol === 'VENDEDOR') {
+            <p class="nota">Un administrador revisa cada cuenta de vendedor antes de que pueda entrar.</p>
+          }
         </div>
 
         <label>
@@ -78,7 +81,7 @@
 
       @if (error()) { <p class="error">{{ error() }}</p> }
       @if (esperaActual().mensaje(); as m) { <p class="error" role="alert" aria-live="polite">{{ m }}</p> }
-      @if (info()) { <p class="nota">{{ info() }}</p> }
+      @if (info()) { <p class="nota" role="status">{{ info() }}</p> }
 
       <button type="submit" class="btn-primario ancho" [disabled]="cargando() || esperaActual().bloqueado()">
         {{ cargando() ? 'Procesando…' : esperaActual().bloqueado() ? 'Espera…' : esRegistro() ? 'Crear cuenta' : 'Ingresar' }}

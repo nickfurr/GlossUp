@@ -2,6 +2,7 @@ package com.glossup.usuarios.application.service;
 
 import com.glossup.shared.domain.ReglaNegocioException;
 import com.glossup.shared.exception.NotFoundException;
+import com.glossup.shared.security.EventosSeguridad;
 import com.glossup.usuarios.domain.model.Clave;
 import com.glossup.usuarios.domain.model.Rol;
 import com.glossup.usuarios.domain.model.Usuario;
@@ -48,9 +49,18 @@ public class GestionarCuentaService implements GestionarCuentaUseCase {
             throw new ReglaNegocioException("La contraseña actual no es correcta");
         }
         Clave nueva = new Clave(claveNueva);
-        // shortcut: los tokens ya emitidos siguen válidos hasta vencer (1 h); revocarlos requiere una versión de sesión en el JWT.
         usuario.cambiarPasswordHash(encoder.encode(nueva.valor()));
+        usuario.cerrarSesiones(OffsetDateTime.now()); // quien tuviera la clave anterior queda afuera; el controlador renueva esta sesión
         usuarios.guardar(usuario);
+        EventosSeguridad.registrar("CLAVE_CAMBIADA", "usuario", usuarioId);
+    }
+
+    @Override
+    public void cerrarSesiones(Long usuarioId) {
+        Usuario usuario = buscar(usuarioId);
+        usuario.cerrarSesiones(OffsetDateTime.now());
+        usuarios.guardar(usuario);
+        EventosSeguridad.registrar("SESIONES_CERRADAS", "usuario", usuarioId);
     }
 
     @Override
@@ -70,6 +80,7 @@ public class GestionarCuentaService implements GestionarCuentaUseCase {
         // Contraseña aleatoria que nadie conoce: la cuenta no puede volver a usarse.
         usuario.suprimir(encoder.encode(UUID.randomUUID().toString()), OffsetDateTime.now());
         usuarios.guardar(usuario);
+        EventosSeguridad.registrar("CUENTA_ELIMINADA", "usuario", usuarioId);
     }
 
     private Usuario buscar(Long usuarioId) {

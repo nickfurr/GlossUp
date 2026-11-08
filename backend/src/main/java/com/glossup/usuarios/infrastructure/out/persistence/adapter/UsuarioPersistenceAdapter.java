@@ -8,7 +8,10 @@ import com.glossup.usuarios.infrastructure.out.persistence.repository.UsuarioJpa
 import com.glossup.usuarios.infrastructure.out.persistence.repository.RolJpaRepository;
 import org.springframework.stereotype.Component;
 
+import org.springframework.data.domain.Sort;
+
 import java.util.EnumSet;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
 
@@ -34,6 +37,11 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     }
 
     @Override
+    public List<Usuario> listarTodos() {
+        return repository.findAll(Sort.by("id")).stream().map(this::aDominio).toList();
+    }
+
+    @Override
     public Usuario guardar(Usuario usuario) {
         UsuarioEntity entity = new UsuarioEntity();
         entity.setId(usuario.getId()); // con id actualiza la cuenta existente; sin id la crea
@@ -46,6 +54,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         entity.setSesionesDesde(usuario.getSesionesDesde());
         entity.setPoliticaAceptadaEn(usuario.getPoliticaAceptadaEn());
         entity.setPoliticaVersion(usuario.getPoliticaVersion());
+        entity.setPendienteAprobacion(usuario.isPendienteAprobacion());
         entity.setRoles(usuario.getRoles().stream()
                 .map(rol -> rol.name())
                 .map(nombre -> rolRepository.findByNombre(nombre)
@@ -60,6 +69,7 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         return new Usuario(entity.getId(), entity.getEmail(), entity.getNombre(),
                 entity.getPasswordHash(), entity.isActivo(), roles, entity.getCreadoEn())
                 .conModeracion(entity.getMotivoSuspension(), entity.getSesionesDesde())
-                .conPolitica(entity.getPoliticaAceptadaEn(), entity.getPoliticaVersion());
+                .conPolitica(entity.getPoliticaAceptadaEn(), entity.getPoliticaVersion())
+                .conAprobacionPendiente(entity.isPendienteAprobacion());
     }
 }
