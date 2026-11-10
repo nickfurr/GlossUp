@@ -193,6 +193,352 @@
   ],
   "item": [
     {
+      "name": "0. Autenticaci\u00f3n y Emisi\u00f3n de Tokens (Login)",
+      "item": [
+        {
+          "name": "Login CLIENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login CLIENTE - Status 200 OK\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Login CLIENTE - Retorna rol CLIENTE\", () => {",
+                  "  pm.expect(j.roles).to.include(\"CLIENTE\");",
+                  "});",
+                  "",
+                  "let token = null;",
+                  "const allH = pm.response.headers.all ? pm.response.headers.all() : [];",
+                  "for (let h of allH) {",
+                  "  if (h.key && h.key.toLowerCase() === \"set-cookie\") {",
+                  "    const m = h.value.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) { token = m[1]; break; }",
+                  "  }",
+                  "}",
+                  "if (!token && typeof pm.cookies !== \"undefined\" && pm.cookies.has(\"glossup_sesion\")) {",
+                  "  token = pm.cookies.get(\"glossup_sesion\");",
+                  "}",
+                  "if (!token) {",
+                  "  const rawSc = pm.response.headers.get(\"set-cookie\") || pm.response.headers.get(\"Set-Cookie\");",
+                  "  if (rawSc) {",
+                  "    const m = rawSc.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) token = m[1];",
+                  "  }",
+                  "}",
+                  "",
+                  "pm.test(\"Login CLIENTE - Emisi\u00f3n exitosa de token JWT\", () => {",
+                  "  pm.expect(token).to.not.be.empty;",
+                  "});",
+                  "",
+                  "if (token) {",
+                  "  pm.collectionVariables.set(\"token_cliente\", token);",
+                  "  pm.collectionVariables.set(\"token\", token);",
+                  "  pm.collectionVariables.set(\"token_cliente_comprobante\", token);",
+                  "}",
+                  "",
+                  "// Limpiar cookie jar para aislar tokens por cabecera Bearer y evitar colisiones CSRF",
+                  "try {",
+                  "  const jar = pm.cookies.jar();",
+                  "  jar.clear(pm.request.url, () => {});",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"cliente@demo.com\", \"password\": \"secret123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login VENDEDOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login VENDEDOR - Status 200 OK\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Login VENDEDOR - Retorna rol VENDEDOR\", () => {",
+                  "  pm.expect(j.roles).to.include(\"VENDEDOR\");",
+                  "});",
+                  "",
+                  "let token = null;",
+                  "const allH = pm.response.headers.all ? pm.response.headers.all() : [];",
+                  "for (let h of allH) {",
+                  "  if (h.key && h.key.toLowerCase() === \"set-cookie\") {",
+                  "    const m = h.value.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) { token = m[1]; break; }",
+                  "  }",
+                  "}",
+                  "if (!token && typeof pm.cookies !== \"undefined\" && pm.cookies.has(\"glossup_sesion\")) {",
+                  "  token = pm.cookies.get(\"glossup_sesion\");",
+                  "}",
+                  "if (!token) {",
+                  "  const rawSc = pm.response.headers.get(\"set-cookie\") || pm.response.headers.get(\"Set-Cookie\");",
+                  "  if (rawSc) {",
+                  "    const m = rawSc.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) token = m[1];",
+                  "  }",
+                  "}",
+                  "",
+                  "pm.test(\"Login VENDEDOR - Emisi\u00f3n exitosa de token JWT\", () => {",
+                  "  pm.expect(token).to.not.be.empty;",
+                  "});",
+                  "",
+                  "if (token) {",
+                  "  pm.collectionVariables.set(\"token_vendedor\", token);",
+                  "  pm.collectionVariables.set(\"c30_token\", token);",
+                  "  pm.collectionVariables.set(\"c31_token\", token);",
+                  "  pm.collectionVariables.set(\"c32_tokenOwner\", token);",
+                  "  pm.collectionVariables.set(\"c33_token\", token);",
+                  "  pm.collectionVariables.set(\"c34_tokenOwner\", token);",
+                  "  pm.collectionVariables.set(\"c35_token\", token);",
+                  "}",
+                  "",
+                  "// Limpiar cookie jar para aislar tokens por cabecera Bearer y evitar colisiones CSRF",
+                  "try {",
+                  "  const jar = pm.cookies.jar();",
+                  "  jar.clear(pm.request.url, () => {});",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"vendedor@demo.com\", \"password\": \"secret123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login VENDEDOR 2 (Otro Vendedor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login VENDEDOR 2 (Otro Vendedor) - Status 200 OK\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Login VENDEDOR 2 (Otro Vendedor) - Retorna rol VENDEDOR\", () => {",
+                  "  pm.expect(j.roles).to.include(\"VENDEDOR\");",
+                  "});",
+                  "",
+                  "let token = null;",
+                  "const allH = pm.response.headers.all ? pm.response.headers.all() : [];",
+                  "for (let h of allH) {",
+                  "  if (h.key && h.key.toLowerCase() === \"set-cookie\") {",
+                  "    const m = h.value.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) { token = m[1]; break; }",
+                  "  }",
+                  "}",
+                  "if (!token && typeof pm.cookies !== \"undefined\" && pm.cookies.has(\"glossup_sesion\")) {",
+                  "  token = pm.cookies.get(\"glossup_sesion\");",
+                  "}",
+                  "if (!token) {",
+                  "  const rawSc = pm.response.headers.get(\"set-cookie\") || pm.response.headers.get(\"Set-Cookie\");",
+                  "  if (rawSc) {",
+                  "    const m = rawSc.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) token = m[1];",
+                  "  }",
+                  "}",
+                  "",
+                  "pm.test(\"Login VENDEDOR 2 (Otro Vendedor) - Emisi\u00f3n exitosa de token JWT\", () => {",
+                  "  pm.expect(token).to.not.be.empty;",
+                  "});",
+                  "",
+                  "if (token) {",
+                  "  pm.collectionVariables.set(\"c32_tokenOther\", token);",
+                  "  pm.collectionVariables.set(\"c34_tokenOther\", token);",
+                  "}",
+                  "",
+                  "// Limpiar cookie jar para aislar tokens por cabecera Bearer y evitar colisiones CSRF",
+                  "try {",
+                  "  const jar = pm.cookies.jar();",
+                  "  jar.clear(pm.request.url, () => {});",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"vendedor2.1794276011@demo.com\", \"password\": \"Secret123!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login ADMIN - Status 200 OK\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Login ADMIN - Retorna rol ADMIN\", () => {",
+                  "  pm.expect(j.roles).to.include(\"ADMIN\");",
+                  "});",
+                  "",
+                  "let token = null;",
+                  "const allH = pm.response.headers.all ? pm.response.headers.all() : [];",
+                  "for (let h of allH) {",
+                  "  if (h.key && h.key.toLowerCase() === \"set-cookie\") {",
+                  "    const m = h.value.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) { token = m[1]; break; }",
+                  "  }",
+                  "}",
+                  "if (!token && typeof pm.cookies !== \"undefined\" && pm.cookies.has(\"glossup_sesion\")) {",
+                  "  token = pm.cookies.get(\"glossup_sesion\");",
+                  "}",
+                  "if (!token) {",
+                  "  const rawSc = pm.response.headers.get(\"set-cookie\") || pm.response.headers.get(\"Set-Cookie\");",
+                  "  if (rawSc) {",
+                  "    const m = rawSc.match(/glossup_sesion=([^;]+)/);",
+                  "    if (m) token = m[1];",
+                  "  }",
+                  "}",
+                  "",
+                  "pm.test(\"Login ADMIN - Emisi\u00f3n exitosa de token JWT\", () => {",
+                  "  pm.expect(token).to.not.be.empty;",
+                  "});",
+                  "",
+                  "if (token) {",
+                  "  pm.collectionVariables.set(\"token_admin\", token);",
+                  "}",
+                  "",
+                  "// Limpiar cookie jar para aislar tokens por cabecera Bearer y evitar colisiones CSRF",
+                  "try {",
+                  "  const jar = pm.cookies.jar();",
+                  "  jar.clear(pm.request.url, () => {});",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"admin@demo.com\", \"password\": \"secret123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "HU1 - Registro y consulta del perfil (C1-C8)",
       "item": [
         {
