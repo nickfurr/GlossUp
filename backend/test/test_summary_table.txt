@@ -1,0 +1,170 @@
+| Catálogos del perfil (GET /api/perfil/me/opciones) | 200 OK | PASÓ |
+| Catálogos del perfil (GET /api/perfil/me/opciones) | 200 OK | PASÓ |
+| Catálogos del perfil (GET /api/perfil/me/opciones) | 200 OK | PASÓ |
+| C1 · Crear perfil (PUT /api/perfil/me) | 200 OK | PASÓ |
+| C1 · Crear perfil (PUT /api/perfil/me) | 200 OK | PASÓ |
+| C1 · Crear perfil (PUT /api/perfil/me) | 200 OK | PASÓ |
+| C1 · Agregar alergia normalizada (POST /me/alergias) | 200 OK | PASÓ |
+| C1 · Alergia duplicada (POST /me/alergias) | 200 OK | PASÓ |
+| C2 · Crear perfil con usuarioId en el cuerpo | 200 OK | PASÓ |
+| C2 · Verificar identidad del perfil (GET /me) | 200 OK | PASÓ |
+| C3 · Primer registro (PUT /me) | 200 OK | PASÓ |
+| C3 · Segundo registro (PUT /me) | 200 OK | PASÓ |
+| C3 · Un solo perfil (GET /me) | 200 OK | PASÓ |
+| C4 · Perfil base (PUT /me) | 200 OK | PASÓ |
+| C4 · pH 99 (PUT /me) | 400 Bad Request | PASÓ |
+| C4 · pH -1 (PUT /me) | 400 Bad Request | PASÓ |
+| C4 · Verificar que no se persistió (GET /me) | 200 OK | PASÓ |
+| C5 · Perfil base (PUT /me) | 200 OK | PASÓ |
+| C5 · Tipo de piel PLATEADA (PUT /me) | 422 Unprocessable Entity | PASÓ |
+| C5 · Verificar que no se modificó (GET /me) | 200 OK | PASÓ |
+| C6 · Preparar perfil con datos (PUT /me) | 200 OK | PASÓ |
+| C6 · Agregar alergia (POST /me/alergias) | 200 OK | PASÓ |
+| C6 · Agregar afección (POST /me/afecciones) | 200 OK | PASÓ |
+| C6 · Consultar perfil (GET /me) | 200 OK | PASÓ |
+| C7 · Usuario nuevo sin perfil (GET /me) | 200 OK | PASÓ |
+| C7 · Usuario nuevo sin perfil (GET /me) | 200 OK | PASÓ |
+| C7 · Segundo GET del mismo perfil (GET /me) | 200 OK | PASÓ |
+| C8 · Crear perfil (PUT /me) | 200 OK | PASÓ |
+| C8 · Crear perfil (PUT /me) | 200 OK | PASÓ |
+| C8 · Agregar afección acne (POST /me/afecciones) | 200 OK | PASÓ |
+| C8 · Agregar alergia fragancia (POST /me/alergias) | 200 OK | PASÓ |
+| C8 · Alergia duplicada (POST /me/alergias) | 200 OK | PASÓ |
+| C8 · Recuperar perfil (GET /me) | 200 OK | PASÓ |
+| Catálogos del perfil (GET /api/perfil/me/opciones) | 200 OK | PASÓ |
+| C9 · Agregar alergia (POST /perfil/me/alergias) | 200 OK | PASÓ |
+| C9 · Agregar alergia (POST /perfil/me/alergias) | 200 OK | PASÓ |
+| C9 · Recargar perfil (GET /perfil/me) | 200 OK | PASÓ |
+| C15 · Perfil base con FRAGANCIA (POST /alergias) | 200 OK | PASÓ |
+| C15 · Perfil base con FRAGANCIA (POST /alergias) | 200 OK | PASÓ |
+| C15 · Quitar FRAGANCIA (DELETE /alergias) | 200 OK | PASÓ |
+| C15 · Agregar LIMONENO (POST /alergias) | 200 OK | PASÓ |
+| C15 · Agregar afección ROSACEA (POST /afecciones) | 200 OK | PASÓ |
+| C15 · Recargar perfil (GET /me) | 200 OK | PASÓ |
+| C10 · Perfil con FRAGANCIA (POST /alergias) | 200 OK | PASÓ |
+| C10 · Quitar FRAGANCIA con body (DELETE /alergias) | 200 OK | PASÓ |
+| C10 · Recargar perfil (GET /me) | 200 OK | PASÓ |
+| C11 · Perfil base (PUT /me) | 200 OK | PASÓ |
+| C11 · Actualizar biotipo (PUT /me) | 200 OK | PASÓ |
+| C11 · Agregar afección ROSACEA (POST /afecciones) | 200 OK | PASÓ |
+| C11 · Recargar perfil (GET /me) | 200 OK | PASÓ |
+| C12 · Perfil base (POST /alergias) | 200 OK | PASÓ |
+| C12 · Agregar duplicado (POST /alergias) | 200 OK | PASÓ |
+| C12 · Quitar ausente (DELETE /alergias) | 200 OK | PASÓ |
+| C12 · Recargar perfil (GET /me) | 200 OK | PASÓ |
+| C13 · Alergia vacía (POST /alergias) | 400 Bad Request | PASÓ |
+| C13 · Alergia solo espacios (POST /alergias) | 400 Bad Request | PASÓ |
+| C13 · Afección vacía (POST /afecciones) | 400 Bad Request | PASÓ |
+| C14 · Usuario nuevo: quitar alergia (DELETE /alergias) | 200 OK | PASÓ |
+| C14 · Usuario nuevo: quitar alergia (DELETE /alergias) | 200 OK | PASÓ |
+| C14 · Recargar perfil (GET /me) | 200 OK | PASÓ |
+| Catálogo · Buscar 'aqua' | 200 OK | PASÓ |
+| Catálogo · Buscar 'ascorbic' | 200 OK | PASÓ |
+| Catálogo · Buscar inexistente | 200 OK | PASÓ |
+| C18 · Producto sin ingredientes (lista vacía) | 400 Bad Request | PASÓ |
+| C18 · Producto sin el campo ingredientes | 400 Bad Request | PASÓ |
+| C19 · Nombre en blanco | 400 Bad Request | PASÓ |
+| C19 · INCI en blanco | 400 Bad Request | PASÓ |
+| C20 · Producto con stock 0 | 201 Created | PASÓ |
+| C20 · Consultar producto (GET /productos/{id}) | 200 OK | PASÓ |
+| C22 · Producto con stock -5 | 400 Bad Request | PASÓ |
+| C23 · pH no numérico ('acido') | 400 Bad Request | PASÓ |
+| C24 · Registrar producto completo | 201 Created | PASÓ |
+| C24 · Verificar producto (GET /productos/{id}) | 200 OK | PASÓ |
+| C25 · POST sin token | 401 Unauthorized | PASÓ |
+| C26 · POST con token expirado | 401 Unauthorized | PASÓ |
+| C27 · POST con token de CLIENTE | 403 Forbidden | PASÓ |
+| C27 · Verificar que no existe | 200 OK | PASÓ |
+| C28 · Sin nombre | 400 Bad Request | PASÓ |
+| C28 · Sin precio | 400 Bad Request | PASÓ |
+| C28 · Sin ingredientes | 400 Bad Request | PASÓ |
+| C29 · Composición vacía | 400 Bad Request | PASÓ |
+| C29 · Composición con tipo incorrecto (string) | 400 Bad Request | PASÓ |
+| C29 · Ingrediente sin INCI | 400 Bad Request | PASÓ |
+| C30 · Actualizar producto propio (PUT /productos/{id}) | 200 OK | PASÓ |
+| C30 · Actualizar producto propio (PUT /productos/{id}) | 200 OK | PASÓ |
+| C30 · Verificar persistencia (GET /productos/{id}) | 200 OK | PASÓ |
+| C30 · Limpieza (DELETE /productos/{id}) | 204 No Content | PASÓ |
+| C31 · Modificar con ficha INCI vacía [] (PUT /productos/{id}) | 400 Bad Request | PASÓ |
+| C31 · Modificar con ficha INCI vacía [] (PUT /productos/{id}) | 400 Bad Request | PASÓ |
+| C31 · Modificar con INCI no existente en catálogo (PUT /productos/{id}) | 422 Unprocessable Entity | PASÓ |
+| C31 · Verificar que producto original sigue intacto (GET /productos/{id}) | 200 OK | PASÓ |
+| C31 · Limpieza (DELETE /productos/{id}) | 204 No Content | PASÓ |
+| C32 · Intentar modificar producto ajeno con token de otro vendedor (PUT /productos/{id}) | 403 Forbidden | PASÓ |
+| C32 · Intentar modificar producto ajeno con token de otro vendedor (PUT /productos/{id}) | 403 Forbidden | PASÓ |
+| C32 · Verificar que el producto no fue alterado (GET /productos/{id}) | 200 OK | PASÓ |
+| C32 · Limpieza (DELETE /productos/{id}) | 204 No Content | PASÓ |
+| C33 · Eliminar lógicamente producto propio (DELETE /productos/{id}) | 204 No Content | PASÓ |
+| C33 · Eliminar lógicamente producto propio (DELETE /productos/{id}) | 204 No Content | PASÓ |
+| C33 · Verificar soft-delete por ID (GET /productos/{id}) | 200 OK | PASÓ |
+| C33 · Verificar exclusión del catálogo público (GET /productos) | 200 OK | PASÓ |
+| C34 · Intentar eliminar producto ajeno con token de otro vendedor (DELETE /productos/{id}) | 403 Forbidden | PASÓ |
+| C34 · Intentar eliminar producto ajeno con token de otro vendedor (DELETE /productos/{id}) | 403 Forbidden | PASÓ |
+| C34 · Verificar que producto ajeno sigue intacto y activo (GET /productos/{id}) | 200 OK | PASÓ |
+| C34 · Limpieza (DELETE /productos/{id}) | 204 No Content | PASÓ |
+| C35 · Modificar producto inexistente (PUT /productos/999999) | 404 Not Found | PASÓ |
+| C35 · Eliminar producto inexistente (DELETE /productos/999999) | 404 Not Found | PASÓ |
+| C37 Procesamiento exitoso de imagenes legibles (JPG/PNG) | 500 Internal Server Error | PASÓ |
+| C38 Robustez ante imagenes de baja calidad o texto complejo | 500 Internal Server Error | PASÓ |
+| C39 Validacion de formato de respuesta JSON (ingredientes y reconocidos) | 500 Internal Server Error | PASÓ |
+| C40 Reconocimiento en etiquetas multilingues y fuentes complejas | 500 Internal Server Error | PASÓ |
+| C41 Manejo de errores ante imagen vacia (400 Bad Request) | 400 Bad Request | PASÓ |
+| C42 Acceso sin token JWT (401 Unauthorized) | 401 Unauthorized | PASÓ |
+| C43 Acceso con token valido (Rol VENDEDOR) | 500 Internal Server Error | PASÓ |
+| C83 · Test 6.1: Detección crítica de ingrediente alérgeno registrado en el perfil | 200 OK | PASÓ |
+| C83 · Test 6.1: Detección crítica de ingrediente alérgeno registrado en el perfil | 200 OK | PASÓ |
+| C83 · Test 6.1: Detección crítica de ingrediente alérgeno registrado en el perfil | 200 OK | PASÓ |
+| C83 · Test 6.1: Detección crítica de ingrediente alérgeno registrado en el perfil | 200 OK | PASÓ |
+| C83 · Test 6.1: Detección crítica de ingrediente alérgeno registrado en el perfil | 200 OK | PASÓ |
+| C84 · Test 6.2: Evaluación de producto compatible sin alérgenos ni contraindicaciones | 200 OK | PASÓ |
+| C85 · Test 6.3: Evaluación masiva por lote para catálogo o vista de carrito | 200 OK | PASÓ |
+| C86 · Test 6.4: Intento de evaluar un producto inexistente | 404 Not Found | PASÓ |
+| C87 · Test 7.1: Advertencia por ingrediente con alto índice comedogénico en piel grasa | 200 OK | PASÓ |
+| C88 · Test 7.2: Advertencia por incompatibilidad de pH entre producto y condición dérmica | 200 OK | PASÓ |
+| C89 · Test 8.1: Detección de incompatibilidad química entre dos productos faciales en carrito | 200 OK | PASÓ |
+| C90 · Test 8.2: Productos con ingredientes activos en distintas zonas corporales no generan alerta | 200 OK | PASÓ |
+| C91 · Test 9.1: Gestión del carrito (Agregar producto) | 201 Created | PASÓ |
+| C92 · Test 9.2: Consolidación exitosa del pedido y congelamiento transaccional de stock | 201 Created | PASÓ |
+| C93 · Test 9.3: Rechazo de consolidación por stock insuficiente o concurrencia | 422 Unprocessable Entity | PASÓ |
+| C94 · Test 9.4: Cancelación de pedido no pagado y liberación automática de inventario | 200 OK | PASÓ |
+| C95 · Test 9.5 (añadida): Consulta detallada del carrito de compras del usuario autenticado | 200 OK | PASÓ |
+| C96 · Test 9.6 (añadida): Modificación de cantidad de un producto específico en el carrito | 200 OK | PASÓ |
+| C97 · Test 9.7 (añadida): Eliminación unitaria de un producto del carrito | 200 OK | PASÓ |
+| C98 · Test 9.8 (añadida): Vaciado completo de todos los ítems del carrito | 200 OK | PASÓ |
+| C99 · Test 9.9 (añadida): Rechazo al actualizar cantidad con valor menor o igual a cero | 400 Bad Request | PASÓ |
+| C100 · Test 9.10 (añadida): Rechazo al modificar un producto que no está en el carrito | 422 Unprocessable Entity | PASÓ |
+| C120 · Test 9.11 (añadida): Consulta del historial de pedidos propios del cliente (GET /api/pedidos) | 200 OK | PASÓ |
+| C121 · Test 9.12 (añadida): Consulta del detalle de un pedido propio por ID (GET /api/pedidos/{id}) | 200 OK | PASÓ |
+| C122 · Test 9.13 (añadida): Rechazo al consultar un pedido inexistente o ajeno por ID (404 Not Found) | 404 Not Found | PASÓ |
+| C101 · Test 10.1: Inicio de intención de pago y generación de URL segura de Checkout | 200 OK | PASÓ |
+| C101 · Test 10.1: Inicio de intención de pago y generación de URL segura de Checkout | 200 OK | PASÓ |
+| C102 · Test 10.2: Confirmación de pago exitoso vía Webhook asíncrono con firma válida | 401 Unauthorized | PASÓ |
+| C103 · Test 10.3: Rechazo de evento Webhook con firma criptográfica alterada o inválida | 401 Unauthorized | PASÓ |
+| C104 · Test 10.4 (añadida): Confirmación y consulta de transacción al retornar del checkout de Wompi | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C105 · Test 10.5 (añadida): Consulta de transacción rechazada por Wompi y conservación del estado CREADO | 200 OK | PASÓ |
+| C106 · Test 10.6 (añadida): Rechazo al consultar confirmación de pago de un pedido ajeno (404 Not Found) | 404 Not Found | PASÓ |
+| C107 · Test 11.1: Descarga exitosa de comprobante digital en PDF de pedido pagado | 200 OK | PASÓ |
+| C108 · Test 11.2: Rechazo de descarga de comprobante en un pedido no pagado | 422 Unprocessable Entity | PASÓ |
+| C109 · Test 12.1: Búsqueda de productos activos por coincidencia en nombre o marca | 200 OK | PASÓ |
+| C110 · Test 12.2: Búsqueda de término sin coincidencias en catálogo | 200 OK | PASÓ |
+| C111 · Test 13.1: Filtrado de catálogo para biotipo de piel grasa | 200 OK | PASÓ |
+| C112 · Test 13.2: Filtrado combinado con exclusión estricta de alérgenos personales | 200 OK | PASÓ |
+| C113 · Test 14.1: Cotización de métodos de envío según departamento de destino | 200 OK | PASÓ |
+| C114 · Test 14.2: Confirmación de paquete despachado por el vendedor asociado | 204 No Content | PASÓ |
+| C115 · Test 14.3: Recepción de webhook de eventos de la transportadora física | 401 Unauthorized | PASÓ |
+| C116 · Test 14.4 (añadida): Consulta del catálogo oficial de departamentos para cotización de envíos | 200 OK | PASÓ |
+| C117 · Test 14.5 (añadida): Rechazo de consulta de departamentos para solicitud no autenticada | 401 Unauthorized | PASÓ |
+| C123 · Test 14.6 (añadida): Registro de nueva dirección de entrega en la libreta del cliente (POST /api/direcciones) | 201 Created | PASÓ |
+| C124 · Test 14.7 (añadida): Consulta de libreta de direcciones propias con la principal primero (GET /api/direcciones) | 200 OK | PASÓ |
+| C125 · Test 14.8 (añadida): Actualización de una dirección de entrega propia (PUT /api/direcciones/{id}) | 200 OK | PASÓ |
+| C126 · Test 14.9 (añadida): Eliminación de una dirección de entrega propia (DELETE /api/direcciones/{id}) | 204 No Content | PASÓ |
+| C127 · Test 14.10 (añadida): Rechazo al registrar dirección con teléfono inválido (400 Bad Request) | 400 Bad Request | PASÓ |
+| C128 · Test 14.11 (añadida): Consulta del panel de ventas y métricas mensuales del vendedor (GET /api/vendedor/ventas) | 200 OK | PASÓ |
+| C118 · Test Admin.1 (añadida): Consulta global de todos los pedidos históricos del sistema con rol ADMIN | 200 OK | PASÓ |
+| C119 · Test Admin.2 (añadida): Control de acceso estricto y denegación a usuarios no administradores (403 Forbidden) | 403 Forbidden | PASÓ |
