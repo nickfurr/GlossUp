@@ -46,6 +46,16 @@ class BaseConocimientoMigracionTest {
                                                                       (1, 'methylparaben'), (1, 'polen');
                 INSERT INTO perfil_afeccion (perfil_id, nombre) VALUES (1, 'rosácea'), (1, 'me pica');
                 """);
+        // Estado previo a V22: catálogo demo de V8 con un carrito y un pedido de prueba encima.
+        flyway("21").migrate();
+        ejecutar("""
+                INSERT INTO carrito (id, usuario_id) VALUES (1, 1);
+                INSERT INTO carrito_item (carrito_id, producto_id, cantidad, precio_unit)
+                SELECT 1, id, 1, precio FROM producto ORDER BY id LIMIT 1;
+                INSERT INTO pedido (id, usuario_id, total) VALUES (1, 1, 0);
+                INSERT INTO pedido_item (pedido_id, producto_id, cantidad, precio_unit)
+                SELECT 1, id, 1, precio FROM producto ORDER BY id LIMIT 1;
+                """);
         flyway(null).migrate();
     }
 
@@ -142,18 +152,22 @@ class BaseConocimientoMigracionTest {
     }
 
     @Test
-    void losProductosDemoUsanTodoElCatalogoYTienenImagen() throws SQLException {
-        assertEquals(78, consulta("SELECT id::text FROM producto WHERE vendedor_id = 2").size());
+    void elCatalogoRealReemplazaAlDemoConInvimaImagenEInci() throws SQLException {
+        assertEquals(40, consulta("SELECT id::text FROM producto").size(), "V22 borra los 78 demo y siembra 40 reales");
+        assertTrue(consulta("SELECT id::text FROM carrito_item").isEmpty());
+        assertTrue(consulta("SELECT id::text FROM pedido").isEmpty(), "los pedidos de prueba sobre el demo se borran");
+        Set<String> sinInvima = consulta("SELECT nombre FROM producto WHERE registro_invima !~ '^NSOC[0-9]{5}-[0-9]{2}[A-Z]{2}$'");
+        assertTrue(sinInvima.isEmpty(), "Productos sin notificación sanitaria NSOC: " + sinInvima);
         Set<String> sinImagen = consulta("""
-                SELECT nombre FROM producto p WHERE vendedor_id = 2
-                  AND NOT EXISTS (SELECT 1 FROM producto_imagen i WHERE i.producto_id = p.id AND i.url LIKE 'https://%')""");
+                SELECT nombre FROM producto p
+                WHERE NOT EXISTS (SELECT 1 FROM producto_imagen i WHERE i.producto_id = p.id AND i.url LIKE 'https://%')""");
         assertTrue(sinImagen.isEmpty(), "Productos sin imagen: " + sinImagen);
-        Set<String> sinDescripcion = consulta("SELECT nombre FROM producto WHERE vendedor_id = 2 AND descripcion IS NULL");
-        assertTrue(sinDescripcion.isEmpty(), "Productos demo sin descripción: " + sinDescripcion);
-        Set<String> sinUso = consulta("""
-                SELECT nombre_inci FROM ingrediente i
-                WHERE NOT EXISTS (SELECT 1 FROM producto_ingrediente pi WHERE pi.ingrediente_id = i.id)""");
-        assertTrue(sinUso.isEmpty(), "Ingredientes del catálogo sin ningún producto: " + sinUso);
+        Set<String> sinDescripcion = consulta("SELECT nombre FROM producto WHERE descripcion IS NULL");
+        assertTrue(sinDescripcion.isEmpty(), "Productos sin descripción: " + sinDescripcion);
+        Set<String> sinInci = consulta("""
+                SELECT nombre FROM producto p
+                WHERE NOT EXISTS (SELECT 1 FROM producto_ingrediente pi WHERE pi.producto_id = p.id)""");
+        assertTrue(sinInci.isEmpty(), "Productos sin composición INCI: " + sinInci);
     }
 
     @Test
@@ -171,7 +185,7 @@ class BaseConocimientoMigracionTest {
 
     @Test
     void arranqueLocalLimpio_siembraElCatalogoDeDemostracion() throws SQLException {
-        // Mismas carpetas que el perfil docker (application-docker.yml): db/demo crea el vendedor que V8 necesita.
+        // Mismas carpetas que el perfil docker (application-docker.yml): db/demo crea el vendedor que V8 y V22 necesitan.
         ejecutar("CREATE DATABASE local_limpia");
         String url = PG.getJdbcUrl().replace("/" + PG.getDatabaseName(), "/local_limpia");
         Flyway.configure().dataSource(url, PG.getUsername(), PG.getPassword())
@@ -181,7 +195,7 @@ class BaseConocimientoMigracionTest {
              ResultSet rs = st.executeQuery("SELECT count(*) FROM producto p JOIN usuario u ON u.id = p.vendedor_id "
                      + "WHERE u.email = 'manuel.pinedave@uqvirtual.edu.co' AND p.activo")) {
             rs.next();
-            assertEquals(78, rs.getInt(1));
+            assertEquals(40, rs.getInt(1));
         }
     }
 
