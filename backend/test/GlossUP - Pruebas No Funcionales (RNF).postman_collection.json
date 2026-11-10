@@ -14,6 +14,18 @@
       "value": ""
     },
     {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@glossup.co"
+    },
+    {
+      "key": "adminPass",
+      "value": "Admin123!"
+    },
+    {
       "key": "xsrf_token",
       "value": ""
     },
@@ -116,22 +128,43 @@
                   "const knownEmail = 'qa.cli.1794276365@demo.com';",
                   "const knownPass = 'Secret123!';",
                   "",
-                  "pm.collectionVariables.set('prodAlergenoId', '54');",
-                  "pm.collectionVariables.set('prodSeguroId', '6');",
-                  "pm.collectionVariables.set('prodComedogenicoId', '79');",
-                  "pm.collectionVariables.set('prodRetinolId', '156');",
-                  "pm.collectionVariables.set('prodAhaFacialId', '157');",
+                  "pm.collectionVariables.set('prodAlergenoId', '309');",
+                  "pm.collectionVariables.set('prodSeguroId', '310');",
+                  "pm.collectionVariables.set('prodComedogenicoId', '327');",
+                  "pm.collectionVariables.set('prodRetinolId', '315');",
+                  "pm.collectionVariables.set('prodAhaFacialId', '312');",
                   "",
                   "const setupProfileAndContinue = (tokC, xsrf, uidC) => {",
                   "  pm.collectionVariables.set('token_cliente', tokC);",
                   "  pm.collectionVariables.set('xsrf_token', xsrf || '');",
                   "  pm.collectionVariables.set('usuarioId', String(uidC));",
-                  "  pm.sendRequest(postReq('/api/perfil/me/autorizacion', {}, tokC, 'POST', xsrf), () => {",
-                  "    pm.sendRequest(postReq('/api/perfil/me', { tipoPiel: 'GRASA', ph: 6.2, tipoCabello: 'ONDULADO_2B' }, tokC, 'PUT', xsrf), () => {",
-                  "      pm.sendRequest(postReq('/api/perfil/me/alergias', { alergia: 'FRAGANCIA' }, tokC, 'POST', xsrf), () => {",
-                  "        pm.sendRequest(postReq('/api/perfil/me/alergias', { alergia: 'PARABENOS' }, tokC, 'POST', xsrf), () => {",
-                  "          pm.sendRequest(postReq('/api/perfil/me/afecciones', { afeccion: 'ACNE' }, tokC, 'POST', xsrf), () => {",
-                  "            pm.collectionVariables.set('setup_done', 'true');",
+                  "  pm.sendRequest(postReq('/api/catalogo/productos?tamano=50', null, tokC, 'GET', xsrf), (errCat, resCat) => {",
+                  "    if (resCat && resCat.code === 200) {",
+                  "      const items = resCat.json().items || [];",
+                  "      for (let p of items) {",
+                  "        const ings = (p.ingredientes || []).map(i => (i.inci || '').toLowerCase());",
+                  "        if (ings.includes('parfum') && !pm.collectionVariables.get('dyn_alergeno')) { pm.collectionVariables.set('prodAlergenoId', String(p.id)); pm.collectionVariables.set('dyn_alergeno', '1'); }",
+                  "        if (!ings.includes('parfum') && !ings.includes('methylparaben') && !pm.collectionVariables.get('dyn_seguro')) { pm.collectionVariables.set('prodSeguroId', String(p.id)); pm.collectionVariables.set('dyn_seguro', '1'); }",
+                  "        if (ings.some(x => x.includes('retinol')) && !pm.collectionVariables.get('dyn_ret')) { pm.collectionVariables.set('prodRetinolId', String(p.id)); pm.collectionVariables.set('dyn_ret', '1'); }",
+                  "        if (ings.some(x => x.includes('glycolic') || x.includes('lactic')) && !pm.collectionVariables.get('dyn_aha')) { pm.collectionVariables.set('prodAhaFacialId', String(p.id)); pm.collectionVariables.set('dyn_aha', '1'); }",
+                  "        if ((ings.includes('isopropyl palmitate') || ings.includes('myristyl myristate')) && !pm.collectionVariables.get('dyn_com')) { pm.collectionVariables.set('prodComedogenicoId', String(p.id)); pm.collectionVariables.set('dyn_com', '1'); }",
+                  "      }",
+                  "    }",
+                  "    pm.sendRequest(postReq('/api/perfil/me/autorizacion', {}, tokC, 'POST', xsrf), () => {",
+                  "      pm.sendRequest(postReq('/api/perfil/me', { tipoPiel: 'GRASA', ph: 6.2, tipoCabello: 'ONDULADO_2B' }, tokC, 'PUT', xsrf), () => {",
+                  "        pm.sendRequest(postReq('/api/perfil/me/alergias', { alergia: 'FRAGANCIA' }, tokC, 'POST', xsrf), () => {",
+                  "          pm.sendRequest(postReq('/api/perfil/me/alergias', { alergia: 'PARABENOS' }, tokC, 'POST', xsrf), () => {",
+                  "            pm.sendRequest(postReq('/api/perfil/me/afecciones', { afeccion: 'ACNE' }, tokC, 'POST', xsrf), () => {",
+                  "              const admMail = pm.collectionVariables.get('adminEmail') || 'admin@glossup.co';",
+                  "              const admPass = pm.collectionVariables.get('adminPass') || 'Admin123!';",
+                  "              pm.sendRequest(postReq('/api/auth/login', { email: admMail, password: admPass }), (errAdm, resAdm) => {",
+                  "                if (resAdm && resAdm.code === 200) {",
+                  "                  const tokAdm = getCookieVal(resAdm, 'glossup_sesion');",
+                  "                  pm.collectionVariables.set('token_admin', tokAdm);",
+                  "                }",
+                  "                pm.collectionVariables.set('setup_done', 'true');",
+                  "              });",
+                  "            });",
                   "          });",
                   "        });",
                   "      });",
@@ -177,8 +210,8 @@
                   "pm.test('Token cliente aprovisionado mediante cookie/JWT', () => pm.expect(pm.collectionVariables.get('token_cliente')).to.not.be.empty);",
                   "pm.test('Token XSRF de protección CSRF aprovisionado', () => pm.expect(pm.collectionVariables.get('xsrf_token')).to.not.be.empty);",
                   "pm.test('Entidades de prueba catálogo configuradas (prodAlergenoId, prodSeguroId)', () => {",
-                  "  pm.expect(pm.collectionVariables.get('prodAlergenoId')).to.eql('54');",
-                  "  pm.expect(pm.collectionVariables.get('prodSeguroId')).to.eql('6');",
+                  "  pm.expect(pm.collectionVariables.get('prodAlergenoId')).to.not.be.empty;",
+                  "  pm.expect(pm.collectionVariables.get('prodSeguroId')).to.not.be.empty;",
                   "});"
                 ]
               }
@@ -534,6 +567,56 @@
                   "key": "ids",
                   "value": "50,152,999999"
                 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-05c.1 · Verificación legal de registros INVIMA: 100% productos con registro oficial vigente (Rol ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-05c.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-05c.1 - 100% de productos activos con registro sanitario legal verificado', () => {",
+                  "  pm.expect(j.cumple).to.be.true;",
+                  "  pm.expect(j.porcentajeCumplimiento).to.eql(100.0);",
+                  "  pm.expect(j.productosIncumplidos).to.be.empty;",
+                  "  pm.expect(j.totalProductosActivos).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion={{token_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pruebas-rnf/rnf-05c",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "pruebas-rnf",
+                "rnf-05c"
               ]
             }
           }
@@ -1123,6 +1206,100 @@
               "path": [
                 "api",
                 "pedidos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-13.2 · Cero almacenamiento de tarjetas PCI-DSS: Auditoría forense en BD y logs (Rol ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-13.2 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-13.2 - Cumplimiento estricto PCI-DSS sin datos de tarjeta físicos ni en logs', () => {",
+                  "  pm.expect(j.cumple).to.be.true;",
+                  "  pm.expect(j.columnasProhibidasDetectadas).to.be.empty;",
+                  "  pm.expect(j.registrosConPatronesPan).to.eql(0);",
+                  "  pm.expect(j.fugasEnLogsDetectadas).to.eql(0);",
+                  "  pm.expect(j.columnasPasarelaVerificadas.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion={{token_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pruebas-rnf/rnf-13",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "pruebas-rnf",
+                "rnf-13"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-13.3 · Control de acceso estricto a auditoría PCI-DSS: 403 Forbidden para CLIENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-13.3 - Status 403 Forbidden para usuarios no administradores', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion={{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pruebas-rnf/rnf-13",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "pruebas-rnf",
+                "rnf-13"
               ]
             }
           }
@@ -1756,6 +1933,105 @@
                 "api",
                 "perfil",
                 "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-24.2 · Cobertura y testabilidad de lógica de dominio y aplicación > 85% (JaCoCo) (Rol ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-24.2 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-24.2 - Cobertura de lógica de negocio superior al 85% y aislamiento exitoso', () => {",
+                  "  pm.expect(j.cumple).to.be.true;",
+                  "  pm.expect(j.porcentajeCoberturaDominioGlobal).to.be.above(85.0);",
+                  "  pm.expect(j.pruebasAislamientoDominioPerfilExitosas).to.be.true;",
+                  "  pm.expect(j.desgloseModulosDominio).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion={{token_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pruebas-rnf/rnf-24",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "pruebas-rnf",
+                "rnf-24"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-AUDIT.1 · Consolidado global de auditoría automatizada de requisitos no funcionales (Rol ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-AUDIT.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-AUDIT.1 - Todas las pruebas de auditoría cumplen satisfactoriamente', () => {",
+                  "  pm.expect(j.cumple).to.be.true;",
+                  "  pm.expect(j.rnf24Cobertura.cumple).to.be.true;",
+                  "  pm.expect(j.rnf13PciDss.cumple).to.be.true;",
+                  "  pm.expect(j.rnf05cInvima.cumple).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion={{token_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pruebas-rnf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "pruebas-rnf"
               ]
             }
           }

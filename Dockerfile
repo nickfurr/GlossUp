@@ -14,7 +14,8 @@ FROM maven:3.9-eclipse-temurin-21 AS backend
 WORKDIR /app
 COPY backend/ ./
 COPY --from=frontend /front/dist/ ./src/main/resources/static/
-RUN mvn -q -DskipTests clean package
+# Ejecuta tests unitarios y genera reporte JaCoCo de cobertura (RNF-24)
+RUN mvn -q test -Dtest="!*PersistenciaTest,!*MigracionTest,!*ConcurrenteTest,!*PaginadoTest" jacoco:report package -DskipTests=false
 
 # ---------- 3) Imagen de ejecución ----------
 FROM eclipse-temurin:21-jre-alpine
@@ -22,6 +23,8 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk upgrade --no-cache
 WORKDIR /app
 COPY --from=backend /app/target/*.jar app.jar
+# Reporte JaCoCo generado en compilación para consulta administrativa de RNF-24
+COPY --from=backend /app/target/site/jacoco/jacoco.csv /app/jacoco.csv
 # Sin root: si alguien explota la app no tiene privilegios en el contenedor (auditoría R-17).
 RUN addgroup -S glossup && adduser -S glossup -G glossup
 USER glossup

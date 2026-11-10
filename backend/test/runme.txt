@@ -1,32 +1,24 @@
 ================================================================================
-GLOSSUP - EJECUCIÓN DE TODOS LOS TESTS CON NEWMAN (HU1 A HU14 + ADMIN)
+GLOSSUP - EJECUCIÓN DE TESTS CON NEWMAN (RF Y RNF)
 ================================================================================
 
 Archivos incluidos en esta carpeta (PYF/backend/test):
-1. GlossUP - Todos los Tests (HU1-HU14 y Admin).postman_collection.json
-2. etiqueta_cosmetica_test.jpg  (Imagen de prueba para OCR en HU5)
-3. etiqueta_vacia_test.jpg      (Archivo de 0 bytes para validación 400 en HU5)
+1. GlossUP - Todos los Tests (HU1-HU14 y Admin).postman_collection.json (Funcionales)
+2. GlossUP - Pruebas No Funcionales (RNF).postman_collection.json       (No Funcionales)
+3. etiqueta_cosmetica_test.jpg  (Imagen de prueba para OCR en HU5)
+4. etiqueta_vacia_test.jpg      (Archivo de 0 bytes para validación 400 en HU5)
+5. runme.txt                    (Este instructivo)
 
 --------------------------------------------------------------------------------
-OPCIÓN 1: Si estás parado DENTRO de esta carpeta (PYF/backend/test)
+1. EJECUTAR REQUISITOS FUNCIONALES (HU1 A HU14 + ADMIN)
 --------------------------------------------------------------------------------
 newman run "GlossUP - Todos los Tests (HU1-HU14 y Admin).postman_collection.json" \
   --working-dir "." \
-  --reporters cli,json \
-  --reporter-json-export "reporte-newman.json"
+  --reporters cli
 
 --------------------------------------------------------------------------------
-OPCIÓN 2: Si estás parado en la carpeta del backend (PYF/backend)
+2. EJECUTAR REQUISITOS NO FUNCIONALES (RNF)
 --------------------------------------------------------------------------------
-newman run "test/GlossUP - Todos los Tests (HU1-HU14 y Admin).postman_collection.json" \
-  --working-dir "test" \
-  --reporters cli,json \
-  --reporter-json-export "test/reporte-newman.json"
+newman run "GlossUP - Pruebas No Funcionales (RNF).postman_collection.json" \
+  --reporters cli
 
---------------------------------------------------------------------------------
-OPCIÓN 3: Con ruta explícita a la carpeta
---------------------------------------------------------------------------------
-newman run "GlossUP - Todos los Tests (HU1-HU14 y Admin).postman_collection.json" \
-  --working-dir "ruta/a/tu/carpeta" \
-  --reporters cli,json \
-  --reporter-json-export "reporte-newman.json"
