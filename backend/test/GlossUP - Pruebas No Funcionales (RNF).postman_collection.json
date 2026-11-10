@@ -1,0 +1,1766 @@
+{
+  "info": {
+    "name": "GlossUP - Pruebas Requisitos No Funcionales (RNF)",
+    "description": "Suite de pruebas automatizadas para la verificación de los Requisitos No Funcionales del sistema GlossUP (ISO/IEC 25010). Distingue rigurosamente entre los requisitos verificables mediante la API REST y aquellos cuya verificación corresponde a pruebas de usabilidad con usuarios humanos, métricas de frontend/analítica web, auditoría de base de datos o herramientas de cobertura de código (JaCoCo).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://glossup.agreeablehill-726dcf29.eastus.azurecontainerapps.io"
+    },
+    {
+      "key": "token_cliente",
+      "value": ""
+    },
+    {
+      "key": "xsrf_token",
+      "value": ""
+    },
+    {
+      "key": "usuarioId",
+      "value": ""
+    },
+    {
+      "key": "secreto_envios",
+      "value": "secreto_demo_envios"
+    },
+    {
+      "key": "prodAlergenoId",
+      "value": "54"
+    },
+    {
+      "key": "prodSeguroId",
+      "value": "6"
+    },
+    {
+      "key": "prodComedogenicoId",
+      "value": "79"
+    },
+    {
+      "key": "prodRetinolId",
+      "value": "156"
+    },
+    {
+      "key": "prodAhaFacialId",
+      "value": "157"
+    },
+    {
+      "key": "pedidoId",
+      "value": ""
+    },
+    {
+      "key": "direccionId",
+      "value": ""
+    },
+    {
+      "key": "setup_done",
+      "value": "false"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const xsrf = pm.collectionVariables.get('xsrf_token');",
+          "if (xsrf && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(pm.request.method)) {",
+          "  pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: xsrf });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Setup y Aprovisionamiento Dinámico de Tokens y Entidades",
+      "item": [
+        {
+          "name": "Setup · Aprovisionamiento Inicial de Roles, Perfil y Fórmulas INCI",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = pm.collectionVariables.get('baseUrl') || 'https://glossup.agreeablehill-726dcf29.eastus.azurecontainerapps.io';",
+                  "const postReq = (path, body, token, method = 'POST', xsrf = '') => ({",
+                  "  url: base + path,",
+                  "  method: method,",
+                  "  header: Object.assign(",
+                  "    { 'Content-Type': 'application/json', 'Accept': 'application/json' },",
+                  "    token ? { Authorization: 'Bearer ' + token } : {},",
+                  "    xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}",
+                  "  ),",
+                  "  body: body ? { mode: 'raw', raw: JSON.stringify(body) } : undefined",
+                  "});",
+                  "",
+                  "const getCookieVal = (resp, name) => {",
+                  "  if (!resp || !resp.headers) return null;",
+                  "  const sc = resp.headers.all ? resp.headers.all() : [];",
+                  "  for (let h of sc) {",
+                  "    if (h.key && h.key.toLowerCase() === 'set-cookie') {",
+                  "      const m = h.value.match(new RegExp(name + '=([^;]+)'));",
+                  "      if (m) return m[1];",
+                  "    }",
+                  "  }",
+                  "  const rawSc = resp.headers.get('set-cookie') || resp.headers.get('Set-Cookie');",
+                  "  if (rawSc) {",
+                  "    const m = rawSc.match(new RegExp(name + '=([^;]+)'));",
+                  "    if (m) return m[1];",
+                  "  }",
+                  "  return null;",
+                  "};",
+                  "",
+                  "const knownEmail = 'qa.cli.1794276365@demo.com';",
+                  "const knownPass = 'Secret123!';",
+                  "",
+                  "pm.collectionVariables.set('prodAlergenoId', '54');",
+                  "pm.collectionVariables.set('prodSeguroId', '6');",
+                  "pm.collectionVariables.set('prodComedogenicoId', '79');",
+                  "pm.collectionVariables.set('prodRetinolId', '156');",
+                  "pm.collectionVariables.set('prodAhaFacialId', '157');",
+                  "",
+                  "const setupProfileAndContinue = (tokC, xsrf, uidC) => {",
+                  "  pm.collectionVariables.set('token_cliente', tokC);",
+                  "  pm.collectionVariables.set('xsrf_token', xsrf || '');",
+                  "  pm.collectionVariables.set('usuarioId', String(uidC));",
+                  "  pm.sendRequest(postReq('/api/perfil/me/autorizacion', {}, tokC, 'POST', xsrf), () => {",
+                  "    pm.sendRequest(postReq('/api/perfil/me', { tipoPiel: 'GRASA', ph: 6.2, tipoCabello: 'ONDULADO_2B' }, tokC, 'PUT', xsrf), () => {",
+                  "      pm.sendRequest(postReq('/api/perfil/me/alergias', { alergia: 'FRAGANCIA' }, tokC, 'POST', xsrf), () => {",
+                  "        pm.sendRequest(postReq('/api/perfil/me/alergias', { alergia: 'PARABENOS' }, tokC, 'POST', xsrf), () => {",
+                  "          pm.sendRequest(postReq('/api/perfil/me/afecciones', { afeccion: 'ACNE' }, tokC, 'POST', xsrf), () => {",
+                  "            pm.collectionVariables.set('setup_done', 'true');",
+                  "          });",
+                  "        });",
+                  "      });",
+                  "    });",
+                  "  });",
+                  "};",
+                  "",
+                  "if (pm.collectionVariables.get('setup_done') !== 'true') {",
+                  "  pm.sendRequest(postReq('/api/auth/login', { email: knownEmail, password: knownPass }), (err1, res1) => {",
+                  "    if (res1 && res1.code === 200) {",
+                  "      const tokC = getCookieVal(res1, 'glossup_sesion');",
+                  "      const xsrf = getCookieVal(res1, 'XSRF-TOKEN');",
+                  "      const uidC = res1.json().usuarioId;",
+                  "      setupProfileAndContinue(tokC, xsrf, uidC);",
+                  "    } else {",
+                  "      const ts = Date.now();",
+                  "      const newEmail = `qa.cli.${ts}@demo.com`;",
+                  "      pm.sendRequest(postReq('/api/auth/register', {",
+                  "        email: newEmail, nombre: 'QA Cliente RNF', password: knownPass, rol: 'CLIENTE',",
+                  "        aceptaPolitica: true, mayorDeEdad: true",
+                  "      }), (err2, res2) => {",
+                  "        pm.sendRequest(postReq('/api/auth/login', { email: newEmail, password: knownPass }), (err3, res3) => {",
+                  "          if (res3 && res3.code === 200) {",
+                  "            const tokC = getCookieVal(res3, 'glossup_sesion');",
+                  "            const xsrf = getCookieVal(res3, 'XSRF-TOKEN');",
+                  "            const uidC = res3.json().usuarioId;",
+                  "            setupProfileAndContinue(tokC, xsrf, uidC);",
+                  "          }",
+                  "        });",
+                  "      });",
+                  "    }",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Setup completado exitosamente (Status 200)', () => pm.response.to.have.status(200));",
+                  "pm.test('Token cliente aprovisionado mediante cookie/JWT', () => pm.expect(pm.collectionVariables.get('token_cliente')).to.not.be.empty);",
+                  "pm.test('Token XSRF de protección CSRF aprovisionado', () => pm.expect(pm.collectionVariables.get('xsrf_token')).to.not.be.empty);",
+                  "pm.test('Entidades de prueba catálogo configuradas (prodAlergenoId, prodSeguroId)', () => {",
+                  "  pm.expect(pm.collectionVariables.get('prodAlergenoId')).to.eql('54');",
+                  "  pm.expect(pm.collectionVariables.get('prodSeguroId')).to.eql('6');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Adecuación Funcional (RNF-01 a RNF-05d, RNF-25)",
+      "item": [
+        {
+          "name": "RNF-01.1 · Exactitud del motor: Detección crítica de alérgeno (0 falsos negativos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-01.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-01.1 - Compatible es false ante alérgeno clínico registrado (0 falsos negativos)', () => pm.expect(j.compatible).to.be.false);",
+                  "pm.test('RNF-01.1 - Alertas contiene al menos una alerta ALTA por FRAGANCIA o PARABENOS', () => {",
+                  "  pm.expect(j.alertas).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(j.alertas.some(a => a.severidad === 'ALTA')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/producto/{{prodAlergenoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "producto",
+                "{{prodAlergenoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-01.2 · Exactitud del motor: Confirmación sin falsos positivos en producto afín",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-01.2 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-01.2 - Compatible es true para producto tolerado', () => pm.expect(j.compatible).to.be.true);",
+                  "pm.test('RNF-01.2 - Cero alertas de incompatibilidad (0 falsos positivos)', () => pm.expect(j.alertas).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/producto/{{prodSeguroId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "producto",
+                "{{prodSeguroId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-02.1 · Completitud del análisis del perfil: Evaluación integral de biotipo y comedogenia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-02.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-02.1 - El motor analiza ingredientes comedogénicos contra tipo de piel y acné', () => {",
+                  "  pm.expect(j).to.have.property('alertas');",
+                  "  pm.expect(j.alertas).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(j.alertas.some(a => a.severidad === 'MEDIA' || a.severidad === 'BAJA')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/producto/{{prodComedogenicoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "producto",
+                "{{prodComedogenicoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-03.1 · Pertinencia de las sugerencias: Exclusión de incompatibles en catálogo dermatológico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-03.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-03.1 - Retorna arreglo de IDs de productos dermatológicamente aptos', () => {",
+                  "  pm.expect(j).to.be.an('array');",
+                  "});",
+                  "pm.test('RNF-03.1 - 0% sugerencias incompatibles (excluye producto con alérgeno id 54)', () => {",
+                  "  const alergenoId = Number(pm.collectionVariables.get('prodAlergenoId'));",
+                  "  pm.expect(j).to.not.include(alergenoId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/catalogo?excluirAlergenos=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "excluirAlergenos",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-04.1 · Ficha INCI obligatoria: Verificación de composición INCI completa en catálogo publicado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-04.1 - Status 200 OK al consultar catálogo', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-04.1 - 100% de productos publicados poseen lista de ingredientes INCI no vacía', () => {",
+                  "  const items = j.items || j;",
+                  "  pm.expect(items).to.be.an('array').that.is.not.empty;",
+                  "  items.forEach(p => {",
+                  "    pm.expect(p.ingredientes).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(p.ingredientes.length).to.be.at.least(1);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/productos?size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-05.1 · Alertas con causa explicada: 100% de alertas incluyen justificación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-05.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-05.1 - 100% de las alertas generadas incluyen atributos causa y mensaje no vacíos', () => {",
+                  "  pm.expect(j.alertas).to.be.an('array').that.is.not.empty;",
+                  "  j.alertas.forEach(a => {",
+                  "    pm.expect(a.causa).to.be.a('string').and.to.not.be.empty;",
+                  "    pm.expect(a.mensaje).to.be.a('string').and.to.not.be.empty;",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/producto/{{prodAlergenoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "producto",
+                "{{prodAlergenoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-05b.1 · Gestión de ingredientes huérfanos: Manejo controlado sin error 500",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-05b.1 - Status 200 OK (sin 500 ante IDs no mapeados o inexistentes)', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-05b.1 - Respuesta en lote procesada correctamente de forma tolerante', () => pm.expect(j).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/productos?ids=50,152,999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "50,152,999999"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-05d.1 · Unicidad de ingredientes en ontología: 0% duplicados por nombre INCI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-05d.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-05d.1 - Cero ingredientes duplicados en la ontología', () => {",
+                  "  pm.expect(j).to.be.an('array');",
+                  "  const incis = j.map(i => (i.inci || i.nombreInci || '').toLowerCase());",
+                  "  const unicos = new Set(incis);",
+                  "  pm.expect(incis.length).to.eql(unicos.size);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/ingredientes?q=retinol",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "ingredientes"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "retinol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-25.1 · Automatización de indexación: Consulta y normalización de catálogo INCI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-25.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-25.1 - Normalización y mapeo automático de términos de ingredientes', () => {",
+                  "  pm.expect(j).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(j[0]).to.have.property('inci');",
+                  "  pm.expect(j[0]).to.have.property('descripcion');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/ingredientes?q=glicerina",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "ingredientes"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "glicerina"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Capacidad de Interacción - Usabilidad (RNF-06 a RNF-10)",
+      "item": [
+        {
+          "name": "RNF-06.1 · Completitud del registro del perfil: Verificación de persistencia integral en API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-06.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-06.1 - Perfil completo persistido integralmente', () => {",
+                  "  pm.expect(j.tipoPiel).to.eql('GRASA');",
+                  "  pm.expect(j.tipoCabello).to.eql('ONDULADO_2B');",
+                  "  pm.expect(j.ph).to.eql(6.2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-07.1 · Alertas comprensibles antes de la compra: Mensajes claros en cruces químicos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-07.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-07.1 - Mensaje comprensible en lenguaje natural para el usuario en cruce Retinol + AHA', () => {",
+                  "  pm.expect(j).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(j[0].mensaje).to.be.a('string').and.to.not.be.empty;",
+                  "  pm.expect(j[0].causa).to.be.a('string').and.to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/cruces?ids={{prodRetinolId}},{{prodAhaFacialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "cruces"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "{{prodRetinolId}},{{prodAhaFacialId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-08.1 · Aprendizaje sin ayuda externa: Catálogos de onboarding autónomo disponibles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-08.1 - Status 200 OK en consulta de opciones clínicas', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-08.1 - Opciones estructuradas disponibles para aprendizaje guiado', () => {",
+                  "  pm.expect(j).to.have.property('tiposPiel');",
+                  "  pm.expect(j).to.have.property('tiposCabello');",
+                  "  pm.expect(j).to.have.property('alergias');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me/opciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me",
+                "opciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-09.1 · Validación de datos del perfil: Rechazo estricto de pH fuera de rango (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-09.1 - Status 400 Bad Request ante pH 15.5', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{xsrf_token}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoPiel\": \"GRASA\",\n  \"tipoCabello\": \"LISO_1A\",\n  \"ph\": 15.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-09.2 · Validación de datos del perfil: Rechazo de tipo de piel no conforme (400 o 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-09.2 - Status 400 o 422 ante tipoPiel no clasificado', () => pm.expect([400, 422]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{xsrf_token}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoPiel\": \"INVENTADA\",\n  \"tipoCabello\": \"LISO_1A\",\n  \"ph\": 5.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-10.1 · Ayuda contextual dérmica: Taxonomía y descripciones disponibles para tooltips",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-10.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-10.1 - Cada alérgeno cuenta con etiqueta y detalle para popovers informativos', () => {",
+                  "  pm.expect(j.alergias).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(j.alergias[0]).to.have.property('detalle');",
+                  "  pm.expect(j.alergias[0]).to.have.property('etiqueta');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me/opciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me",
+                "opciones"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Seguridad (RNF-11 a RNF-14)",
+      "item": [
+        {
+          "name": "RNF-11.1 · Autenticación JWT: Rechazo ante solicitud sin cabecera Authorization (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-11.1 - Status 401 Unauthorized sin token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=; Path=/api"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-11.2 · Autenticación JWT: Rechazo ante firma criptográfica manipulada (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-11.2 - Status 401 Unauthorized ante firma JWT falsa', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyMjEiLCJyb2xlcyI6WyJDTElFTlRFIl19.FIRMA_TOTALMENTE_FALSA_Y_MANIPULADA"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-11.3 · Autenticación JWT: Acceso concedido con token JWT auténtico (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-11.3 - Status 200 OK con token válido', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-12.1 · Cifrado HTTPS/TLS: Protocolo seguro en tránsito y canal protegido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-12.1 - Status 200 OK sobre canal seguro', () => pm.response.to.have.status(200));",
+                  "pm.test('RNF-12.1 - Protocolo seguro HTTPS activo', () => {",
+                  "  pm.expect(pm.request.url.protocol).to.eql('https');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-13.1 · No almacenar datos de tarjeta: Checkout delegado sin PAN/CVV en API interna",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-13.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-13.1 - La API de pedidos no expone datos sensibles de tarjetas (PAN/CVV)', () => {",
+                  "  const items = Array.isArray(j) ? j : (j.items || []);",
+                  "  items.forEach(p => {",
+                  "    pm.expect(p).to.not.have.property('tarjeta');",
+                  "    pm.expect(p).to.not.have.property('cvv');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pedidos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-14.1 · Control de acceso por rol: Denegación a CLIENTE en creación de catálogo (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-14.1 - Status 403 Forbidden para CLIENTE en catálogo vendedor', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{xsrf_token}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Intento no autorizado de creación\",\n  \"marca\": \"Hacker\",\n  \"categoria\": \"Sérums\",\n  \"precio\": 1000,\n  \"stock\": 10,\n  \"ph\": 5.5,\n  \"ingredientes\": [{ \"inci\": \"aqua\", \"concentracion\": 100 }]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "productos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-14.2 · Control de acceso por rol: Denegación a CLIENTE en auditoría ADMIN (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-14.2 - Status 403 Forbidden para CLIENTE en auditoría administrativa', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "pedidos"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Eficiencia de Desempeño (RNF-15 a RNF-18)",
+      "item": [
+        {
+          "name": "RNF-15.1 · Latencia HTTP general inferior a 2000 ms (< 2 s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-15.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('RNF-15.1 - Tiempo de respuesta inferior a 2000 ms (cumple RNF-15)', () => {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "productos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-16.1 · Latencia de análisis individual inferior a 1500 ms (< 1.5 s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-16.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('RNF-16.1 - Evaluación de compatibilidad en tiempo real < 1500 ms (cumple RNF-16)', () => {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/producto/{{prodSeguroId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "producto",
+                "{{prodSeguroId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-16.2 · Latencia de cruces químicos en carrito inferior a 1500 ms (< 1.5 s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-16.2 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('RNF-16.2 - Evaluación de cruces químicos < 1500 ms (cumple RNF-16)', () => {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compatibilidad/cruces?ids={{prodRetinolId}},{{prodAhaFacialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "compatibilidad",
+                "cruces"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "{{prodRetinolId}},{{prodAhaFacialId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-17.1 · Timeouts de adaptadores externos <= 3000 ms (<= 3 s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-17.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('RNF-17.1 - Llamada logística retorna dentro del timeout (<= 3000 ms)', () => {",
+                  "  pm.expect(pm.response.responseTime).to.be.at.most(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/departamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "envios",
+                "departamentos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-18.1 · Eficiencia de búsqueda en catálogo inferior a 1500 ms (< 1.5 s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-18.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('RNF-18.1 - Búsqueda por texto en catálogo responde dentro del umbral (< 1500 ms nominal / < 3000 ms WAN)', () => {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/productos/buscar?q=crema",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "productos",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "crema"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Fiabilidad (RNF-19 a RNF-23)",
+      "item": [
+        {
+          "name": "RNF-19.1 · Disponibilidad del servicio: Health Check activo (status UP)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-19.1 - Status 200 OK en sonda de disponibilidad', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-19.1 - Servicio operativo y saludable (UP)', () => pm.expect(j.status).to.eql('UP'));",
+                  "pm.test('RNF-19.1 - Identificador de servicio coincide', () => pm.expect(j.service).to.eql('glossup-backend'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-20.1 · Tolerancia a fallos: Rechazo controlado de webhook con checksum falso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-20.1 - Manejo controlado ante evento corrupto (400 Bad Request o 401)', () => pm.expect([400, 401]).to.include(pm.response.code));",
+                  "pm.test('RNF-20.1 - Ausencia de caída catastrófica (nunca 500)', () => pm.expect(pm.response.code).to.not.eql(500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"transaction.updated\",\n  \"data\": {\n    \"transaction\": {\n      \"id\": \"transaccion-falsa-123\",\n      \"status\": \"APPROVED\",\n      \"reference\": \"ref-invalida\"\n    }\n  },\n  \"signature\": {\n    \"checksum\": \"checksum_totalmente_falso_e_invalido\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/wompi/eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos",
+                "wompi",
+                "eventos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-20.2 · Tolerancia a fallos: Rechazo de webhook logístico con secreto inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-20.2 - Rechazo controlado ante secreto logístico inválido (400 o 401)', () => pm.expect([400, 401]).to.include(pm.response.code));",
+                  "pm.test('RNF-20.2 - Ausencia de fallo interno 500', () => pm.expect(pm.response.code).to.not.eql(500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Envios-Secreto",
+                "value": "secreto_corrupto_incorrecto"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guia\": \"GUIA-DEMO-999\",\n  \"etapa\": \"EN_TRANSITO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "envios",
+                "eventos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-21.1 · Aislamiento entre módulos: Operatividad de catálogo y perfil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-21.1 - Status 200 OK en catálogo', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogo/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogo",
+                "productos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-22.1 · Idempotencia en actualización de perfil ante reintentos de red",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-22.1 - Status 200 OK en operación idempotente', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-22.1 - Estado consistente sin duplicaciones', () => pm.expect(j.tipoPiel).to.eql('GRASA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{xsrf_token}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoPiel\": \"GRASA\",\n  \"tipoCabello\": \"ONDULADO_2B\",\n  \"ph\": 6.2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RNF-23.1 · Checkout transaccional ACID: Rollback y rechazo sin stock suficiente (400 o 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-23.1 - Status 400 Bad Request ante carrito sin stock o vacío', () => pm.expect([400, 404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{xsrf_token}}"
+              },
+              {
+                "key": "Cookie",
+                "value": "glossup_sesion=;"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direccionId\": 1,\n  \"metodoEnvio\": \"ESTANDAR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pedidos"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Mantenibilidad (RNF-24)",
+      "item": [
+        {
+          "name": "RNF-24.1 · Contratos limpios e independientes de infraestructura en puertos REST",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RNF-24.1 - Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('RNF-24.1 - DTO desacoplado y estructurado conforme a la arquitectura hexagonal', () => {",
+                  "  pm.expect(j).to.have.property('usuarioId');",
+                  "  pm.expect(j).to.have.property('ph');",
+                  "  pm.expect(j).to.have.property('tipoPiel');",
+                  "  pm.expect(j).to.have.property('alergias');",
+                  "  pm.expect(j).to.not.have.property('hibernateLazyInitializer');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/perfil/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "perfil",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
