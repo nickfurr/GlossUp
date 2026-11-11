@@ -36,7 +36,8 @@ export class Login {
   password = '';
   password2 = '';
   nombre = '';
-  rol: RolUsuario = 'CLIENTE';
+  // El registro público solo crea clientes; los vendedores los crea un administrador.
+  readonly rol: RolUsuario = 'CLIENTE';
   acepta = false;
   mayorDeEdad = false;
 
@@ -111,17 +112,7 @@ export class Login {
       this.auth
         .registrar({ email: this.email, nombre: this.nombre, password: this.password, rol: this.rol, aceptaPolitica: this.acepta, mayorDeEdad: this.mayorDeEdad })
         .subscribe({
-          next: () => {
-            if (this.rol !== 'VENDEDOR') {
-              entrar();
-              return;
-            }
-            // La cuenta de vendedor queda en revisión: no hay sesión que abrir todavía.
-            this.cargando.set(false);
-            this.modo.set('login');
-            this.password = this.password2 = '';
-            this.info.set('Creamos tu cuenta de vendedor. Un administrador la revisará y te avisaremos por correo cuando puedas entrar.');
-          },
+          next: () => entrar(),
           error: (e) => {
             this.cargando.set(false);
             if (this.esperaRegistro.manejar(e)) {
