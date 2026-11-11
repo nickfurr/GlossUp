@@ -120,7 +120,7 @@ class RegistrarUsuarioServiceTest {
         );
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class, () -> service.registrar(cmd));
-        assertEquals("No es posible registrarse como administrador", ex.getMessage());
+        assertEquals("Solo puedes registrarte como cliente; las cuentas de vendedor las crea un administrador", ex.getMessage());
         verify(usuarios, never()).guardar(any());
     }
 }

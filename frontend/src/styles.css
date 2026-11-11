@@ -527,13 +527,6 @@ main.full { max-width: none; margin: 0; padding: 0; }
 .auth-form .campo-full { display: flex; flex-direction: column; gap: 0.3rem; }
 .auth-form .etiqueta { font-weight: 600; font-size: 0.9rem; }
 
-.toggle-rol { display: flex; gap: 0.5rem; }
-.toggle-rol button {
-  flex: 1; padding: 0.55rem; border: 1px solid var(--borde); border-radius: 999px;
-  background: #fff; color: var(--tinta); font: inherit; font-weight: 600; cursor: pointer;
-}
-.toggle-rol button.activo { background: var(--vino); color: #fff; border-color: var(--vino); }
-
 .auth-form .ancho { width: 100%; border-radius: 10px; }
 .btn-primario.ancho { padding: 0.8rem; }
 .btn-sec.ancho { padding: 0.75rem; }

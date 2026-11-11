@@ -24,10 +24,10 @@ describe('Login', () => {
 
   afterEach(() => http.verify());
 
-  function llenarRegistro(rol: 'CLIENTE' | 'VENDEDOR'): void {
+  function llenarRegistro(): void {
     componente.cambiarModo();
     Object.assign(componente, { nombre: 'Tienda', email: 'tienda@glossup.co', password: 'Clave-segura-1',
-      password2: 'Clave-segura-1', rol, acepta: true, mayorDeEdad: true });
+      password2: 'Clave-segura-1', acepta: true, mayorDeEdad: true });
   }
 
   it('sin autorizar el tratamiento de datos no envía nada', () => {
@@ -38,23 +38,12 @@ describe('Login', () => {
     http.expectNone('/api/auth/register');
   });
 
-  it('un vendedor nuevo queda en revisión: no inicia sesión y se le explica', () => {
-    llenarRegistro('VENDEDOR');
+  it('el registro solo crea clientes y entra directo a su panel', () => {
+    llenarRegistro();
     componente.enviar();
     const registro = http.expectOne('/api/auth/register');
-    expect(registro.request.body).toMatchObject({ rol: 'VENDEDOR', aceptaPolitica: true, mayorDeEdad: true });
+    expect(registro.request.body).toMatchObject({ rol: 'CLIENTE' });
     registro.flush(null, { status: 201, statusText: 'Created' });
-
-    http.expectNone('/api/auth/login');
-    expect(componente.esRegistro()).toBe(false);
-    expect(componente.info()).toContain('administrador la revisará');
-    expect(componente.password).toBe('');
-  });
-
-  it('un cliente nuevo entra directo a su panel', () => {
-    llenarRegistro('CLIENTE');
-    componente.enviar();
-    http.expectOne('/api/auth/register').flush(null, { status: 201, statusText: 'Created' });
     http.expectOne('/api/auth/login').flush({ usuarioId: 3, email: 'tienda@glossup.co', nombre: 'Tienda', roles: ['CLIENTE'] });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cliente', { replaceUrl: true });
   });

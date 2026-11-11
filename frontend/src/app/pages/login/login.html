@@ -20,17 +20,6 @@
 
     <form class="auth-form" (ngSubmit)="enviar()">
       @if (esRegistro()) {
-        <div class="campo-full">
-          <span class="etiqueta">Tipo de cuenta</span>
-          <div class="toggle-rol">
-            <button type="button" [class.activo]="rol === 'CLIENTE'" [attr.aria-pressed]="rol === 'CLIENTE'" (click)="rol = 'CLIENTE'">Cliente</button>
-            <button type="button" [class.activo]="rol === 'VENDEDOR'" [attr.aria-pressed]="rol === 'VENDEDOR'" (click)="rol = 'VENDEDOR'">Vendedor</button>
-          </div>
-          @if (rol === 'VENDEDOR') {
-            <p class="nota">Un administrador revisa cada cuenta de vendedor antes de que pueda entrar.</p>
-          }
-        </div>
-
         <label>
           Nombre completo
           <input name="nombre" [(ngModel)]="nombre" placeholder="Nombre y apellidos" required />

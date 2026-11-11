@@ -50,23 +50,16 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
                 command.nombre(),
                 rol);
         usuario.aceptarPolitica(POLITICA_VIGENTE, OffsetDateTime.now());
-        if (rol == Rol.VENDEDOR) {
-            usuario.quedarPendienteDeAprobacion(); // vende al público: lo revisa un administrador (auditoría OBS-T08)
-        }
         Usuario creado = usuarioRepository.guardar(usuario);
         EventosSeguridad.registrar("CUENTA_CREADA", "usuario", creado.getId(), "rol", rol);
         return creado;
     }
 
+    // El registro público solo crea clientes; los vendedores los crea un administrador (AdministrarUsuariosService).
     private Rol parseRolPublico(String valor) {
-        try {
-            Rol rol = Rol.valueOf(valor.trim().toUpperCase());
-            if (rol == Rol.ADMIN) {
-                throw new ReglaNegocioException("No es posible registrarse como administrador");
-            }
-            return rol;
-        } catch (IllegalArgumentException | NullPointerException exception) {
-            throw new ReglaNegocioException("El rol debe ser CLIENTE o VENDEDOR");
+        if (valor == null || valor.isBlank() || valor.trim().equalsIgnoreCase(Rol.CLIENTE.name())) {
+            return Rol.CLIENTE;
         }
+        throw new ReglaNegocioException("Solo puedes registrarte como cliente; las cuentas de vendedor las crea un administrador");
     }
 }

@@ -35,14 +35,13 @@ class RegistroAutorizacionDatosTest {
     }
 
     @Test
-    void vendedorQueSeRegistraSolo_quedaPendienteYElClienteNo() {
+    void registroPublico_noCreaVendedoresNiAdministradores() {
         when(usuarios.buscarPorEmail(any())).thenReturn(Optional.empty());
-        when(usuarios.guardar(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        Usuario vendedor = service.registrar(new RegistrarUsuarioCommand("tienda@correo.co", "Tienda", "Clave-segura-1",
-                "VENDEDOR", true, true));
-        assertTrue(vendedor.isPendienteAprobacion());
-        assertFalse(service.registrar(comando(true, true)).isPendienteAprobacion());
+        for (String rol : new String[] {"VENDEDOR", "ADMIN"}) {
+            assertThrows(ReglaNegocioException.class, () -> service.registrar(new RegistrarUsuarioCommand(
+                    "tienda@correo.co", "Tienda", "Clave-segura-1", rol, true, true)));
+        }
+        verify(usuarios, never()).guardar(any());
     }
 
     @Test
