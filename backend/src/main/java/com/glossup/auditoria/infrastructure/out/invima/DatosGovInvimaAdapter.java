@@ -8,6 +8,7 @@ import com.glossup.catalogo.domain.model.Producto;
 import com.glossup.catalogo.domain.port.out.ProductoRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -35,6 +36,11 @@ public class DatosGovInvimaAdapter implements VerificacionInvimaPort {
     private final ProductoRepositoryPort productoRepository;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+
+    @Autowired
+    public DatosGovInvimaAdapter(ProductoRepositoryPort productoRepository) {
+        this(productoRepository, new ObjectMapper());
+    }
 
     public DatosGovInvimaAdapter(ProductoRepositoryPort productoRepository, ObjectMapper objectMapper) {
         this(productoRepository, objectMapper, HttpClient.newBuilder()
