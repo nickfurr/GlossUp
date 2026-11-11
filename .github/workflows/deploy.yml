@@ -11,7 +11,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  ACR: ca830bd7ba0eacr
+  ACR: glossup384495e6acr
   RESOURCE_GROUP: rg-glossup
   APP: glossup
 

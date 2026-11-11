@@ -8,7 +8,7 @@ info:
     name: Uso academico
   version: v0.0.1
 servers:
-- url: https://glossup.agreeablehill-726dcf29.eastus.azurecontainerapps.io
+- url: https://glossup.thankfulbeach-8bed69de.eastus.azurecontainerapps.io
   description: Entorno desplegado en Azure Container Apps
 - url: http://localhost:8080
   description: Entorno de desarrollo local

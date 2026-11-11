@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://glossup.agreeablehill-726dcf29.eastus.azurecontainerapps.io"
+      "value": "https://glossup.thankfulbeach-8bed69de.eastus.azurecontainerapps.io"
     },
     {
       "key": "token_cliente",
@@ -96,7 +96,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const base = pm.collectionVariables.get('baseUrl') || 'https://glossup.agreeablehill-726dcf29.eastus.azurecontainerapps.io';",
+                  "const base = pm.collectionVariables.get('baseUrl') || 'https://glossup.thankfulbeach-8bed69de.eastus.azurecontainerapps.io';",
                   "const postReq = (path, body, token, method = 'POST', xsrf = '') => ({",
                   "  url: base + path,",
                   "  method: method,",
