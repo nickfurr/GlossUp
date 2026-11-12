@@ -18,7 +18,7 @@ COPY --from=frontend /front/dist/ ./src/main/resources/static/
 RUN mvn -q test -Dtest="!*PersistenciaTest,!*MigracionTest,!*ConcurrenteTest,!*PaginadoTest" jacoco:report package -DskipTests=false
 
 # ---------- 3) Imagen de ejecución ----------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 # Paquetes del sistema base al día (auditoría R-17: brotli-libs crítica).
 RUN apk upgrade --no-cache
 WORKDIR /app
