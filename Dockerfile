@@ -10,7 +10,7 @@ COPY frontend/ ./
 RUN npm run build        # genera /front/dist
 
 # ---------- 2) Build del backend (empaqueta el front dentro del jar) ----------
-FROM maven:3.9-eclipse-temurin-21 AS backend
+FROM maven:3.9-eclipse-temurin-26 AS backend
 WORKDIR /app
 COPY backend/ ./
 COPY --from=frontend /front/dist/ ./src/main/resources/static/
